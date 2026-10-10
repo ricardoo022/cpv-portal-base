@@ -34,7 +34,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
   - códigos distintos em cada nível da árvore (divisão, grupo, classe, código completo);
   - quantos exemplos tem cada código (desequilíbrio de classes).
 - [x] Quantos anos usar no treino, em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
-- [ ] Voltar a medir as secções 7 a 10 com o treino final (janeiro de 2022 a setembro de 2025, todos os ficheiros). Foram medidas só com janeiro a setembro de 2025 e só com os ficheiros de 2025 e 2026, que deixavam de fora cerca de 12% dos contratos publicados em 2025.
+- [x] Voltar a medir as secções 7 a 10 com o treino final (janeiro de 2022 a setembro de 2025, todos os ficheiros). A primeira versão usava só janeiro a setembro de 2025 e só os ficheiros de 2025 e 2026. As conclusões mantêm-se; a cobertura da validação com N = 10 subiu de 92,2% para 97,9%.
 
 ## 3. Preparar os dados
 
