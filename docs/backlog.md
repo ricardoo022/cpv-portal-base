@@ -202,7 +202,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Medida de sucesso** (tudo na validação, outubro de 2025):
 
 1. O TF-IDF tem top-5 maior do que a régua "códigos mais comuns" no código completo e na classe, em todos os contratos e também só nos contratos com texto novo.
-2. O N (5, 10 ou 20) está escolhido e escrito no [`qualidade_dados.md`](qualidade_dados.md), com a tabela de resultados que o justifica. A janela de treino (desde 2025, 2022 ou 2019) também, ou, se o E4-S2 for cortado, o `qualidade_dados.md` diz que a decisão 1 se mantém sem confirmação.
+2. O N (5, 10 ou 20) e se a entidade compradora entra no modelo estão escolhidos e escritos. O N está escolhido e escrito no [`qualidade_dados.md`](qualidade_dados.md), com a tabela de resultados que o justifica. A janela de treino (desde 2025, 2022 ou 2019) também, ou, se o E4-S2 for cortado, o `qualidade_dados.md` diz que a decisão 1 se mantém sem confirmação.
 3. O CI falha se as métricas guardadas do TF-IDF ficarem abaixo da régua, ou se o treino com dados minúsculos deixar de funcionar.
 4. O treino e a avaliação só conseguem carregar o teste com uma autorização explícita, e um teste no CI confirma que sem ela o carregamento é recusado.
 
@@ -212,12 +212,11 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - MLflow;
 - comparar com o modelo multilingue já tunado com concursos europeus;
 - medir no teste e fazer a análise de erros (fase 5);
-- a `adjudicante` como entrada (ver "Decisões pendentes");
 - interface gráfica e API.
 
 **Aviso:** se o TF-IDF não bater a régua (E4-H1), para-se aqui. Isso quer dizer que há um erro nos dados, no treino ou na avaliação, e os itens seguintes esperam até se perceber qual.
 
-**Tamanho:** a soma das estimativas é de 13 dias de trabalho, no máximo (2 itens M de 3 dias, 4 itens P de 1 dia e 3 spikes de 1 dia). Não há prazo fixo. Se for preciso cortar, o E4-S2 (janela de treino) é o primeiro a sair, e fica a decisão 1 como está.
+**Tamanho:** a soma das estimativas é de 14 dias de trabalho, no máximo (2 itens M de 3 dias, 4 itens P de 1 dia e 4 spikes de 1 dia). Não há prazo fixo. Se for preciso cortar, o E4-S2 (janela de treino) é o primeiro a sair, e fica a decisão 1 como está.
 
 ### E4-T1 · Tarefa: avaliação comum a todos os modelos (M)
 
@@ -307,6 +306,30 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - o N escolhido, escrito na decisão 9 do `qualidade_dados.md`, e passa a ser o valor por defeito;
 - se o N mudar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se com o novo N.
 
+### E4-S3 · Spike: a entidade compradora ajuda o modelo? (timebox: 1 dia)
+
+**Pergunta:** juntar a entidade (`adjudicante`) ao texto de entrada melhora as sugestões, ou faz o modelo aprender os hábitos de cada entidade, incluindo os códigos genéricos? (decisão 7)
+
+**Depende de:** E4-S1 (usa o N escolhido) e E4-H1.
+
+**Como:** treinar o mesmo modelo com e sem a entidade e comparar na validação. A comparação faz-se em três grupos:
+
+- todos os contratos;
+- os contratos de entidades que aparecem no treino;
+- os contratos de entidades que não aparecem no treino.
+
+**Regra de escolha, escrita antes de correr:** a entidade entra se as três condições se cumprirem:
+
+- melhorar o top-5 no código completo em todos os contratos em pelo menos 0,5 pontos percentuais;
+- não piorar mais de 0,5 pontos nos contratos de entidades novas;
+- não aumentar a parte das 1.as sugestões ao nível do grupo ou acima.
+
+**Resultado:**
+
+- uma tabela com e sem entidade nos três grupos, com a parte das 1.as sugestões ao nível do grupo ou acima;
+- a decisão 7 fechada no `qualidade_dados.md`;
+- se a entidade entrar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se.
+
 ### E4-T4 · Tarefa: escolher a data de início do treino na preparação (P)
 
 **Porque é precisa:** hoje o treino começa sempre em janeiro de 2022. O E4-S2 precisa de preparar treinos com outras datas de início.
@@ -358,15 +381,18 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 E4-T1 ──> E4-T2 ──┐
 E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T3
                                ├──> E4-T5
-                               └──> E4-S1 ──┐
+                               └──> E4-S1 ──┬──> E4-S3 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 E4-T4 ──────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
 - E4-T1, E4-S0 e E4-T4 podem começar já e não dependem uns dos outros.
-- O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N e a janela escolhidos.
+- O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
+
+### Decisões tomadas para o E4
+
+- A entidade compradora testa-se já com o TF-IDF (spike E4-S3), não depois do BERTimbau. Mais barato: se não ajudar no TF-IDF, provavelmente não vale a pena gastar GPU a testá-la.
 
 ### Decisões pendentes do E4
 
-1. **`adjudicante` (decisão 7):** fazer já o teste "com e sem entidade" com o TF-IDF, como mais um spike neste épico, ou deixar para depois do BERTimbau? Está fora deste épico até decidires.
-2. **Regras de escolha do E4-S1 e do E4-S2** (métrica principal: top-5 no código completo; margem de 0,5 pontos): concordas, ou preferes outra métrica principal, por exemplo o top-5 na classe? Tem de ficar fechado antes do E4-S1.
-3. **Limites do E4-S0** (memória abaixo de 4 GB, treino abaixo de 1 hora): servem, ou preferes alugar uma máquina logo à partida?
+1. **Regras de escolha do E4-S1, do E4-S2 e do E4-S3** (métrica principal: top-5 no código completo; margem de 0,5 pontos): concordas, ou preferes outra métrica principal, por exemplo o top-5 na classe? Tem de ficar fechado antes do E4-S1.
+2. **Limites do E4-S0** (memória abaixo de 4 GB, treino abaixo de 1 hora): servem, ou preferes alugar uma máquina logo à partida?
