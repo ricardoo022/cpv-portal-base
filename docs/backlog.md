@@ -230,7 +230,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 - **Nível de um código:** os dígitos antes dos zeros finais. `33600000` tem 3 (grupo); `90911200` tem 6.
 - **Três medidas, de cada vez com as sugestões do modelo:**
-  - **código completo (no nível da etiqueta):** uma sugestão acerta se tiver os mesmos dígitos que o código até ao nível dele. Para `33600000`, acerta qualquer sugestão que comece por `336` (é a decisão 8). Para `90911200`, só `90911200`;
+  - **código completo (no nível da etiqueta):** uma sugestão acerta se tiver os mesmos dígitos que o código até ao nível dele. Para `33600000`, acerta qualquer sugestão que comece por `336` (é a decisão 8). A regra vale em todos os níveis: para `45233200` (nível 6) acerta `45233200` e também um filho como `45233223`, que está dentro do código escolhido; não acertam o irmão `45233300` nem o pai `45233000`. Para um código de 8 dígitos, como `45233223`, só ele acerta;
   - **classe:** os mesmos 4 primeiros dígitos. Só contam os contratos com um código ao nível da classe ou abaixo;
   - **divisão:** os mesmos 2 primeiros dígitos. Contam todos os contratos.
 - **Vários códigos (decisão 4):** um contrato conta numa medida se algum dos seus códigos chegar a esse nível, e acerta se uma sugestão acertar em algum desses códigos. Exemplo: um contrato com `33000000` e `33690000` conta na classe (por causa do segundo código) e acerta se uma sugestão começar por `3369`.
@@ -246,13 +246,13 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Critérios de aceitação:**
 
-- [ ] Dadas as 5 sugestões de cada contrato e os seus códigos, a avaliação dá o top-1 e o top-5 em cada nível e diz quantos contratos entraram em cada nível.
-- [ ] Dá também o F1 macro em cada medida, como descrito acima.
-- [ ] Dadas as sugestões de duas opções para os mesmos contratos, dá a diferença entre elas em cada medida e diz se essa diferença conta, segundo a regra de comparação abaixo.
-- [ ] Com a mesma semente aleatória, o bootstrap dá sempre o mesmo resultado. Duas opções com sugestões iguais dão diferença zero, que não conta.
-- [ ] Os resultados aparecem para todos os contratos e, em separado, só para os contratos com texto que não aparece no treino.
-- [ ] Há um teste com contratos inventados, com o resultado calculado à mão, para cada regra de contagem acima (incluindo uma etiqueta de grupo, uma de categoria, e um contrato com um código de divisão e outro de classe).
-- [ ] Cada teste falha quando se estraga de propósito a regra que ele guarda.
+- [x] Dadas as 5 sugestões de cada contrato e os seus códigos, a avaliação dá o top-1 e o top-5 em cada nível e diz quantos contratos entraram em cada nível.
+- [x] Dá também o F1 macro em cada medida, como descrito acima.
+- [x] Dadas as sugestões de duas opções para os mesmos contratos, dá a diferença entre elas em cada medida e diz se essa diferença conta, segundo a regra de comparação acima.
+- [x] Com a mesma semente aleatória, o bootstrap dá sempre o mesmo resultado. Duas opções com sugestões iguais dão diferença zero, que não conta.
+- [x] Os resultados aparecem para todos os contratos e, em separado, só para os contratos com texto que não aparece no treino.
+- [x] Há um teste com contratos inventados, com o resultado calculado à mão, para cada regra de contagem acima (incluindo uma etiqueta de grupo, uma de categoria, e um contrato com um código de divisão e outro de classe).
+- [x] Cada teste falha quando se estraga de propósito a regra que ele guarda.
 
 ### E4-T2 · Tarefa: régua "códigos mais comuns" medida na validação (P)
 
