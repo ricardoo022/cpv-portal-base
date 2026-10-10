@@ -3,7 +3,9 @@
 Resultados das verificações de qualidade (fase 2 do [`workflow.md`](workflow.md)) e as decisões que saem delas.
 
 - Dados: ficheiros de 2025 e 2026 do Portal BASE, versão de 4 de outubro de 2026. 433 838 contratos no total.
-- Para repetir: `.venv/bin/python src/quality_checks.py 2025 2026`
+- De onde vêm os números:
+  - secções 1 a 6: `.venv/bin/python src/quality_checks.py 2025 2026` (todos os dados; só conta);
+  - secções 7 a 10: [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (só o treino; a validação só na secção 10).
 - O script só conta. Os exemplos que mostra vêm apenas de contratos publicados antes de novembro de 2025, para não espreitar o período de teste.
 
 ## O que está bem
@@ -79,14 +81,14 @@ Mas os textos repetidos também fazem parte do problema real: os técnicos vão 
 
 ### 7. Colunas que ajudam os textos vagos
 
-Medido só nos contratos de janeiro a outubro de 2025 (fora do período de teste).
+Medido só nos contratos de treino (janeiro a setembro de 2025, 166 112 contratos).
 
 | Coluna | Preenchida | O que traz |
 |---|---|---|
-| `DescrAcordoQuadro` | 15,4% de todos os contratos, mas 97,8% dos que falam de acordo-quadro | A descrição do acordo-quadro, por exemplo "Concurso público internacional para formação do acordo quadro de medicamentos..." |
+| `DescrAcordoQuadro` | 15,5% de todos os contratos, mas 97,7% dos que falam de acordo-quadro | A descrição do acordo-quadro, por exemplo "Concurso público internacional para formação do acordo quadro de medicamentos..." |
 | `adjudicante` | 100% | A entidade que compra |
 
-Os textos que falam de acordo-quadro são 11 364 (6,0%). Muitos não dizem o que se compra ("convite à apresentação de propostas ao abrigo do acordo-quadro..."), mas a `DescrAcordoQuadro` diz.
+Os textos que falam de acordo-quadro são 9 981 (6,0%). Muitos não dizem o que se compra ("convite à apresentação de propostas ao abrigo do acordo-quadro..."), mas a `DescrAcordoQuadro` diz.
 
 As duas colunas são informação que o técnico já tem quando escolhe o código. Por isso não é fuga de dados.
 
@@ -94,17 +96,18 @@ As duas colunas são informação que o técnico já tem quando escolhe o códig
 
 Medido só nos contratos de treino (janeiro a setembro de 2025, 166 112 contratos).
 
-Exemplo: o texto "medicamentos" (1 870 contratos, 7 entidades):
+Exemplo: o texto "medicamentos" no treino (1 565 contratos, 7 entidades; a secção 6 conta 1 870 porque inclui outubro):
 
 | Código | Vezes |
 |---|---|
-| `33000000` Equipamento médico, medicamentos e produtos para cuidados pessoais | 1 716 |
-| `33600000` Produtos farmacêuticos | 151 |
+| `33000000` Equipamento médico, medicamentos e produtos para cuidados pessoais | 1 457 |
+| `33600000` Produtos farmacêuticos | 105 |
 | `33690000` Medicamentos vários | 2 |
+| `32000000` Equipamento de rádio, televisão, comunicação... | 1 |
 
 Só 3 585 contratos de treino (2,2%) têm um código diferente do mais comum do seu texto.
 
-Primeira ideia, errada: um exemplo por par (texto, código). Os três códigos de "medicamentos" ficavam com um exemplo cada, e o modelo achava-os igualmente prováveis, apesar de um aparecer 1 716 vezes e outro 2.
+Primeira ideia, errada: um exemplo por par (texto, código). Os códigos de "medicamentos" ficavam com um exemplo cada, e o modelo achava-os igualmente prováveis, apesar de um aparecer 1 457 vezes e outro 2.
 
 ### 9. Códigos genéricos: a que nível as entidades escolhem o código
 

@@ -30,7 +30,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
   - textos duplicados.
   - Resultados e decisões em [`qualidade_dados.md`](qualidade_dados.md).
 - [x] Não olhar para o teste (contratos publicados em novembro e dezembro de 2025) até à fase 5. Até aqui filtrou-se pela data; os ficheiros separados criam-se na fase 3.
-- [x] Exploração só nos dados de treino (resultados nas secções 7 a 10 de [`qualidade_dados.md`](qualidade_dados.md)):
+- [x] Exploração só nos dados de treino, em [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (resultados nas secções 7 a 10 de [`qualidade_dados.md`](qualidade_dados.md)):
   - códigos distintos em cada nível da árvore (divisão, grupo, classe, código completo);
   - quantos exemplos tem cada código (desequilíbrio de classes).
 
