@@ -145,7 +145,7 @@ cpv-portal-base/
   notebooks/        exploração e análise de erros
   src/              preparação de dados, treino e avaliação
   scripts/          download_data.py
-  docs/             workflow.md (os passos e o estado) e qualidade_dados.md (verificações e decisões)
+  docs/             workflow.md (os passos e o estado), dados.md (as colunas) e qualidade_dados.md (verificações e decisões)
   requirements.txt  versões exatas das bibliotecas
 ```
 
