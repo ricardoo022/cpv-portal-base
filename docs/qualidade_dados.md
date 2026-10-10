@@ -2,11 +2,12 @@
 
 Resultados das verificações de qualidade (fase 2 do [`workflow.md`](workflow.md)) e as decisões que saem delas.
 
-- Dados: ficheiros de 2025 e 2026 do Portal BASE, versão de 4 de outubro de 2026. 433 838 contratos no total.
+- Dados: Portal BASE, versão de 4 de outubro de 2026.
+- **Âmbito das medições (importante):** as secções 1 a 10 foram medidas só com os ficheiros de 2025 e 2026 (433 838 contratos), e as secções 7 a 10 só com os contratos publicados de janeiro a setembro de 2025. Depois descobriu-se que o ficheiro de um ano é o ano de celebração (secção 2) e decidiu-se treinar desde 2022 (decisão 1). Os números servem para as decisões, mas não são os do treino final; os do treino final estão na secção 11. Voltar a medir as secções 7 a 10 está pendente no [`workflow.md`](workflow.md).
 - De onde vêm os números:
   - secções 1 a 6: [`notebooks/00_qualidade.ipynb`](../notebooks/00_qualidade.ipynb) (todos os dados; só conta);
   - secções 7 a 10: [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (só o treino; a validação só na secção 10).
-- O script só conta. Os exemplos que mostra vêm apenas de contratos publicados antes de novembro de 2025, para não espreitar o período de teste.
+- Os notebooks só contam. Os exemplos que mostram vêm apenas de contratos publicados antes de novembro de 2025, para não espreitar o período de teste.
 
 ## O que está bem
 
@@ -163,6 +164,33 @@ Se só se treinar com códigos que têm pelo menos N exemplos:
 | 50 | 431 | 77,8% | 76,6% |
 | 100 | 229 | 67,4% | 66,6% |
 
+### 11. Resultado da preparação (funil)
+
+Saída do `src/prepare.py` com a separação final (decisão 1), lendo todos os ficheiros.
+
+| Passo | Contratos |
+|---|---|
+| Publicados de janeiro de 2022 a dezembro de 2025 | 859 649 |
+| Com pelo menos um código CPV | 859 636 |
+| Uma cópia por `idcontrato` | 856 189 |
+
+Treino (janeiro de 2022 a setembro de 2025):
+
+| Passo | Contratos |
+|---|---|
+| Contratos de treino | 794 883 |
+| Sem códigos ao nível da divisão | 645 625 (saem 149 258, 18,8%) |
+| Que seguem o código mais comum do seu texto | 631 277 (saem 14 348, 2,2%) |
+| **Exemplos de treino (um por texto)** | **478 384** |
+
+Validação e teste (ficam todos os contratos):
+
+| | Validação (outubro de 2025) | Teste (novembro e dezembro de 2025) |
+|---|---|---|
+| Contratos | 23 945 | 37 361 |
+| Com texto que já aparece no treino | 3 706 (15,5%) | 4 484 (12,0%) |
+| Com código ao nível da divisão (avaliados só na divisão) | 4 051 (16,9%) | 5 642 (15,1%) |
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
@@ -180,11 +208,11 @@ Se só se treinar com códigos que têm pelo menos N exemplos:
 4. Contratos com vários códigos: treinar com o primeiro. Na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.
 5. Texto de entrada: o `objectoContrato`, mais a `descContrato` só quando for diferente, mais a `DescrAcordoQuadro` sempre que existir.
 6. Textos repetidos:
-   - **No treino:** um só exemplo por texto (o texto de entrada completo da decisão 5), com o código mais comum desse texto. Acaba com as repetições (o modelo deixa de ver "medicamentos" 1 870 vezes) e com as contradições (cada texto tem uma só resposta). Perde 2,2% dos contratos de treino, muitas vezes ruído.
-   - **No teste:** manter todos os contratos, para o resultado refletir a realidade. Medir também à parte só os contratos com texto que nunca apareceu no treino, para ver se o modelo aprendeu ou só decorou.
+   - **No treino:** um só exemplo por texto (o texto de entrada completo da decisão 5), com o código mais comum desse texto. Acaba com as repetições (o modelo deixa de ver "medicamentos" 1 870 vezes) e com as contradições (cada texto tem uma só resposta). Perde 2,2% dos contratos de treino (14 348 no treino final), muitas vezes ruído.
+   - **Na validação e no teste:** manter todos os contratos, para o resultado refletir a realidade. Medir também à parte só os contratos com texto que nunca apareceu no treino, para ver se o modelo aprendeu ou só decorou.
 7. A `adjudicante` entra como experiência: treinar com e sem ela e comparar. Pode ajudar (um hospital e uma câmara compram coisas diferentes), mas o modelo pode aprender os hábitos de cada entidade, incluindo os erros, e falhar com entidades que não viu no treino.
 8. Códigos genéricos (secção 9):
-   - **No treino:** tirar só os contratos com código ao nível da divisão (17,6%) e manter todos os outros. O código ao nível da divisão quase nunca ajuda; os do grupo para baixo muitas vezes são escolhas legítimas.
+   - **No treino:** tirar só os contratos com código ao nível da divisão (17,6% em 2025; 18,8% no treino final) e manter todos os outros. O código ao nível da divisão quase nunca ajuda; os do grupo para baixo muitas vezes são escolhas legítimas.
    - **Na avaliação:** cada contrato de teste avalia-se até ao nível que a etiqueta tem. Se a etiqueta é `33600000` (grupo), só se verifica se o modelo acertou em `336`. Por isso o acerto na classe (4 dígitos) só se mede nos cerca de 57% de contratos com etiqueta da classe para baixo, e isto tem de ficar dito no relatório final.
 9. Códigos raros (back-off hierárquico, `src/labels.py`): um código com menos de N exemplos no treino sobe para a classe (4 dígitos); se a classe também for rara, sobe para o grupo (3 dígitos); se o grupo também for raro, o exemplo sai. Nunca se sobe até à divisão.
    - As contagens fazem-se só com o treino (contar com a validação seria fuga de dados).

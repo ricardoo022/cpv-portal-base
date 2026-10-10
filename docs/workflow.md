@@ -33,16 +33,19 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Exploração só nos dados de treino, em [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (resultados nas secções 7 a 10 de [`qualidade_dados.md`](qualidade_dados.md)):
   - códigos distintos em cada nível da árvore (divisão, grupo, classe, código completo);
   - quantos exemplos tem cada código (desequilíbrio de classes).
+- [x] Quantos anos usar no treino, em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
+- [ ] Voltar a medir as secções 7 a 10 com o treino final (janeiro de 2022 a setembro de 2025, todos os ficheiros). Foram medidas só com janeiro a setembro de 2025 e só com os ficheiros de 2025 e 2026, que deixavam de fora cerca de 12% dos contratos publicados em 2025.
 
 ## 3. Preparar os dados
 
 **Geral:** limpar e transformar os dados no formato que o modelo precisa, e separá-los em treino, validação e teste. Os dados originais nunca se alteram: a limpeza é um script que se pode corrigir e voltar a correr.
 
 **Neste projeto:**
-- [ ] Extrair o código do `CPV` (`90611000-3 - Serviços de limpeza de ruas` → `90611000`) e os níveis da árvore.
-- [ ] Contratos com vários códigos: treinar com o primeiro, guardar os restantes para a avaliação.
-- [ ] Tirar duplicados de texto antes de separar.
-- [ ] Separar por `dataPublicacao`, lendo todos os ficheiros: treino (janeiro de 2022 a setembro de 2025), validação (outubro de 2025), teste (novembro e dezembro de 2025). 2026 fica de reserva. Decisão em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
+- [x] Extrair o código do `CPV` (`90611000-3 - Serviços de limpeza de ruas` → `90611000`) e os níveis da árvore.
+- [x] Contratos com vários códigos: treinar com o primeiro, guardar os restantes para a avaliação.
+- [x] Texto de entrada: objeto + descrição (se diferente) + descrição do acordo-quadro (se existir).
+- [x] No treino: tirar os códigos ao nível da divisão e juntar os textos repetidos num só exemplo. Na validação e no teste: ficam todos, com a marca `visto_no_treino`.
+- [x] Separar por `dataPublicacao`, lendo todos os ficheiros: treino (janeiro de 2022 a setembro de 2025), validação (outubro de 2025), teste (novembro e dezembro de 2025). 2026 fica de reserva. Decisão em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
 - [x] Script de preparação `src/prepare.py`, com verificações automáticas no fim.
 - [x] Testes unitários e de integração (`.venv/bin/pytest`), verificados com erros introduzidos de propósito.
 - [x] Regra para os códigos raros: sobem para a classe ou o grupo (`src/labels.py`, decisão 9 de [`qualidade_dados.md`](qualidade_dados.md)).
@@ -58,6 +61,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.
 - [ ] Escolher o melhor de cada pela validação.
+- [ ] Testes ao modelo: consegue decorar poucos exemplos (se não conseguir, há um erro no treino); só sugere códigos que existem; bate o "escolher sempre o código mais comum".
 
 ## 5. Avaliar
 
@@ -96,6 +100,9 @@ Vamos acrescentando à medida que aparecem.
 - **Teste de integração:** testa várias peças a funcionar juntas, do princípio ao fim. Aqui: o pipeline inteiro, de .xlsx a treino/validação/teste.
 - **Determinismo:** correr duas vezes com os mesmos dados dá exatamente o mesmo resultado. Sem isto não se consegue reproduzir nem comparar experiências.
 - **Mutation testing:** introduzir erros de propósito no código para confirmar que os testes os apanham. Um teste que passa sempre não prova nada.
+- **Funil:** quantos dados ficam depois de cada passo da preparação. Mostra quanto custa cada decisão.
+- **Impressão digital (hash):** um número calculado a partir de um texto. Textos iguais dão o mesmo número, e um número ocupa muito menos memória do que o texto.
+- **Back-off hierárquico:** quando um código tem poucos exemplos, usa-se o código do nível de cima da árvore (a classe ou o grupo), que tem mais.
 - **Desequilíbrio de classes:** quando algumas etiquetas têm muitos exemplos e outras muito poucos.
 - **Top-1 e top-5:** se a resposta certa é a primeira sugestão (top-1) ou está entre as 5 primeiras (top-5).
 - **F1 macro:** o F1 mede, para cada etiqueta, um equilíbrio entre não dar falsos positivos e não falhar casos verdadeiros. O "macro" faz a média entre todas as etiquetas com o mesmo peso, por isso as etiquetas raras contam tanto como as frequentes. Explicamos em detalhe na fase 5.
