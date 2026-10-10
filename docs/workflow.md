@@ -6,6 +6,8 @@ O CRISP-DM não é uma lei, é uma referência. E é iterativo: anda-se para tr�
 
 Cada fase tem duas partes: o que é geral a qualquer projeto de ML e o que fazemos neste.
 
+Os épicos e as user stories (o que já está feito e o próximo épico, com critérios de aceitação) estão em [`backlog.md`](backlog.md).
+
 ## 1. Perceber o problema
 
 **Geral:** definir que problema queremos resolver, para quem, e como sabemos se o resolvemos (critério de sucesso).
@@ -56,7 +58,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 **Geral:** começar por um modelo simples (baseline), para ter com que comparar. Depois treinar os modelos a sério e escolher o melhor pela validação, nunca pelo teste.
 
 **Neste projeto:**
-- [ ] Baseline: TF-IDF com regressão logística, no portátil.
+- [ ] Baseline: TF-IDF com regressão logística, numa máquina alugada só com processador (Hetzner CX53, 32 GB). Plano em [`backlog.md`](backlog.md), épico E4.
 - [ ] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação.
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.

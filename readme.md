@@ -148,7 +148,7 @@ cpv-portal-base/
   src/              pipeline: conversão, preparação, treino e avaliação
   tests/            testes unitários e de integração (pytest)
   scripts/          download_data.py
-  docs/             workflow.md (os passos e o estado), dados.md (as colunas) e qualidade_dados.md (verificações e decisões)
+  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas) e qualidade_dados.md (verificações e decisões)
   requirements.txt  versões exatas das bibliotecas
 ```
 
