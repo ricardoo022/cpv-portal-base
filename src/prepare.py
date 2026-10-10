@@ -94,7 +94,7 @@ def load_all(raw_dir):
 
 
 def dedupe_ids(df):
-    """Decisão 3: uma cópia por idcontrato (fica a do ficheiro mais recente)."""
+    """Decisão 3: uma cópia por idcontrato (a do ficheiro mais recente; no mesmo ficheiro, a de data mais recente)."""
     return df.sort_values(["ficheiro", "data"]).drop_duplicates("idcontrato", keep="last")
 
 

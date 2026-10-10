@@ -69,6 +69,24 @@ def test_dedupe_ids_fica_a_copia_do_ficheiro_mais_recente():
     assert out.loc[out["idcontrato"] == 1, "texto"].item() == "novo"
 
 
+def test_dedupe_ids_no_mesmo_ficheiro_fica_a_data_mais_recente():
+    # A cópia mais recente vem primeiro, para a ordem das linhas não decidir sozinha
+    df = contratos([
+        (1, "2024-05-01", "nova", "90611000", 2024),
+        (1, "2024-03-01", "antiga", "90611000", 2024),
+    ])
+    assert pr.dedupe_ids(df)["texto"].tolist() == ["nova"]
+
+
+def test_dedupe_ids_o_ficheiro_conta_antes_da_data():
+    # A cópia do ficheiro antigo tem a data mais recente e vem em último: fica a do ficheiro novo
+    df = contratos([
+        (1, "2024-03-01", "ficheiro novo", "90611000", 2024),
+        (1, "2024-06-01", "ficheiro antigo", "90611000", 2023),
+    ])
+    assert pr.dedupe_ids(df)["texto"].tolist() == ["ficheiro novo"]
+
+
 # --- build_train (decisões 8 e 6) ---
 
 def test_build_train_tira_codigos_ao_nivel_da_divisao():
