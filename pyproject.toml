@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "data: testes aos dados reais preparados (saltam se data/processed/ não existir)",
+]

@@ -74,7 +74,7 @@ def normalize_text(s):
 
 
 def period(data):
-    """Período de cada contrato: 'treino', 'validação', 'teste' ou None (fora dos três)."""
+    """Período de cada contrato: 'treino', 'validação', 'teste', ou valor em falta (NaN) fora dos três."""
     out = pd.Series(None, index=data.index, dtype="object")
     out[(data >= TRAIN_START) & (data < VAL_START)] = "treino"
     out[(data >= VAL_START) & (data < TEST_START)] = "validação"
