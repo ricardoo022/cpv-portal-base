@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW_PARQUET = ROOT / "data" / "processed" / "raw"
 
 # Split por data de publicação (ver docs/workflow.md, fase 3)
-YEAR_START = pd.Timestamp("2025-01-01")
+TRAIN_START = pd.Timestamp("2022-01-01")  # decisão em notebooks/02_anos_treino.ipynb
 VAL_START = pd.Timestamp("2025-10-01")
 TEST_START = pd.Timestamp("2025-11-01")
 YEAR_END = pd.Timestamp("2026-01-01")
@@ -24,19 +24,25 @@ LEVEL_NAMES = {2: "divisão", 3: "grupo", 4: "classe", 5: "categoria"}
 ALL_YEARS = range(2012, 2027)
 
 
-def load_contracts(columns, years=ALL_YEARS):
+def load_contracts(columns, years=ALL_YEARS, since=None, until=None):
     """Lê os Parquet dos anos pedidos e junta-os, com a data de publicação já convertida.
 
     Por defeito lê todos os ficheiros: o ficheiro de um ano é o ano de celebração do contrato,
     por isso os contratos publicados num ano estão espalhados por vários ficheiros.
+    `since` e `until` filtram pela data de publicação ficheiro a ficheiro, para poupar memória.
     """
     cols = list(dict.fromkeys(["idcontrato", "dataPublicacao", *columns]))
-    df = pd.concat(
-        [pd.read_parquet(RAW_PARQUET / f"contratos{y}.parquet", columns=cols) for y in years],
-        ignore_index=True,
-    )
-    df["data"] = pd.to_datetime(df["dataPublicacao"], errors="coerce")
-    return df
+    parts = []
+    for y in years:
+        part = pd.read_parquet(RAW_PARQUET / f"contratos{y}.parquet", columns=cols)
+        part["data"] = pd.to_datetime(part["dataPublicacao"], errors="coerce")
+        if since is not None:
+            part = part[part["data"] >= since]
+        if until is not None:
+            part = part[part["data"] < until]
+        part["ficheiro"] = y
+        parts.append(part)
+    return pd.concat(parts, ignore_index=True)
 
 
 def first_code(cpv):
@@ -68,9 +74,9 @@ def normalize_text(s):
 
 
 def period(data):
-    """Período de cada contrato: 'treino', 'validação', 'teste' ou None (fora de 2025)."""
+    """Período de cada contrato: 'treino', 'validação', 'teste' ou None (fora dos três)."""
     out = pd.Series(None, index=data.index, dtype="object")
-    out[(data >= YEAR_START) & (data < VAL_START)] = "treino"
+    out[(data >= TRAIN_START) & (data < VAL_START)] = "treino"
     out[(data >= VAL_START) & (data < TEST_START)] = "validação"
     out[(data >= TEST_START) & (data < YEAR_END)] = "teste"
     return out
