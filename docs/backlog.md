@@ -22,6 +22,8 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - **Critério de aceitação:** uma condição que se verifica com sim ou não para dar o item por feito. Diz o que se vê, não como se programa.
 - **INVEST:** seis qualidades de uma boa história: Independente, Negociável, Valiosa, Estimável, pequena (*Small*), Testável.
 - **Régua "códigos mais comuns":** sugerir sempre os mesmos 5 códigos, os mais frequentes no treino, sem ler o texto. É o mínimo que qualquer modelo tem de bater.
+- **Bootstrap:** tirar muitas vezes, à sorte e com repetição, uma amostra dos contratos de validação e recalcular a métrica em cada uma. Mostra quanto o resultado muda só por acaso.
+- **Métrica de guarda:** uma métrica que não escolhe o vencedor, mas elimina uma opção que a piore.
 - **Smoke test:** um teste rápido que só confirma que o treino corre e faz algo com sentido, com dados minúsculos.
 - **Portão de qualidade:** um teste no CI que falha se um modelo ficar abaixo de um limite.
 - **Tamanhos:** P = até 1 dia; M = até 3 dias. Um item maior divide-se.
@@ -208,7 +210,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Fora do âmbito deste épico:**
 
-- tunar o BERTimbau e o Albertina, e alugar a GPU;
+- tunar o BERTimbau e o Albertina, e alugar a GPU (a máquina alugada deste épico só tem processador);
 - MLflow;
 - comparar com o modelo multilingue já tunado com concursos europeus;
 - medir no teste e fazer a análise de erros (fase 5);
@@ -234,10 +236,20 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - **Vários códigos (decisão 4):** um contrato conta numa medida se algum dos seus códigos chegar a esse nível, e acerta se uma sugestão acertar em algum desses códigos. Exemplo: um contrato com `33000000` e `33690000` conta na classe (por causa do segundo código) e acerta se uma sugestão começar por `3369`.
 - **F1 macro:** calcula-se com a 1.ª sugestão contra a etiqueta (o 1.º código), no nível de cada medida. A média faz-se sobre as etiquetas presentes na validação nesse nível.
 
+**Regra de comparação entre duas opções** (decidida a 10 de outubro de 2026, usada nos spikes E4-S1, E4-S2 e E4-S3):
+
+- **Quando uma diferença conta:** usa-se o bootstrap emparelhado. Tira-se 1 000 vezes, à sorte e com repetição, uma amostra dos contratos de validação, sempre a mesma amostra para as duas opções, e calcula-se a diferença em cada uma. A diferença só conta se for do mesmo lado em pelo menos 95% das amostras. Assim a margem vem dos dados, não de um número inventado.
+- **Métrica principal:** o top-5 no código completo. É o objetivo: sugerir o código exato.
+- **Métrica de guarda:** o top-5 na classe. Uma sugestão na classe certa já ajuda o técnico a escolher, por isso uma opção que piore a classe, com uma diferença que conte, é eliminada, mesmo que ganhe no código completo.
+- **Ganha** a opção com melhor top-5 no código completo, se a diferença contar e se não tiver sido eliminada pela guarda.
+- **Empate:** se nenhuma diferença no código completo contar, desempata o top-5 na classe, se essa diferença contar. Se também não contar, fica a opção por defeito de cada spike.
+
 **Critérios de aceitação:**
 
 - [ ] Dadas as 5 sugestões de cada contrato e os seus códigos, a avaliação dá o top-1 e o top-5 em cada nível e diz quantos contratos entraram em cada nível.
 - [ ] Dá também o F1 macro em cada medida, como descrito acima.
+- [ ] Dadas as sugestões de duas opções para os mesmos contratos, dá a diferença entre elas em cada medida e diz se essa diferença conta, segundo a regra de comparação abaixo.
+- [ ] Com a mesma semente aleatória, o bootstrap dá sempre o mesmo resultado. Duas opções com sugestões iguais dão diferença zero, que não conta.
 - [ ] Os resultados aparecem para todos os contratos e, em separado, só para os contratos com texto que não aparece no treino.
 - [ ] Há um teste com contratos inventados, com o resultado calculado à mão, para cada regra de contagem acima (incluindo uma etiqueta de grupo, uma de categoria, e um contrato com um código de divisão e outro de classe).
 - [ ] Cada teste falha quando se estraga de propósito a regra que ele guarda.
@@ -253,19 +265,29 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [ ] A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas.
 - [ ] Os seus números na validação, calculados com a avaliação E4-T1, estão escritos no `qualidade_dados.md`.
 
-### E4-S0 · Spike: o TF-IDF com regressão logística cabe no portátil? (timebox: 1 dia)
+### E4-S0 · Spike: quanto custa cada treino na máquina alugada? (timebox: 1 dia)
 
-**Pergunta:** o treino cabe no portátil (cerca de 5,8 GB de memória, partilhados com o editor)? Se não couber, o que se faz: limitar o vocabulário, usar outro método de treino ou alugar uma máquina com mais memória?
+**Decisão já tomada:** o TF-IDF treina numa máquina alugada, a Hetzner CX53 (16 processadores partilhados, 32 GB de memória, cerca de 0,05 € por hora sem IVA, segundo um comparador de preços de setembro de 2026; confirmar na consola antes de alugar). Se for lenta demais, passa-se para a CCX33 (8 processadores dedicados, 32 GB, cerca de 0,22 € por hora). Com 32 GB, a memória do portátil deixa de ser um limite.
 
-**Como:** com um treino de ensaio, que se deita fora no fim, medir dois casos com a janela atual (desde 2022): o caso por defeito (N = 10) e o pior caso do E4-S1 (N = 5, que tem mais códigos). A janela desde 2019 tem mais dados; a sua memória mede-se dentro do E4-S2.
+**Pergunta:** quanto tempo e quanta memória gasta um treino nessa máquina, e quanto vão custar todos os treinos do épico?
 
-**Limites propostos** (ver "Decisões pendentes"): pico de memória abaixo de 4 GB e um treino abaixo de 1 hora.
+**Como:**
 
-**Resultado:** uma decisão escrita (tamanho do vocabulário e máquina a usar), com o pico de memória e o tempo de treino medidos nos dois casos.
+- preparar a máquina: o ambiente com as mesmas versões das bibliotecas, os dados preparados, e os testes todos a passar lá;
+- com um treino de ensaio, que se deita fora no fim, medir dois casos com a janela atual (desde 2022): o caso por defeito (N = 10) e o pior caso do E4-S1 (N = 5, que tem mais códigos). A janela desde 2019 tem mais dados; a sua memória mede-se dentro do E4-S2.
+
+**Resultado:**
+
+- o pico de memória e o tempo de treino medidos nos dois casos;
+- o custo estimado de todos os treinos do épico;
+- a máquina confirmada, ou trocada pela CCX33;
+- os passos para preparar a máquina e para a apagar no fim, escritos. Uma máquina desligada continua a ser cobrada; só apagada deixa de ser (confirmar nas regras da Hetzner).
 
 ### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M)
 
 **Como** técnico de contratação, **quero** escrever a descrição da compra e receber 5 códigos CPV ordenados, **para** escolher entre 5 em vez de procurar na tabela de cerca de 9 500 códigos.
+
+**Nota:** a capacidade fica a existir, mas o técnico só a recebe quando houver interface, que está fora deste épico. Por agora, quem a usa somos nós, para ter uma régua para o BERTimbau e o Albertina.
 
 **Depende de:** E4-T1, E4-T2 e E4-S0. Usa o N por defeito (10) e a janela atual (desde 2022).
 
@@ -296,9 +318,9 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Pergunta:** com N = 5, 10 ou 20 (decisão 9), qual dá melhor resultado na validação?
 
-**Depende de:** E4-H1, e a decisão pendente 2 fechada antes de começar.
+**Depende de:** E4-H1.
 
-**Regra de escolha, escrita antes de correr:** ganha o maior top-5 no código completo. Se dois ficarem a menos de 0,5 pontos percentuais, ganha o maior top-5 na classe. Se continuar empatado, fica o 10, que já é o valor por defeito. A regra fica escrita antes de se verem os resultados, para os resultados não a influenciarem.
+**Regra de escolha:** a regra de comparação do E4-T1, escrita antes de se verem os resultados, para os resultados não a influenciarem. A opção por defeito, em caso de empate, é N = 10.
 
 **Resultado:**
 
@@ -318,11 +340,12 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - os contratos de entidades que aparecem no treino;
 - os contratos de entidades que não aparecem no treino.
 
-**Regra de escolha, escrita antes de correr:** a entidade entra se as três condições se cumprirem:
+**Regra de escolha, escrita antes de correr:** a regra de comparação do E4-T1, em todos os contratos, com "sem entidade" como opção por defeito (é mais simples). Além disso, a entidade só entra se as duas condições se cumprirem:
 
-- melhorar o top-5 no código completo em todos os contratos em pelo menos 0,5 pontos percentuais;
-- não piorar mais de 0,5 pontos nos contratos de entidades novas;
+- não piorar o top-5 no código completo nos contratos de entidades novas;
 - não aumentar a parte das 1.as sugestões ao nível do grupo ou acima.
+
+Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o bootstrap.
 
 **Resultado:**
 
@@ -348,7 +371,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Depende de:** E4-S1 e E4-T4.
 
-**Regra de escolha, escrita antes de correr:** compara-se o top-5 no código completo sempre no mesmo grupo de contratos: os da validação cujo texto não aparece no treino da janela mais longa (desde 2019). Fica a janela mais curta que esteja a menos de 0,5 pontos percentuais da melhor. É mais barato treinar com menos dados.
+**Regra de escolha, escrita antes de correr:** a regra de comparação do E4-T1, aplicada sempre ao mesmo grupo de contratos: os da validação cujo texto não aparece no treino da janela mais longa (desde 2019). Em caso de empate, fica a janela mais curta, porque é mais barato treinar com menos dados.
 
 **Porquê esse grupo:** com mais anos no treino, mais textos da validação já foram vistos, e o modelo acerta neles por decorar. Comparar em todos os contratos favorecia as janelas longas sem elas serem melhores. O resultado em todos os contratos mostra-se também, só como informação.
 
@@ -388,11 +411,13 @@ E4-T4 ────────────────────────�
 - E4-T1, E4-S0 e E4-T4 podem começar já e não dependem uns dos outros.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
-### Decisões tomadas para o E4
+### Decisões tomadas para o E4 (10 de outubro de 2026)
 
-- A entidade compradora testa-se já com o TF-IDF (spike E4-S3), não depois do BERTimbau. Mais barato: se não ajudar no TF-IDF, provavelmente não vale a pena gastar GPU a testá-la.
+1. **Entidade compradora:** testa-se já com o TF-IDF (spike E4-S3), não depois do BERTimbau. É mais barato: se não ajudar no TF-IDF, provavelmente não vale a pena gastar GPU a testá-la.
+2. **Como se escolhe entre opções:** decide o top-5 no código completo, com o top-5 na classe como métrica de guarda. Uma diferença só conta se o bootstrap mostrar que não é acaso. Regra completa no E4-T1.
+3. **Máquina:** alugar a Hetzner CX53 (32 GB) para o TF-IDF; a CCX33 se for lenta. Ver o E4-S0.
+4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
 
 ### Decisões pendentes do E4
 
-1. **Regras de escolha do E4-S1, do E4-S2 e do E4-S3** (métrica principal: top-5 no código completo; margem de 0,5 pontos): concordas, ou preferes outra métrica principal, por exemplo o top-5 na classe? Tem de ficar fechado antes do E4-S1.
-2. **Limites do E4-S0** (memória abaixo de 4 GB, treino abaixo de 1 hora): servem, ou preferes alugar uma máquina logo à partida?
+Nenhuma.
