@@ -76,6 +76,14 @@ def test_todas_as_etiquetas_que_ficam_tem_pelo_menos_n_exemplos(n_min):
     assert (label.value_counts() >= n_min).all()
 
 
+def test_n_por_defeito_e_10():
+    # Sem n_min: 10 exemplos chegam para ficar igual, 9 não chegam e sobem para a classe
+    c = codes({"90919300": 10, "90911200": 9, "90911100": 1})
+    label = lb.collapse_rare_codes(c)
+    assert label_of(c, label, "90919300") == {"90919300"}
+    assert label_of(c, label, "90911200") == {"90910000"}
+
+
 def test_n_igual_a_1_nao_muda_nada():
     c = codes({"90919300": 2, "90911200": 1})
     assert lb.collapse_rare_codes(c, n_min=1).tolist() == c.tolist()

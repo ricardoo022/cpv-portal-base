@@ -29,8 +29,8 @@ CONTRATOS = [
     # 5: publicado em 2025 mas no ficheiro de 2024; com descrição do acordo-quadro
     (2024, "5", datetime(2025, 1, 15), "Convite ao abrigo do acordo-quadro", "Convite ao abrigo do acordo-quadro",
      "AQ de medicamentos oncológicos", "33652000-5 - Agentes antineoplásicos"),
-    # 6: o mesmo idcontrato em dois ficheiros -> uma cópia
-    (2024, "6", datetime(2025, 2, 1), "Papel de impressão", None, None, "30197630-1 - Papel de impressão"),
+    # 6: o mesmo idcontrato em dois ficheiros, com o texto corrigido no mais recente -> fica só esse
+    (2024, "6", datetime(2025, 2, 1), "Papel para impressora", None, None, "30197630-1 - Papel de impressão"),
     (2025, "6", datetime(2025, 2, 1), "Papel de impressão", None, None, "30197630-1 - Papel de impressão"),
     # 7: dois códigos; descrição diferente do objeto
     (2025, "7", datetime(2025, 3, 1), "Seguro", "Seguro de acidentes de trabalho", None,
@@ -115,7 +115,9 @@ def test_contrato_publicado_em_2025_num_ficheiro_de_2024_entra(sets):
 
 
 def test_idcontrato_repetido_entre_ficheiros_fica_uma_vez(sets):
+    # As duas cópias têm textos diferentes, por isso só o dedupe_ids as junta (não o passo dos textos)
     assert (sets["treino"]["idcontrato"] == "6").sum() == 1
+    assert by_id(sets["treino"]).loc["6", "texto"] == "Papel de impressão"
 
 
 def test_varios_codigos_etiqueta_e_o_primeiro_e_guardam_se_todos(sets):
