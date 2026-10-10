@@ -62,6 +62,11 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.
 - [ ] Escolher o melhor de cada pela validação.
 - [ ] Testes ao modelo: consegue decorar poucos exemplos (se não conseguir, há um erro no treino); só sugere códigos que existem; bate o "escolher sempre o código mais comum".
+- [ ] Portão de qualidade (*quality gate*): o CI falha se um modelo ficar abaixo do limite.
+  - O limite mede-se na **validação**, nunca no teste (senão o teste passa a servir para escolher, e deixa de ser uma medição honesta).
+  - O limite é relativo, não um número inventado: o TF-IDF tem de bater o "escolher sempre o código mais comum"; o BERTimbau e o Albertina têm de bater o TF-IDF; um modelo novo não pode ficar mais do que alguns pontos abaixo do melhor guardado. Os números definem-se depois dos primeiros resultados.
+  - O CI não treina os modelos (não tem GPU nem os dados reais). O treino a sério escreve as métricas da validação num ficheiro pequeno no git (por exemplo `metrics/validacao.json`), e um teste no CI lê esse ficheiro e falha se estiver abaixo do limite.
+  - No CI corre também um teste rápido de treino com dados inventados minúsculos.
 
 ## 5. Avaliar
 
@@ -99,6 +104,8 @@ Vamos acrescentando à medida que aparecem.
 - **Teste unitário:** testa uma função sozinha, com dados pequenos inventados em que se sabe a resposta certa.
 - **Teste de integração:** testa várias peças a funcionar juntas, do princípio ao fim. Aqui: o pipeline inteiro, de .xlsx a treino/validação/teste.
 - **Determinismo:** correr duas vezes com os mesmos dados dá exatamente o mesmo resultado. Sem isto não se consegue reproduzir nem comparar experiências.
+- **CI (integração contínua):** uma máquina do GitHub corre os testes automaticamente em cada envio e em cada PR (`.github/workflows/testes.yml`).
+- **Portão de qualidade (quality gate):** uma regra automática que impede um modelo pior de entrar, por exemplo "o modelo novo tem de bater o TF-IDF na validação".
 - **Mutation testing:** introduzir erros de propósito no código para confirmar que os testes os apanham. Um teste que passa sempre não prova nada.
 - **Funil:** quantos dados ficam depois de cada passo da preparação. Mostra quanto custa cada decisão.
 - **Impressão digital (hash):** um número calculado a partir de um texto. Textos iguais dão o mesmo número, e um número ocupa muito menos memória do que o texto.

@@ -1,0 +1,25 @@
+# CI: corre todos os testes (pytest) em cada envio, para qualquer ramo, e em cada PR.
+# Os testes usam dados inventados, por isso não precisam dos dados do Portal BASE.
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Instalar bibliotecas
+        run: pip install -r requirements.txt
+
+      - name: Correr os testes
+        run: pytest -v
