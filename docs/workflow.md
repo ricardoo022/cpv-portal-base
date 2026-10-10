@@ -24,7 +24,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Descarregar os dados (`scripts/download_data.py`).
 - [x] Verificar que são os certos: formato, colunas, número de linhas, anos.
 - [x] Converter para Parquet sem transformar nada (`src/convert_to_parquet.py`).
-- [x] Verificações de qualidade em todos os dados (`src/quality_checks.py`; são problemas técnicos, não dependem do resultado):
+- [x] Verificações de qualidade em todos os dados, em [`notebooks/00_qualidade.ipynb`](../notebooks/00_qualidade.ipynb) (são problemas técnicos, não dependem do resultado):
   - percentagem de contratos com texto e CPV preenchidos;
   - contratos com vários códigos na mesma célula;
   - textos duplicados.

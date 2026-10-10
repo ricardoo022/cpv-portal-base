@@ -4,7 +4,7 @@ Resultados das verificações de qualidade (fase 2 do [`workflow.md`](workflow.m
 
 - Dados: ficheiros de 2025 e 2026 do Portal BASE, versão de 4 de outubro de 2026. 433 838 contratos no total.
 - De onde vêm os números:
-  - secções 1 a 6: `.venv/bin/python src/quality_checks.py 2025 2026` (todos os dados; só conta);
+  - secções 1 a 6: [`notebooks/00_qualidade.ipynb`](../notebooks/00_qualidade.ipynb) (todos os dados; só conta);
   - secções 7 a 10: [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (só o treino; a validação só na secção 10).
 - O script só conta. Os exemplos que mostra vêm apenas de contratos publicados antes de novembro de 2025, para não espreitar o período de teste.
 
