@@ -22,6 +22,14 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # Python 3.
 
 Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the working directory (nbconvert and the editor do this).
 
+## Git and CI
+
+- Work on a branch and open a PR to `main` with `gh pr create`; don't commit straight to `main`. Commit messages and PR descriptions are in Portuguese.
+- `.github/workflows/testes.yml` runs the whole `pytest` suite on every push (any branch) and every PR, in about 40 s. Tests use only hand-made data, so CI never needs `data/`.
+- The repo is private on the free plan, so `main` has no branch protection: wait until the CI runs for the PR's head commit are green before `gh pr merge --merge --delete-branch`.
+- The installed `gh` is 2.4.0: `gh run list` has no `--branch` flag and no `workflowName` JSON field. Filter runs with `--json headSha,status,conclusion` against `git rev-parse HEAD`.
+- GitHub's "Dependency Graph" runs on `main` are automatic (it reads `requirements.txt`), not ours.
+
 ## Architecture and data flow
 
 `data/raw/*.xlsx` → `convert_to_parquet.py` (streams rows with openpyxl, writes **every column as text**, no transformation) → `data/processed/raw/contratosAAAA.parquet` → `prepare.py` → three output files. `data/` and `.venv/` are not in git.
@@ -36,6 +44,7 @@ Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the 
   - text identity uses a 64-bit hash of the normalized text (memory).
   - `check_sets` raises `DataCheckError` (not `assert`, which `-O` would disable) on leakage between sets, dates outside a period, division-level codes in train, repeated train texts, malformed codes, or "None"/"nan" written into text.
 - `src/labels.py` (`collapse_rare_codes`) builds the training label at training time, not in `prepare.py`: a code with fewer than N training examples backs off to its class (4 digits), then its group (3 digits), else the example is dropped; never to the division. N is a hyperparameter (5, 10 or 20, default 10) to be chosen with TF-IDF on validation; counts come from train only. Evaluation keeps the original label.
+- Planned for phase 4 (`docs/workflow.md`): a quality gate. Real training (laptop or rented GPU) writes validation metrics to a small committed file (e.g. `metrics/validacao.json`); a CI test reads it and fails below a threshold. Thresholds are measured on validation, never on test, and are relative (TF-IDF must beat always-predict-the-most-common-code; BERTimbau/Albertina must beat TF-IDF), not invented numbers. CI also runs a tiny training smoke test on hand-made data.
 - The laptop has ~5.8 GB RAM shared with the editor; `prepare.py` peaks around 2.7 GB. Keep processing per file and avoid extra copies of the text columns.
 
 ## Conventions
