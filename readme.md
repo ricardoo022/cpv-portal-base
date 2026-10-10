@@ -166,6 +166,7 @@ Pipeline e testes:
 - `tests/unit/`: cada função sozinha, com dados pequenos inventados.
 - `tests/integration/`: o pipeline inteiro (xlsx -> treino/validação/teste) com 15 contratos inventados, cada um a pôr à prova uma regra de `docs/qualidade_dados.md`.
 - Os testes foram verificados com erros introduzidos de propósito (mutation testing): apanharam os 9 que se tentaram (5 no pipeline, 4 nos códigos raros).
+- CI: o GitHub Actions corre todos os testes em cada envio e em cada PR (`.github/workflows/testes.yml`). Não usa os dados reais.
 
 ## Estado
 
