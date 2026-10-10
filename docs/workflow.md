@@ -42,7 +42,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] Extrair o código do `CPV` (`90611000-3 - Serviços de limpeza de ruas` → `90611000`) e os níveis da árvore.
 - [ ] Contratos com vários códigos: treinar com o primeiro, guardar os restantes para a avaliação.
 - [ ] Tirar duplicados de texto antes de separar.
-- [ ] Separar por `dataPublicacao` em 2025: treino (janeiro a setembro), validação (outubro), teste (novembro e dezembro).
+- [ ] Separar por `dataPublicacao`: validação (outubro de 2025), teste (novembro e dezembro de 2025), treino (antes de outubro de 2025). Quantos anos para trás entram no treino: por decidir.
 - [ ] Decidir, só com os dados de treino, quantos exemplos um código precisa para entrar no treino.
 
 ## 4. Modelar

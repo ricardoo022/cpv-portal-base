@@ -27,10 +27,10 @@ Todos os contratos têm data de publicação válida.
 | Publicados em | Contratos | Uso |
 |---|---|---|
 | 2024 | 6 | ignorar |
-| 2025 | 225 113 | treino, validação e teste |
+| 2025 | 225 113 | treino (janeiro a setembro), validação e teste |
 | 2026 | 208 719 | por agora não se usa |
 
-O ficheiro de um ano não coincide com o ano de publicação: os contratos publicados em 2025 estão espalhados pelos ficheiros de 2025 e 2026.
+O ficheiro de um ano não coincide com o ano de publicação. **Correção:** uma versão anterior deste ficheiro dizia que os contratos publicados em 2025 estavam nos ficheiros de 2025 e 2026. Está errado. Lendo todos os ficheiros: 225 106 estão no de 2025, 25 877 no de 2024, 2 930 no de 2023 e 7 no de 2026. O ficheiro (e a coluna `Ano`) parece ser o ano de celebração: dos 25 877 do ficheiro de 2024, 25 777 foram celebrados em 2024. As secções 1 a 10 usaram só os ficheiros de 2025 e 2026 e deixaram de fora cerca de 30 mil contratos publicados em 2025 (12%); têm de ser medidas outra vez.
 
 ### 3. Vários códigos na mesma célula: raro
 
@@ -165,7 +165,7 @@ Se só se treinar com códigos que têm pelo menos N exemplos:
 
 ## Decisões
 
-1. Usar só os contratos publicados em 2025 (pela `dataPublicacao`), dos ficheiros de 2025 e 2026.
+1. Validação: contratos publicados em outubro de 2025. Teste: novembro e dezembro de 2025. Treino: contratos publicados antes de outubro de 2025; quantos anos para trás, por decidir. As secções 7 a 10 foram medidas só com janeiro a setembro de 2025.
 2. Tirar os 3 contratos sem CPV.
 3. Ficar com uma só cópia de cada `idcontrato`.
 4. Contratos com vários códigos: treinar com o primeiro. Na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.

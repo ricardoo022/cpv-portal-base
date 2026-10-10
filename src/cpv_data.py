@@ -21,8 +21,15 @@ CPV_PATTERN = r"(\d{8})-\d"
 LEVEL_NAMES = {2: "divisão", 3: "grupo", 4: "classe", 5: "categoria"}
 
 
-def load_contracts(columns, years=(2025, 2026)):
-    """Lê os Parquet dos anos pedidos e junta-os, com a data de publicação já convertida."""
+ALL_YEARS = range(2012, 2027)
+
+
+def load_contracts(columns, years=ALL_YEARS):
+    """Lê os Parquet dos anos pedidos e junta-os, com a data de publicação já convertida.
+
+    Por defeito lê todos os ficheiros: o ficheiro de um ano é o ano de celebração do contrato,
+    por isso os contratos publicados num ano estão espalhados por vários ficheiros.
+    """
     cols = list(dict.fromkeys(["idcontrato", "dataPublicacao", *columns]))
     df = pd.concat(
         [pd.read_parquet(RAW_PARQUET / f"contratos{y}.parquet", columns=cols) for y in years],

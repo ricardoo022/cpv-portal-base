@@ -90,7 +90,7 @@ Avisos sobre os dados:
 
 - O `CPV` vem com a descrição colada (`90611000-3 - Serviços de limpeza de ruas`). É preciso extrair o código.
 - Uma célula de `CPV` pode ter vários códigos separados por quebra de linha. Treinar com o primeiro; na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.
-- A coluna `Ano` e o ficheiro não são o ano de publicação: o ficheiro de 2025 tem contratos publicados em 2024 e o de 2026 tem contratos publicados em 2025. Fazer o split pela `dataPublicacao`.
+- O ficheiro de um ano (e a coluna `Ano`) não é o ano de publicação: parece ser o ano de celebração do contrato. Dos contratos publicados em 2025, 225 106 estão no ficheiro de 2025, 25 877 no de 2024 e 2 930 no de 2023. Fazer o split pela `dataPublicacao`, lendo todos os ficheiros.
 - Dentro do .xlsx as datas são números de série do Excel (45510 = 6 de agosto de 2024). O `src/convert_to_parquet.py` já as converte para datas normais (`2025-01-02T00:00:00`).
 - Há textos repetidos entre anos e entidades (por exemplo a mesma limpeza de bermas em 2016, 2022, 2023 e 2024). Tirar duplicados antes do split.
 - Há campos vazios. No primeiro contrato de 2012 o `CPV` vinha em branco. Medir a percentagem preenchida antes de tudo.

@@ -96,7 +96,7 @@ Todas no formato `2025-01-02T00:00:00`.
 | `dataDecisaoAdjudicacao` | Data em que se escolheu o vencedor | 99,9% | Não | Não |
 | `dataCelebracaoContrato` | Data em que o contrato foi assinado | 99,9% | Não | Não |
 | `dataFechoContrato` | Data em que o contrato terminou | 21,1% | Não | Não |
-| `Ano` | Ano do ficheiro. **Não é o ano de publicação**: o ficheiro de 2025 tem contratos publicados em 2024 | 100% | — | Não |
+| `Ano` | Ano do ficheiro. **Não é o ano de publicação.** Parece ser o ano de celebração do contrato: dos 25 877 contratos do ficheiro de 2024 publicados em 2025, 25 777 foram celebrados em 2024 | 100% | — | Não |
 
 ## Local e prazo
 
