@@ -56,7 +56,8 @@ def convert(xlsx, out):
             n += len(batch)
     wb.close()
     tmp.replace(out)
-    print(f"\r  {xlsx.name}: {n} linhas -> {out.relative_to(ROOT)} ({time.time() - t0:.0f}s)")
+    shown = out.relative_to(ROOT) if out.is_relative_to(ROOT) else out
+    print(f"\r  {xlsx.name}: {n} linhas -> {shown} ({time.time() - t0:.0f}s)")
 
 
 def main(years):
