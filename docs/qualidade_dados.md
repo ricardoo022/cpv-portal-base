@@ -219,7 +219,7 @@ Validação e teste (ficam todos os contratos):
 
    Porquê desde 2022: com só 2025, 92,9% dos contratos de validação têm um código com pelo menos 10 exemplos no treino; desde 2022 são 98,2%; recuar até 2012 só sobe para 99,3% e multiplica os dados por 2,4. Confirmar na fase 4: treinar o TF-IDF com as janelas desde 2025, 2022 e 2019 e comparar na validação.
 2. Tirar os 3 contratos sem CPV.
-3. Ficar com uma só cópia de cada `idcontrato`.
+3. Ficar com uma só cópia de cada `idcontrato`: a do ficheiro mais recente e, no mesmo ficheiro, a de data de publicação mais recente.
 4. Contratos com vários códigos: treinar com o primeiro. Na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.
 5. Texto de entrada: o `objectoContrato`, mais a `descContrato` só quando for diferente, mais a `DescrAcordoQuadro` sempre que existir.
 6. Textos repetidos:

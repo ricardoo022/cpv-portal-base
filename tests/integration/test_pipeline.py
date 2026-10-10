@@ -29,7 +29,9 @@ CONTRATOS = [
     # 5: publicado em 2025 mas no ficheiro de 2024; com descrição do acordo-quadro
     (2024, "5", datetime(2025, 1, 15), "Convite ao abrigo do acordo-quadro", "Convite ao abrigo do acordo-quadro",
      "AQ de medicamentos oncológicos", "33652000-5 - Agentes antineoplásicos"),
-    # 6: o mesmo idcontrato em dois ficheiros, com o texto corrigido no mais recente -> fica só esse
+    # 6: o mesmo idcontrato em dois ficheiros -> fica só a cópia do mais recente (decisão 3).
+    # Os textos diferentes são inventados (nos dados as cópias têm o mesmo texto): sem eles,
+    # o passo dos textos repetidos juntava as cópias e o teste passava sem o dedupe_ids.
     (2024, "6", datetime(2025, 2, 1), "Papel para impressora", None, None, "30197630-1 - Papel de impressão"),
     (2025, "6", datetime(2025, 2, 1), "Papel de impressão", None, None, "30197630-1 - Papel de impressão"),
     # 7: dois códigos; descrição diferente do objeto
@@ -43,7 +45,8 @@ CONTRATOS = [
     # 10, 11: validação (outubro de 2025)
     (2025, "10", datetime(2025, 10, 10), "LIMPEZA DE ESCOLAS", None, None, LIMPEZA_ESCOLAS),
     (2025, "11", datetime(2025, 10, 20), "Medicamentos", None, None, "33000000-0 - Equipamento médico"),
-    # 12, 13: teste (novembro e dezembro de 2025)
+    # 12, 13: teste (novembro e dezembro de 2025). O 13 só fica visto_no_treino se o contrato 6
+    # guardar a cópia de 2025 ("Papel de impressão"), por isso também falha se a decisão 3 falhar.
     (2025, "12", datetime(2025, 11, 5), "Jardinagem do parque", None, None, "77311000-3 - Manutenção de jardins"),
     (2025, "13", datetime(2025, 12, 20), "papel de impressão", None, None, "30197630-1 - Papel de impressão"),
 ]

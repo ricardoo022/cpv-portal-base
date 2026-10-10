@@ -77,7 +77,8 @@ def test_todas_as_etiquetas_que_ficam_tem_pelo_menos_n_exemplos(n_min):
 
 
 def test_n_por_defeito_e_10():
-    # Sem n_min: 10 exemplos chegam para ficar igual, 9 não chegam e sobem para a classe
+    # Sem n_min: 10 exemplos chegam para ficar igual, 9 não chegam e sobem para a classe.
+    # O 90911100 só serve para a classe 9091 chegar a 10 exemplos e a subida ficar.
     c = codes({"90919300": 10, "90911200": 9, "90911100": 1})
     label = lb.collapse_rare_codes(c)
     assert label_of(c, label, "90919300") == {"90919300"}
