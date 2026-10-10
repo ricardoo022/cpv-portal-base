@@ -186,3 +186,8 @@ Se só se treinar com códigos que têm pelo menos N exemplos:
 8. Códigos genéricos (secção 9):
    - **No treino:** tirar só os contratos com código ao nível da divisão (17,6%) e manter todos os outros. O código ao nível da divisão quase nunca ajuda; os do grupo para baixo muitas vezes são escolhas legítimas.
    - **Na avaliação:** cada contrato de teste avalia-se até ao nível que a etiqueta tem. Se a etiqueta é `33600000` (grupo), só se verifica se o modelo acertou em `336`. Por isso o acerto na classe (4 dígitos) só se mede nos cerca de 57% de contratos com etiqueta da classe para baixo, e isto tem de ficar dito no relatório final.
+9. Códigos raros (back-off hierárquico, `src/labels.py`): um código com menos de N exemplos no treino sobe para a classe (4 dígitos); se a classe também for rara, sobe para o grupo (3 dígitos); se o grupo também for raro, o exemplo sai. Nunca se sobe até à divisão.
+   - As contagens fazem-se só com o treino (contar com a validação seria fuga de dados).
+   - Aplica-se no momento do treino, não no `prepare.py`: o N é um hiperparâmetro e o `treino.parquet` fica com os códigos originais.
+   - Na avaliação a etiqueta verdadeira não muda: sugerir a classe quando o código certo é mais detalhado conta como acerto na classe e erro no código completo.
+   - N a testar: 5, 10 e 20. Por defeito 10, até a fase 4 escolher com o TF-IDF na validação.

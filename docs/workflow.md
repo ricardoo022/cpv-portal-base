@@ -45,7 +45,8 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] Separar por `dataPublicacao`, lendo todos os ficheiros: treino (janeiro de 2022 a setembro de 2025), validação (outubro de 2025), teste (novembro e dezembro de 2025). 2026 fica de reserva. Decisão em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
 - [x] Script de preparação `src/prepare.py`, com verificações automáticas no fim.
 - [x] Testes unitários e de integração (`.venv/bin/pytest`), verificados com erros introduzidos de propósito.
-- [ ] Decidir, só com os dados de treino, quantos exemplos um código precisa para entrar no treino.
+- [x] Regra para os códigos raros: sobem para a classe ou o grupo (`src/labels.py`, decisão 9 de [`qualidade_dados.md`](qualidade_dados.md)).
+- [ ] Escolher o N (5, 10 ou 20) com o TF-IDF na validação (fase 4).
 
 ## 4. Modelar
 
