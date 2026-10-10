@@ -42,7 +42,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] Extrair o código do `CPV` (`90611000-3 - Serviços de limpeza de ruas` → `90611000`) e os níveis da árvore.
 - [ ] Contratos com vários códigos: treinar com o primeiro, guardar os restantes para a avaliação.
 - [ ] Tirar duplicados de texto antes de separar.
-- [ ] Separar por `dataPublicacao`: validação (outubro de 2025), teste (novembro e dezembro de 2025), treino (antes de outubro de 2025). Quantos anos para trás entram no treino: por decidir.
+- [ ] Separar por `dataPublicacao`, lendo todos os ficheiros: treino (janeiro de 2022 a setembro de 2025), validação (outubro de 2025), teste (novembro e dezembro de 2025). 2026 fica de reserva. Decisão em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
 - [ ] Decidir, só com os dados de treino, quantos exemplos um código precisa para entrar no treino.
 
 ## 4. Modelar
@@ -51,6 +51,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 
 **Neste projeto:**
 - [ ] Baseline: TF-IDF com regressão logística, no portátil.
+- [ ] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação.
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.
 - [ ] Escolher o melhor de cada pela validação.

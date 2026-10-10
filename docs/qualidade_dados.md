@@ -165,7 +165,16 @@ Se só se treinar com códigos que têm pelo menos N exemplos:
 
 ## Decisões
 
-1. Validação: contratos publicados em outubro de 2025. Teste: novembro e dezembro de 2025. Treino: contratos publicados antes de outubro de 2025; quantos anos para trás, por decidir. As secções 7 a 10 foram medidas só com janeiro a setembro de 2025.
+1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
+
+   | Parte | Período | Para quê |
+   |---|---|---|
+   | Treino | janeiro de 2022 a setembro de 2025 | O modelo aprende com estes |
+   | Validação | outubro de 2025 | Escolher entre modelos e afinações |
+   | Teste | novembro e dezembro de 2025 | Medir o resultado final, uma só vez, no fim |
+   | Reserva | 2026 (até 4 de outubro) | Segunda verificação no fim, com dados mais recentes |
+
+   Porquê desde 2022: com só 2025, 92,9% dos contratos de validação têm um código com pelo menos 10 exemplos no treino; desde 2022 são 98,2%; recuar até 2012 só sobe para 99,3% e multiplica os dados por 2,4. Confirmar na fase 4: treinar o TF-IDF com as janelas desde 2025, 2022 e 2019 e comparar na validação. As secções 7 a 10 foram medidas só com janeiro a setembro de 2025.
 2. Tirar os 3 contratos sem CPV.
 3. Ficar com uma só cópia de cada `idcontrato`.
 4. Contratos com vários códigos: treinar com o primeiro. Na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.
