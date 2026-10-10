@@ -6,6 +6,8 @@ O CRISP-DM não é uma lei, é uma referência. E é iterativo: anda-se para tr�
 
 Cada fase tem duas partes: o que é geral a qualquer projeto de ML e o que fazemos neste.
 
+Os épicos e as user stories (o que já está feito e o próximo épico, com critérios de aceitação) estão em [`backlog.md`](backlog.md).
+
 ## 1. Perceber o problema
 
 **Geral:** definir que problema queremos resolver, para quem, e como sabemos se o resolvemos (critério de sucesso).
