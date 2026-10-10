@@ -143,13 +143,27 @@ cpv-portal-base/
   data/raw/         ficheiros .xlsx originais (fora do git)
   data/processed/   Parquet limpo e splits (fora do git)
   notebooks/        exploração e análise de erros
-  src/              preparação de dados, treino e avaliação
+  src/              pipeline: conversão, preparação, treino e avaliação
+  tests/            testes unitários e de integração (pytest)
   scripts/          download_data.py
   docs/             workflow.md (os passos e o estado), dados.md (as colunas) e qualidade_dados.md (verificações e decisões)
   requirements.txt  versões exatas das bibliotecas
 ```
 
 Ambiente: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` (Python 3.10).
+
+Pipeline e testes:
+
+```
+.venv/bin/python scripts/download_data.py      # descarregar os .xlsx
+.venv/bin/python src/convert_to_parquet.py     # .xlsx -> Parquet (data/processed/raw/)
+.venv/bin/python src/prepare.py                # Parquet -> treino, validação, teste (data/processed/)
+.venv/bin/pytest                               # testes unitários e de integração
+```
+
+- `tests/unit/`: cada função sozinha, com dados pequenos inventados.
+- `tests/integration/`: o pipeline inteiro (xlsx -> treino/validação/teste) com 15 contratos inventados, cada um a pôr à prova uma regra de `docs/qualidade_dados.md`.
+- Os testes foram verificados com erros introduzidos de propósito (mutation testing): apanharam os 5 que se tentaram.
 
 ## Estado
 

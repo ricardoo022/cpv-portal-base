@@ -43,6 +43,8 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [ ] Contratos com vários códigos: treinar com o primeiro, guardar os restantes para a avaliação.
 - [ ] Tirar duplicados de texto antes de separar.
 - [ ] Separar por `dataPublicacao`, lendo todos os ficheiros: treino (janeiro de 2022 a setembro de 2025), validação (outubro de 2025), teste (novembro e dezembro de 2025). 2026 fica de reserva. Decisão em [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb).
+- [x] Script de preparação `src/prepare.py`, com verificações automáticas no fim.
+- [x] Testes unitários e de integração (`.venv/bin/pytest`), verificados com erros introduzidos de propósito.
 - [ ] Decidir, só com os dados de treino, quantos exemplos um código precisa para entrar no treino.
 
 ## 4. Modelar
@@ -89,6 +91,10 @@ Vamos acrescentando à medida que aparecem.
 - **Fuga de dados (data leakage):** quando o modelo vê no treino informação que não devia, e por isso parece melhor no teste do que vai ser na realidade. Por exemplo, o mesmo texto no treino e no teste: o modelo acerta porque decorou, não porque aprendeu.
 - **Informação disponível no momento da previsão:** só se dá ao modelo informação que existe quando ele vai ser usado. Se usarmos uma coluna que só se preenche depois (por exemplo o preço final), o modelo parece bom no teste e falha na realidade. É uma forma de fuga de dados.
 - **A avaliação só é tão boa como as etiquetas:** quando as etiquetas são incompletas (por exemplo um código genérico), mede-se só o que elas permitem medir e diz-se claramente que parte ficou de fora.
+- **Teste unitário:** testa uma função sozinha, com dados pequenos inventados em que se sabe a resposta certa.
+- **Teste de integração:** testa várias peças a funcionar juntas, do princípio ao fim. Aqui: o pipeline inteiro, de .xlsx a treino/validação/teste.
+- **Determinismo:** correr duas vezes com os mesmos dados dá exatamente o mesmo resultado. Sem isto não se consegue reproduzir nem comparar experiências.
+- **Mutation testing:** introduzir erros de propósito no código para confirmar que os testes os apanham. Um teste que passa sempre não prova nada.
 - **Desequilíbrio de classes:** quando algumas etiquetas têm muitos exemplos e outras muito poucos.
 - **Top-1 e top-5:** se a resposta certa é a primeira sugestão (top-1) ou está entre as 5 primeiras (top-5).
 - **F1 macro:** o F1 mede, para cada etiqueta, um equilíbrio entre não dar falsos positivos e não falhar casos verdadeiros. O "macro" faz a média entre todas as etiquetas com o mesmo peso, por isso as etiquetas raras contam tanto como as frequentes. Explicamos em detalhe na fase 5.
