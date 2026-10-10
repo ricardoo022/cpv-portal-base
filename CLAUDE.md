@@ -35,12 +35,13 @@ Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the 
   - validation/test keep every contract and get `visto_no_treino` (text also present in train), to measure memorization separately;
   - text identity uses a 64-bit hash of the normalized text (memory).
   - `check_sets` raises `DataCheckError` (not `assert`, which `-O` would disable) on leakage between sets, dates outside a period, division-level codes in train, repeated train texts, malformed codes, or "None"/"nan" written into text.
+- `src/labels.py` (`collapse_rare_codes`) builds the training label at training time, not in `prepare.py`: a code with fewer than N training examples backs off to its class (4 digits), then its group (3 digits), else the example is dropped; never to the division. N is a hyperparameter (5, 10 or 20, default 10) to be chosen with TF-IDF on validation; counts come from train only. Evaluation keeps the original label.
 - The laptop has ~5.8 GB RAM shared with the editor; `prepare.py` peaks around 2.7 GB. Keep processing per file and avoid extra copies of the text columns.
 
 ## Conventions
 
 - `src/` holds only pipeline code (code that transforms data, trains or evaluates). Exploration, counts and one-off analysis go in `notebooks/`; rules that must always hold become checks in the pipeline and tests.
-- Every number written in `docs/*.md` must come from a notebook cell or pipeline output, not from ad-hoc terminal commands.
+- Every number written in `docs/*.md` must come from a notebook cell or pipeline output, not from ad-hoc terminal commands. Sections 7–10 of `docs/qualidade_dados.md` and the outputs of `notebooks/01_exploracao.ipynb` predate the final split (they cover Jan–Sep 2025 from the 2025/2026 files only); re-measuring them is pending, and `cpv_data.period` now defines train as Jan 2022–Sep 2025, so re-running that notebook will change its numbers.
 - Never look at the test set (contracts published Nov–Dec 2025) during exploration or decisions; use the validation set (Oct 2025) to compare options. 2026 data is held in reserve.
 - `docs/workflow.md` (CRISP-DM phases with checkboxes) is the plan and status; `docs/qualidade_dados.md` holds measurements and numbered decisions; `docs/dados.md` describes the 39 columns and whether each exists when the CPV is chosen (columns known only after award are leakage).
 - When changing a rule in `prepare.py`, update the hand-made contracts in `tests/integration/test_pipeline.py`, which builds `.xlsx` files and runs the full pipeline end to end. New tests should be checked by injecting the bug they target (mutation testing).

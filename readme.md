@@ -16,6 +16,7 @@ O problema é pequeno, e convém dizê-lo com clareza.
   - Regras mal aplicadas. Alguns limites e regimes legais dependem do tipo de compra.
   - Estatísticas erradas sobre o que o Estado compra.
 - Ninguém nos disse que isto dói. Chegámos aqui a partir dos dados disponíveis, não a partir de uma queixa de um técnico.
+
 Neste momento só queremos resolver isto: sugerir o CPV certo a partir do texto.
 
 ## Casos que já existem noutros países
@@ -46,9 +47,9 @@ O que isto nos diz:
 
 ## A tarefa, em termos de código
 
-- Entrada: `objectoContrato` e, quando existir, `descContrato`. É o texto que o técnico tem quando escolhe o código.
-- Saída: lista ordenada de códigos CPV completos (top-5).
-- Etiqueta: o `CPV` que cada entidade escolheu.
+- Entrada: `objectoContrato`, mais a `descContrato` quando é diferente, mais a `DescrAcordoQuadro` quando existe. É informação que o técnico tem quando escolhe o código. A entidade (`adjudicante`) entra só como experiência.
+- Saída: lista ordenada de códigos CPV (top-5).
+- Etiqueta: o primeiro código do `CPV` que cada entidade escolheu. No treino tiram-se os códigos ao nível da divisão, e os códigos raros sobem para a classe ou o grupo (decisões em [`docs/qualidade_dados.md`](docs/qualidade_dados.md)).
 - Avaliação ao nível em que o problema existe:
   - Principal: top-1 e top-5 no código completo (8 dígitos) e na classe (4 dígitos).
   - Secundária: divisão (2 dígitos). É fácil e não poupa trabalho a ninguém, mas permite comparar com as réguas abaixo.
@@ -61,7 +62,7 @@ O que isto nos diz:
 - Licença indicada na página: domínio público. Atualizado de 15 em 15 dias.
 - Um ficheiro .xlsx por ano, de 2012 a 2026, entre 16 MB e 67 MB cada (542 MB no total). Uma folha (`Sheet1`) e as mesmas 39 colunas em todos.
 - Ficam em `data/raw/`, que não vai para o git.
-- Para descarregar ou atualizar: `python3 scripts/download_data.py` (ou com anos: `python3 scripts/download_data.py 2025`).
+- Para descarregar ou atualizar: `.venv/bin/python scripts/download_data.py` (ou só alguns anos: `.venv/bin/python scripts/download_data.py 2025`).
 
 Contratos por ficheiro (versão de 4 de outubro de 2026):
 
@@ -76,15 +77,7 @@ Contratos por ficheiro (versão de 4 de outubro de 2026):
 | 2018 | 127 891 | 2026 | 186 118 (até 4 de outubro) |
 | 2019 | 145 513 | | |
 
-Colunas:
-
-| Para quê | Colunas |
-|---|---|
-| Texto de entrada | `objectoContrato`, `descContrato` |
-| Etiqueta | `CPV` |
-| Datas (para o split) | `dataPublicacao`, `dataCelebracaoContrato` |
-| Contexto | `tipoContrato`, `tipoprocedimento`, `adjudicante`, `LocalExecucao`, `NUTs`, `Ano` |
-| Outras | `idcontrato`, `nAnuncio`, `TipoAnuncio`, `idINCM`, `idprocedimento`, `precoContratual`, `prazoExecucao`, `fundamentacao`, `ProcedimentoCentralizado`, `numAcordoQuadro`, `DescrAcordoQuadro`, `precoBaseProcedimento`, `dataDecisaoAdjudicacao`, `dataFechoContrato`, `PrecoTotalEfetivo`, `regime`, `justifNReducEscrContrato`, `tipoFimContrato`, `CritMateriais`, `concorrentes`, `adjudicatarios`, `linkPecasProc`, `Observacoes`, `ContratEcologico`, `fundamentAjusteDireto`, `adjudicatarioPMEs`, `Lotes`, `TipoCriterioAdjudicacao` |
+As 39 colunas, o que é cada uma e se existe quando o técnico escolhe o código: [`docs/dados.md`](docs/dados.md).
 
 Avisos sobre os dados:
 
@@ -92,10 +85,10 @@ Avisos sobre os dados:
 - Uma célula de `CPV` pode ter vários códigos separados por quebra de linha. Treinar com o primeiro; na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.
 - O ficheiro de um ano (e a coluna `Ano`) não é o ano de publicação: parece ser o ano de celebração do contrato. Dos contratos publicados em 2025, 225 106 estão no ficheiro de 2025, 25 877 no de 2024 e 2 930 no de 2023. Fazer o split pela `dataPublicacao`, lendo todos os ficheiros.
 - Dentro do .xlsx as datas são números de série do Excel (45510 = 6 de agosto de 2024). O `src/convert_to_parquet.py` já as converte para datas normais (`2025-01-02T00:00:00`).
-- Há textos repetidos entre anos e entidades (por exemplo a mesma limpeza de bermas em 2016, 2022, 2023 e 2024). Tirar duplicados antes do split.
-- Há campos vazios. No primeiro contrato de 2012 o `CPV` vinha em branco. Medir a percentagem preenchida antes de tudo.
+- Há textos repetidos entre anos e entidades (por exemplo a mesma limpeza de bermas em 2016, 2022, 2023 e 2024). No treino juntam-se num só exemplo; na validação e no teste ficam todos, marcados, para medir à parte se o modelo aprendeu ou decorou.
+- Quase não há campos vazios no texto e no CPV, mas cerca de 18% dos contratos têm um código genérico, ao nível da divisão (por exemplo `33000000`). Resultados das verificações em [`docs/qualidade_dados.md`](docs/qualidade_dados.md).
 - As etiquetas são o que cada entidade escolheu, e algumas escolheram mal. O modelo aprende também esses erros, e parte dos "erros" do modelo serão acertos. Por isso a análise de erros é obrigatória.
-- Ler um .xlsx de 60 MB demora cerca de 1 minuto. Converte-se uma vez para Parquet com `.venv/bin/python src/convert_to_parquet.py 2025 2026` (fica em `data/processed/raw/`), que depois lê em 4 segundos.
+- Ler um .xlsx de 60 MB demora cerca de 1 minuto. Converte-se uma vez para Parquet com `.venv/bin/python src/convert_to_parquet.py` (todos os anos; fica em `data/processed/raw/`), que depois lê em segundos.
 
 ## Plano
 
@@ -110,6 +103,15 @@ Um único modelo para todos os códigos. Modelos a tunar, os dois como classific
 
 Comparação sem treino: o BERT multilingue já tunado com concursos europeus (https://huggingface.co/MKaan/multilingual-cpv-sector-classifier), só nas 45 divisões.
 
+Dados usados (separação pela data de publicação, decisão em [`notebooks/02_anos_treino.ipynb`](notebooks/02_anos_treino.ipynb)):
+
+| Parte | Período | Contratos |
+|---|---|---|
+| Treino | janeiro de 2022 a setembro de 2025 | 478 384 exemplos (de 794 883 contratos, depois de juntar textos repetidos e tirar códigos ao nível da divisão) |
+| Validação | outubro de 2025 | 23 945 |
+| Teste | novembro e dezembro de 2025 | 37 361 |
+| Reserva | 2026 (até 4 de outubro) | não se usa por agora |
+
 Os passos, pela ordem em que os fazemos, estão em [`docs/workflow.md`](docs/workflow.md).
 
 ## Réguas
@@ -123,7 +125,7 @@ Só existem para a divisão (2 dígitos):
 | Estudo italiano, IT5-large afinado | italiano | 78,7% | 0,37 |
 | Zwolle (Haskoning) | neerlandês e outras | cerca de 76% | n/d |
 
-Dois avisos que saem daqui: o modelo clássico é forte e pode bater o LLM afinado, e a accuracy engana porque as divisões são muito desequilibradas. Reportar sempre o F1 macro.
+Dois avisos que saem daqui: o modelo clássico é forte e pode bater os modelos tunados, e a accuracy engana porque as divisões são muito desequilibradas. Reportar sempre o F1 macro.
 
 Referências:
 - Automatic Generation of Common Procurement Vocabulary Codes: https://ceur-ws.org/Vol-3596/paper45.pdf
@@ -142,7 +144,7 @@ Referências:
 cpv-portal-base/
   data/raw/         ficheiros .xlsx originais (fora do git)
   data/processed/   Parquet limpo e splits (fora do git)
-  notebooks/        exploração e análise de erros
+  notebooks/        exploração: 00_qualidade, 01_exploracao, 02_anos_treino
   src/              pipeline: conversão, preparação, treino e avaliação
   tests/            testes unitários e de integração (pytest)
   scripts/          download_data.py
@@ -156,14 +158,14 @@ Pipeline e testes:
 
 ```
 .venv/bin/python scripts/download_data.py      # descarregar os .xlsx
-.venv/bin/python src/convert_to_parquet.py     # .xlsx -> Parquet (data/processed/raw/)
+.venv/bin/python src/convert_to_parquet.py     # .xlsx -> Parquet, todos os anos (data/processed/raw/)
 .venv/bin/python src/prepare.py                # Parquet -> treino, validação, teste (data/processed/)
 .venv/bin/pytest                               # testes unitários e de integração
 ```
 
 - `tests/unit/`: cada função sozinha, com dados pequenos inventados.
 - `tests/integration/`: o pipeline inteiro (xlsx -> treino/validação/teste) com 15 contratos inventados, cada um a pôr à prova uma regra de `docs/qualidade_dados.md`.
-- Os testes foram verificados com erros introduzidos de propósito (mutation testing): apanharam os 5 que se tentaram.
+- Os testes foram verificados com erros introduzidos de propósito (mutation testing): apanharam os 9 que se tentaram (5 no pipeline, 4 nos códigos raros).
 
 ## Estado
 

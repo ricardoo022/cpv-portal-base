@@ -4,7 +4,7 @@ Descrição das colunas dos contratos do Portal BASE.
 
 - **Uma linha = um contrato.** 39 colunas. As mesmas em todos os ficheiros, de 2012 a 2026.
 - No Parquet (`data/processed/raw/`) todas as colunas estão guardadas como texto. Números e datas convertem-se quando são precisos.
-- **Os números deste ficheiro vêm só dos contratos de treino** (publicados de janeiro a setembro de 2025, 166 113 contratos), para não espreitar o teste.
+- **Os números deste ficheiro vêm dos contratos publicados de janeiro a setembro de 2025** (166 113, lidos só dos ficheiros de 2025 e 2026), para não espreitar o teste. O treino final vai de janeiro de 2022 a setembro de 2025 (ver [`qualidade_dados.md`](qualidade_dados.md), secção 11); as percentagens podem variar um pouco.
 - De onde vêm os números: secção "Colunas" do [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb).
 
 **Aviso sobre o significado das colunas.** A página do dataset no dados.gov.pt só tem os ficheiros, sem dicionário de dados. O "O que é" de cada coluna é a nossa interpretação, a partir do nome e dos valores. Onde não temos a certeza está marcado com **(?)**.
