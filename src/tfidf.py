@@ -32,14 +32,21 @@ from labels import DEFAULT_N_MIN, collapse_rare_codes
 # medidos valem para este treino. float32 gasta metade da memória do float64.
 VECTORIZER = dict(ngram_range=(1, 2), sublinear_tf=True, dtype=np.float32)
 SEED = 0
+# Escolhidos na validação no spike E4-S4 (notebooks/05_tfidf_afinacao.ipynb): a regularização do
+# SGDClassifier e a força da correção das etiquetas frequentes. O alpha por defeito do sklearn
+# (0,0001) travava tanto os pesos das palavras que o modelo sugeria quase sempre as etiquetas
+# mais frequentes.
+ALPHA = 1e-7
+TAU = 0.25
 
 
-def train(texto, codigo, n_min=DEFAULT_N_MIN, min_df=2, n_jobs=-1, **sgd_params):
+def train(texto, codigo, n_min=DEFAULT_N_MIN, min_df=2, n_jobs=-1, alpha=ALPHA, **sgd_params):
     """Treina o TF-IDF + classificador com o treino (`texto` e `codigo`, com o mesmo índice).
 
     A etiqueta de cada exemplo é `collapse_rare_codes(codigo, n_min)`; os exemplos que saem (NaN)
-    não entram no treino. `sgd_params` vai para o `SGDClassifier` (por exemplo, `alpha`).
-    Devolve um `Pipeline` com os passos "tfidf" e "clf".
+    não entram no treino. `alpha` é a regularização; `sgd_params` vai para o `SGDClassifier`.
+    Devolve um `Pipeline` com os passos "tfidf" e "clf". O modelo leva consigo o `log_prior_`
+    das suas etiquetas (contado só com este treino), para a correção das etiquetas frequentes.
     """
     if not texto.index.equals(codigo.index):
         raise ValueError("`texto` e `codigo` têm índices diferentes")
@@ -55,9 +62,10 @@ def train(texto, codigo, n_min=DEFAULT_N_MIN, min_df=2, n_jobs=-1, **sgd_params)
         )
     model = Pipeline([
         ("tfidf", TfidfVectorizer(min_df=min_df, **VECTORIZER)),
-        ("clf", SGDClassifier(loss="log_loss", random_state=SEED, n_jobs=n_jobs, **sgd_params)),
+        ("clf", SGDClassifier(loss="log_loss", alpha=alpha, random_state=SEED, n_jobs=n_jobs, **sgd_params)),
     ])
     model.fit(texto[keep].tolist(), label[keep].to_numpy())
+    model.log_prior_ = log_prior(codigo, model.classes_, n_min=n_min)
     # No scikit-learn 1.7 o TfidfVectorizer já não guarda `stop_words_` (a lista dos termos
     # cortados pelo min_df, que no ensaio do E4-S0 ocupava memória), por isso não há nada a apagar.
     return model
@@ -89,12 +97,15 @@ def log_prior(codigo, classes, n_min=DEFAULT_N_MIN):
 def suggest_many(model, textos, taus=(0.0,), prior=None, k=TOP_K, batch_size=2000):
     """`suggest` para vários τ de uma vez: {τ: Series}. As pontuações calculam-se uma só vez.
 
-    `prior` é o `log_prior` das etiquetas do modelo; só é preciso se algum τ for diferente de 0.
+    `prior` é o `log_prior` das etiquetas do modelo; sem ele usa-se o `log_prior_` que o `train`
+    guarda no modelo. Só é preciso se algum τ for diferente de 0.
     """
     classes = np.asarray(model.classes_)
     if len(classes) < k:
         raise ValueError(f"o modelo só tem {len(classes)} etiquetas; são precisas {k}")
     if any(t != 0 for t in taus):
+        if prior is None:
+            prior = getattr(model, "log_prior_", None)
         if prior is None:
             raise ValueError("com τ diferente de 0 é preciso o `prior` (log_prior)")
         prior = np.asarray(prior, dtype=float)
@@ -118,6 +129,8 @@ def suggest(model, textos, k=TOP_K, batch_size=2000, tau=0.0, prior=None):
     `textos` é uma Series (o índice mantém-se) ou uma lista (índice 0, 1, 2, ...). Os textos
     pontuam-se em lotes de `batch_size` para a matriz textos x etiquetas não ocupar memória
     demais (a validação tem ~24 mil textos e o modelo ~3 000 etiquetas). Com `tau` > 0 aplica-se
-    a correção das etiquetas frequentes, com o `prior` de `log_prior`.
+    a correção das etiquetas frequentes, com o `prior` de `log_prior` (por defeito o do modelo).
+    Por defeito τ = 0 (só a pontuação); o valor escolhido para usar é `TAU`, que o treino e o
+    comando de sugestões passam.
     """
     return suggest_many(model, textos, (tau,), prior, k, batch_size)[tau]

@@ -77,11 +77,12 @@ def suggestions_file(tau):
 
 
 def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min_df=2,
-        alpha=None, taus=(0.0,)):
+        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU)):
     """Treina, grava o modelo (se `model_path`), as sugestões da validação e o resumo.
 
-    `alpha` é a regularização do `SGDClassifier` (None: o valor por defeito, 0,0001); `taus` são
-    os τ da correção das etiquetas frequentes, um ficheiro de sugestões por τ.
+    `alpha` é a regularização do `SGDClassifier`; `taus` são os τ da correção das etiquetas
+    frequentes, um ficheiro de sugestões por τ. Por defeito, os valores escolhidos no E4-S4, e
+    também τ = 0 (sem correção), para comparar.
 
     Devolve o modelo treinado (um Pipeline do sklearn).
     """
@@ -95,7 +96,6 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     # 1. Treino: só as colunas precisas
     treino = pd.read_parquet(train_path, columns=["data", "texto", "codigo"])
     datas_treino = _date_range(treino["data"])
-    sgd_params = {} if alpha is None else {"alpha": alpha}
     etiqueta = collapse_rare_codes(treino["codigo"], n_min)  # só para contar; o train refaz-o
     n_usados, n_saidos = int(etiqueta.notna().sum()), int(etiqueta.isna().sum())
     del etiqueta
@@ -103,10 +103,9 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     with warnings.catch_warnings(record=True) as avisos:
         warnings.simplefilter("always", ConvergenceWarning)
         t0 = time.perf_counter()
-        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, **sgd_params)
+        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha)
         t_treinar = time.perf_counter() - t0
     convergiu = not any(issubclass(w.category, ConvergenceWarning) for w in avisos)
-    prior = tfidf.log_prior(treino["codigo"], model.classes_, n_min=n_min)
     del treino  # o texto do treino já não é preciso; liberta memória antes da validação
 
     # 2. Modelo
@@ -119,7 +118,7 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto"])
     datas_val = _date_range(val["data"])
     t0 = time.perf_counter()
-    por_tau = tfidf.suggest_many(model, val["texto"], taus, prior)
+    por_tau = tfidf.suggest_many(model, val["texto"], taus)
     t_sugerir = time.perf_counter() - t0
     ids = val["idcontrato"].astype(str).to_numpy()
     for tau, sugestoes in por_tau.items():
@@ -163,8 +162,8 @@ def main():
     p.add_argument("--saida", default=str(SAIDA), help="pasta das sugestões e do treino.json")
     p.add_argument("--modelo", default=None, help="ficheiro do modelo (por defeito models/tfidf_n{N}.joblib)")
     p.add_argument("--sem-modelo", action="store_true", help="não grava o modelo (poupa ~5 GB de disco)")
-    p.add_argument("--alpha", type=float, default=None, help="regularização (por defeito a do sklearn, 0,0001)")
-    p.add_argument("--taus", type=float, nargs="+", default=[0.0],
+    p.add_argument("--alpha", type=float, default=tfidf.ALPHA, help="regularização (por defeito a do E4-S4)")
+    p.add_argument("--taus", type=float, nargs="+", default=[0.0, tfidf.TAU],
                    help="τ da correção das etiquetas frequentes; um ficheiro de sugestões por τ")
     a = p.parse_args()
     modelo = None if a.sem_modelo else (a.modelo or str(RAIZ / "models" / f"tfidf_n{a.n_min}.joblib"))

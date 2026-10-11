@@ -1,0 +1,47 @@
+{
+ "data": "2026-10-11T19:46:34",
+ "n_min": 10,
+ "min_df": 2,
+ "alpha": 0.0001,
+ "taus": [
+  0.0,
+  0.25,
+  0.5,
+  1.0
+ ],
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "datas": [
+   "2022-01-01",
+   "2025-09-30"
+  ]
+ },
+ "validacao": {
+  "ficheiro": "validacao.parquet",
+  "datas": [
+   "2025-10-01",
+   "2025-10-31"
+  ],
+  "contratos": 23945
+ },
+ "exemplos_usados": 478234,
+ "exemplos_saidos": 150,
+ "etiquetas": 3000,
+ "vocabulario": 402084,
+ "n_iter": [
+  6
+ ],
+ "convergiu": true,
+ "tempo_vetorizar_treinar_s": 380.34,
+ "tempo_sugerir_s": 32.47,
+ "pico_rss_mb": 9947,
+ "nucleos": 192,
+ "versoes": {
+  "python": "3.10.12",
+  "sklearn": "1.7.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "pandas": "2.3.3"
+ },
+ "coef_bytes": 4825008000
+}

@@ -1,0 +1,17 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (create-pod, get-pod, list-pods) e do cgroup dos pods, a 11 de outubro de 2026.",
+ "pods": [
+  {"id": "resrmth23i428i", "nome": "cpv-e4-s4", "centro_de_dados": "EU-SE-1",
+   "criado_utc": "2026-10-11T19:34:02", "apagado_utc": "cerca de 19:37:20",
+   "nota": "a porta SSH direta (194.68.245.218:22112, a mesma máquina do 1.º pod do E4-H1) não respondeu; apagado sem uso"},
+  {"id": "lhuwe7ijy8yzfg", "nome": "cpv-e4-s4", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-11T19:37:26", "apagado_utc": "cerca de 20:02:20",
+   "treinos": "alpha 1e-4, 1e-5 e 1e-6 (pod_treino.log)", "memory_peak_cgroup_bytes": 11646242816},
+  {"id": "rhl6q41ej88qgn", "nome": "cpv-e4-s4b", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-11T20:05:06", "apagado_utc": "cerca de 20:17:00",
+   "treinos": "alpha 1e-7 (pod_treino_1e-7.log)", "memory_peak_cgroup_bytes": 11613310976}
+ ],
+ "tipo": "cpu3g (General Purpose)", "processadores": 8, "memoria_gb": 32, "disco_gb": 20,
+ "imagem": "runpod/base:1.0.2-ubuntu2204", "preco_por_hora_usd": 0.32,
+ "tempo_total_aproximado_min": 40, "custo_aproximado_usd": 0.21
+}

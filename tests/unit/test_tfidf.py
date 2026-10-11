@@ -235,9 +235,27 @@ def test_suggest_many_da_o_mesmo_que_suggest_para_cada_tau(modelo):
         assert s.tolist() == tfidf.suggest(modelo, textos, tau=tau, prior=prior).tolist()
 
 
-def test_tau_sem_prior_da_erro(modelo):
+def test_tau_sem_prior_num_modelo_sem_frequencias_da_erro():
     with pytest.raises(ValueError, match="prior"):
-        tfidf.suggest(modelo, ["estrada"], tau=0.5)
+        tfidf.suggest(_Fixo([1, 2, 3, 4, 5, 6], CLASSES), ["estrada"], tau=0.5)
+
+
+def test_train_guarda_as_frequencias_do_treino_no_modelo(modelo):
+    texto, codigo = treino()
+    np.testing.assert_allclose(modelo.log_prior_, tfidf.log_prior(codigo, modelo.classes_, n_min=N))
+
+
+def test_sem_prior_usa_as_frequencias_do_modelo(modelo):
+    textos = ["limpeza de escolas", "estrada", "papel"]
+    assert (tfidf.suggest(modelo, textos, tau=1.0).tolist()
+            == tfidf.suggest(modelo, textos, tau=1.0, prior=modelo.log_prior_).tolist())
+
+
+def test_train_usa_o_alpha_escolhido_por_defeito(modelo):
+    assert tfidf.ALPHA == 1e-7 and tfidf.TAU == 0.25
+    assert modelo.named_steps["clf"].alpha == tfidf.ALPHA
+    texto, codigo = treino()
+    assert tfidf.train(texto, codigo, n_min=N, min_df=1, alpha=1e-3).named_steps["clf"].alpha == 1e-3
 
 
 def test_prior_com_tamanho_errado_da_erro(modelo):
