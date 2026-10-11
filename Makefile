@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao notebook regua
+.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -37,8 +37,20 @@ test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, p
 test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
+test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
+	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py
+
 notebook: ## Volta a correr o notebook de exploração (precisa de "make preparar" antes)
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 01_exploracao.ipynb
 
 regua: ## Volta a correr o notebook da régua "códigos mais comuns" na validação (precisa de "make preparar" antes)
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 03_regua.ipynb
+
+treinar-tfidf: ## Treina o TF-IDF (N = 10) e grava as sugestões da validação em metrics/e4_h1/ (no pod: ~32 GB)
+	$(PY) src/train_tfidf.py --n-min 10
+
+sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo de "make treinar-tfidf")
+	$(PY) src/suggest.py --modelo models/tfidf_n10.joblib
+
+tfidf: ## Volta a correr o notebook do TF-IDF contra a régua (precisa de metrics/e4_h1/ e de "make preparar")
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 04_tfidf.ipynb

@@ -5,3 +5,4 @@ data/processed/
 .claude/
 __pycache__/
 .ipynb_checkpoints/
+models/

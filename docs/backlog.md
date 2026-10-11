@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1 e E4-T2 feitas) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0 e E4-H1 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -307,7 +307,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
    - a `LogisticRegression` treina um só modelo para todas as etiquetas;
    - o SGD treina um modelo "sim/não" por etiqueta (um contra todos), ajustando os pesos exemplo a exemplo, com a regularização `alpha` = 0,0001 (o valor por defeito).
 
-   Decisão 5 do E4 (provisória): o TF-IDF usa o `SGDClassifier(loss="log_loss")`. Escolheu-se pela velocidade, sem medir a qualidade, e confirma-se no E4-H1, se bater a régua na validação.
+   Decisão 5 do E4: o TF-IDF usa o `SGDClassifier(loss="log_loss")`. Escolheu-se pela velocidade, sem medir a qualidade. Confirmada no E4-H1: bateu a régua na validação.
 2. **Treino completo no pod** (TF-IDF com palavras e pares de palavras, `min_df=2`, valores em float32; `SGDClassifier(loss="log_loss", n_jobs=-1)` num pod com 8 processadores):
 
    | | N = 10 | N = 5 |
@@ -333,7 +333,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
    - **Com margem:** dobrando o tempo, para avaliar na validação, gravar modelos e esperas, fica abaixo de 2 $.
    - A janela desde 2019 (E4-S2) tem mais dados; a sua memória e o seu tempo medem-se lá.
 
-### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M)
+### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M, feito)
 
 **Como** técnico de contratação, **quero** escrever a descrição da compra e receber 5 códigos CPV ordenados, **para** escolher entre 5 em vez de procurar na tabela de cerca de 9 500 códigos.
 
@@ -341,15 +341,22 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Depende de:** E4-T1, E4-T2 e E4-S0. Usa o N por defeito (10) e a janela atual (desde 2022).
 
+**Feito** a 11 de outubro de 2026 (ramo `historia/e4-h1`):
+
+- o modelo está em `src/tfidf.py`, o treino em `src/train_tfidf.py` e o comando em `src/suggest.py`;
+- os números estão na secção 13 do [`qualidade_dados.md`](qualidade_dados.md), calculados com o [`notebooks/04_tfidf.ipynb`](../notebooks/04_tfidf.ipynb), e os ficheiros do treino no pod estão em `metrics/e4_h1/`;
+- na validação, o top-5 é 43,2% no código completo e 37,9% na classe (régua: 26,3% e 15,6%), e 38,5% e 34,2% no texto novo (régua: 23,7% e 14,8%); o bootstrap dá o TF-IDF à frente em 100% das amostras nos quatro casos;
+- o treino demorou 454 s num pod `cpu3g` de 8 processadores e 32 GB. O pico de memória do processo foi 9 975 MiB, cerca de 10,5 GB, e o do pod inteiro (cgroup) foi 16,4 GB, de 32 GB. É mais do que no E4-S0 (5,7 GB): este processo também grava o modelo e sugere para a validação, mas não se mediu quanto pesa cada passo.
+
 **Critérios de aceitação:**
 
-- [ ] **Dado** uma descrição escrita à mão, **quando** corro o comando de sugestões, **então** recebo 5 códigos distintos de 8 dígitos, ordenados do mais provável para o menos provável.
-- [ ] Os 5 códigos são todos etiquetas do treino (depois da regra dos códigos raros), e nenhum está ao nível da divisão.
-- [ ] Dada a mesma descrição duas vezes, recebo as mesmas 5 sugestões pela mesma ordem.
-- [ ] Na validação, o top-5 é maior do que o da régua E4-T2 no código completo e na classe. Os resultados completos da avaliação E4-T1 estão escritos no `qualidade_dados.md`.
-- [ ] Um teste confirma que nenhum contrato da validação entra no treino do modelo nem nas contagens do N.
-- [ ] Nos contratos da validação com texto que não aparece no treino, o top-5 também é maior do que o da régua, no código completo e na classe, medidos nesses mesmos contratos. O `qualidade_dados.md` mostra lado a lado os resultados com texto novo e com texto já visto, para se ver quanto do resultado vem de decorar textos.
-- [ ] O comando mostra as sugestões para pelo menos 3 descrições escritas à mão, por exemplo "serviços de limpeza de três escolas básicas durante 12 meses".
+- [x] **Dado** uma descrição escrita à mão, **quando** corro o comando de sugestões, **então** recebo 5 códigos distintos de 8 dígitos, ordenados do mais provável para o menos provável.
+- [x] Os 5 códigos são todos etiquetas do treino (depois da regra dos códigos raros), e nenhum está ao nível da divisão.
+- [x] Dada a mesma descrição duas vezes, recebo as mesmas 5 sugestões pela mesma ordem.
+- [x] Na validação, o top-5 é maior do que o da régua E4-T2 no código completo e na classe. Os resultados completos da avaliação E4-T1 estão escritos no `qualidade_dados.md`.
+- [x] Um teste confirma que nenhum contrato da validação entra no treino do modelo nem nas contagens do N.
+- [x] Nos contratos da validação com texto que não aparece no treino, o top-5 também é maior do que o da régua, no código completo e na classe, medidos nesses mesmos contratos. O `qualidade_dados.md` mostra lado a lado os resultados com texto novo e com texto já visto, para se ver quanto do resultado vem de decorar textos.
+- [x] O comando mostra as sugestões para pelo menos 3 descrições escritas à mão, por exemplo "serviços de limpeza de três escolas básicas durante 12 meses".
 
 ### E4-T3 · Tarefa: testes ao treino que correm no CI (P)
 
@@ -458,7 +465,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2 e o E4-S0 estão feitos, por isso o E4-H1 pode começar. O E4-T4 não depende de nada e pode começar já.
+- O E4-T1, o E4-T2, o E4-S0 e o E4-H1 estão feitos. Seguem-se o E4-T3, o E4-T5 e o E4-S1; o E4-T4 não depende de nada.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
 ### Decisões tomadas para o E4 (10 de outubro de 2026)
@@ -467,7 +474,7 @@ E4-T4 ────────────────────────�
 2. **Como se escolhe entre opções:** decide o top-5 no código completo, com o top-5 na classe como métrica de guarda. Uma diferença só conta se o bootstrap mostrar que não é acaso. Regra completa no E4-T1.
 3. **Máquina:** alugar um pod na Runpod com pelo menos 32 GB de memória para o TF-IDF (mudado a 11 de outubro de 2026; antes era a Hetzner CX53). Ver o E4-S0.
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
-5. **Classificador do TF-IDF** (11 de outubro de 2026, provisória): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade: confirma-se no E4-H1, se bater a régua na validação. Ver o E4-S0.
+5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade e ficou confirmada no E4-H1, porque bateu a régua na validação (secção 13 do `qualidade_dados.md`). Ver o E4-S0.
 
 ### Decisões pendentes do E4
 
