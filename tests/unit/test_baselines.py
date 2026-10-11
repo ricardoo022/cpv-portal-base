@@ -88,6 +88,15 @@ def test_n_por_defeito_e_o_do_modelo():
     assert bl.most_common_labels(c, n_min=1)[0] != "90910000"
 
 
+@pytest.mark.parametrize("mau", [0, -1, float("nan")])
+def test_n_contratos_invalido_da_erro(mau):
+    c = codes(SEIS)
+    n = pd.Series(1.0, index=c.index)
+    n.iloc[3] = mau
+    with pytest.raises(ValueError, match=">= 1"):
+        bl.most_common_labels(c, n, n_min=1)
+
+
 def test_k_escolhe_quantas_sugestoes():
     assert bl.most_common_labels(codes(SEIS), n_min=1, k=3) == ["11111111", "22222222", "33333333"]
 

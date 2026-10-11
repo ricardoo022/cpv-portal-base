@@ -26,6 +26,8 @@ def most_common_labels(codigo, n_contratos=None, n_min=DEFAULT_N_MIN, k=TOP_K):
     weight = pd.Series(1, index=codigo.index) if n_contratos is None else n_contratos
     if not weight.index.equals(codigo.index):
         raise ValueError("`n_contratos` e `codigo` têm índices diferentes")
+    if weight.isna().any() or (weight < 1).any():
+        raise ValueError("`n_contratos` tem de ser >= 1 em todos os exemplos")
     label = collapse_rare_codes(codigo, n_min=n_min)
     keep = label.notna()
     counts = weight[keep].groupby(label[keep]).sum().rename_axis("etiqueta").reset_index(name="n")
