@@ -1,0 +1,1 @@
+logreg N=5 30k max_features=20000 max_iter=100: interrompido pelo timeout de 600 s (codigo 124), sem resultado

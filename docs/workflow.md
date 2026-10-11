@@ -60,7 +60,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 **Neste projeto:**
 - [x] Avaliação comum a todos os modelos (`src/evaluation.py`, `src/comparison.py`, tarefa E4-T1): top-1 e top-5 no código completo, na classe e na divisão, F1 macro, medidas hierárquicas, e o bootstrap emparelhado para decidir entre dois modelos.
 - [x] Régua "códigos mais comuns" (`src/baselines.py`, tarefa E4-T2): sugerir sempre as 5 etiquetas mais frequentes do treino. Na validação, top-5 de 26,3% no código completo e 15,6% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 12).
-- [ ] Baseline: TF-IDF com regressão logística, numa máquina alugada só com processador (Hetzner CX53, 32 GB). Plano em [`backlog.md`](backlog.md), épico E4.
+- [ ] Baseline: TF-IDF com regressão logística (treinada com o `SGDClassifier(loss="log_loss")`, decisão 5 do E4, provisória até ao E4-H1), numa máquina alugada (um pod da Runpod com 32 GB de memória; o TF-IDF só usa o processador). Plano em [`backlog.md`](backlog.md), épico E4.
 - [ ] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação.
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.
