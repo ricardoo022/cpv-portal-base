@@ -341,7 +341,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Depende de:** E4-T1, E4-T2 e E4-S0. Usa o N por defeito (10) e a janela atual (desde 2022).
 
-**Feito** a 11 de outubro de 2026 (ramo `historia/e4-h1`):
+**Feito** no PR #14 (11 de outubro de 2026), descrição completa em [`prs/pr_E4-H1.md`](prs/pr_E4-H1.md):
 
 - o modelo está em `src/tfidf.py`, o treino em `src/train_tfidf.py` e o comando em `src/suggest.py`;
 - os números estão na secção 13 do [`qualidade_dados.md`](qualidade_dados.md), calculados com o [`notebooks/04_tfidf.ipynb`](../notebooks/04_tfidf.ipynb), e os ficheiros do treino no pod estão em `metrics/e4_h1/`;
