@@ -251,6 +251,8 @@ Como ler:
 
 ### 13. TF-IDF contra a régua na validação (E4-H1)
 
+**Substituída pela secção 14** quanto ao modelo por defeito: o `alpha` e o τ mudaram no spike E4-S4. Os números daqui ficam como registo do primeiro modelo.
+
 De [`notebooks/04_tfidf.ipynb`](../notebooks/04_tfidf.ipynb), que lê as sugestões gravadas pelo treino no pod (`metrics/e4_h1/sugestoes_validacao.parquet`) e o resumo do treino (`metrics/e4_h1/treino.json`).
 
 **O modelo** (`src/tfidf.py`, treinado com `src/train_tfidf.py` num pod da Runpod):
@@ -290,6 +292,59 @@ Como ler:
 - **Decorar ajuda muito:** com texto já visto, o top-5 no código completo é 66,4%; com texto novo, 38,5%. O número que interessa para o técnico é o do texto novo, porque é o caso normal.
 - **O F1 macro continua muito baixo** (0,0107 no código completo). O F1 macro faz a média sobre todas as etiquetas da validação, e o modelo acerta bem poucas etiquetas, as frequentes. As raras quase nunca saem em 1.º lugar. É o ponto fraco a seguir nos próximos modelos.
 - **Sugestões das 3 descrições escritas à mão** (os nomes dos códigos são os da nomenclatura CPV oficial, Regulamento (CE) n.º 213/2008; o repositório não tem a tabela CPV) (`metrics/e4_h1/sugestoes_exemplos.txt`, do comando `src/suggest.py`): para "serviços de limpeza de três escolas básicas durante 12 meses" a 1.ª sugestão é `90910000` (serviços de limpeza). Para as refeições escolares, o código esperado aparece só em 4.º lugar (`55524000`, refeições para escolas). Para a repavimentação de estradas, a única sugestão de obras é `45453100` (em inglês *refurbishment work*, renovação), em 3.º lugar, e nenhuma é um código de estradas. Os outros lugares são códigos de saúde da régua (`33140000`, `33600000`...). Quando o texto se parece pouco com os do treino, o modelo puxa para as etiquetas mais frequentes.
+
+### 14. Afinar o TF-IDF: regularização e etiquetas frequentes (E4-S4)
+
+De [`notebooks/05_tfidf_afinacao.ipynb`](../notebooks/05_tfidf_afinacao.ipynb), que lê as sugestões gravadas pelos treinos no pod (`metrics/e4_s4/alpha_<alpha>/`). **Substitui os números da secção 13**: o modelo por defeito passa a ser o escolhido aqui.
+
+**Porquê:** na secção 13, a 1.ª sugestão era uma das 5 etiquetas da régua em 84,7% dos contratos e o F1 macro no código completo era 0,0107. Duas correções testadas, com o treino completo (o melhor `alpha` depende do número de exemplos, por isso uma amostra no portátil não servia):
+
+- **Regularização mais fraca.** A *regularização* é um travão que impede o modelo de dar pesos grandes às palavras. No `SGDClassifier` chama-se `alpha`, e no E4-H1 ficou no valor por defeito do scikit-learn, 0,0001. Uma etiqueta com 10 exemplos (o N) aparece em 10 dos 478 384 textos de treino, uma fração mais pequena do que esse travão. A hipótese (não medida diretamente: nenhuma célula mede os pesos das etiquetas raras) é que o modelo dessa etiqueta fica quase sem pesos de palavras, e ganham as etiquetas frequentes. O que se mediu é o efeito: a parte das 1.as sugestões que são uma das 5 etiquetas da régua desce de 84,7% para 30,7% ao baixar o `alpha`. A documentação do scikit-learn recomenda procurar o `alpha` entre 0,1 e 0,000001.
+- **Correção das etiquetas frequentes** (Menon et al., 2021, *logit adjustment*): ordenar por pontuação − τ · log(frequência da etiqueta no treino). Com τ = 0 nada muda. O artigo usa pontuações de um modelo softmax; aqui aplica-se às do um-contra-todos, uma adaptação.
+
+Resultados na validação (outubro de 2025), todos os contratos salvo onde diz "novo":
+
+| `alpha` | τ | Top-5 código | Top-5 classe | Top-5 código (novo) | Top-5 classe (novo) | Top-1 código | F1 macro código | 1.ª sugestão na régua |
+|---|---|---|---|---|---|---|---|---|
+| 0,0001 (E4-H1) | 0 | 43,2% | 37,9% | 38,5% | 34,2% | 30,8% | 0,0107 | 84,7% |
+| 0,0001 | 0,25 | 48,0% | 44,5% | 43,6% | 41,3% | 33,5% | 0,0148 | 75,9% |
+| 0,0001 | 0,5 | 33,5% | 30,8% | 28,2% | 26,4% | 31,1% | 0,0190 | 28,1% |
+| 0,0001 | 1 | 5,6% | 7,8% | 3,3% | 6,3% | 5,5% | 0,0051 | 3,9% |
+| 0,00001 | 0 | 61,6% | 60,8% | 57,9% | 58,1% | 43,8% | 0,0516 | 49,9% |
+| 0,00001 | 0,25 | 64,6% | 65,6% | 61,1% | 63,1% | 45,1% | 0,0619 | 44,1% |
+| 0,00001 | 0,5 | 68,6% | 71,1% | 65,3% | 68,8% | 46,4% | 0,0776 | 38,1% |
+| 0,00001 | 1 | 49,2% | 55,3% | 44,4% | 51,2% | 38,6% | 0,1079 | 19,4% |
+| 0,000001 | 0 | 75,3% | 78,4% | 71,9% | 76,0% | 54,7% | 0,1617 | 35,2% |
+| 0,000001 | 0,25 | 76,8% | 80,7% | 73,7% | 78,5% | 55,7% | 0,1899 | 31,8% |
+| 0,000001 | 0,5 | 77,8% | 82,0% | 74,7% | 79,9% | 55,2% | 0,2089 | 28,7% |
+| 0,000001 | 1 | 73,8% | 80,1% | 70,3% | 78,0% | 49,8% | 0,2288 | 18,7% |
+| 0,0000001 | 0 | 76,9% | 82,2% | 73,4% | 79,9% | 57,0% | 0,2417 | 30,7% |
+| **0,0000001** | **0,25** | **76,9%** | **82,9%** | **73,5%** | **80,8%** | **57,0%** | **0,2565** | **28,7%** |
+| 0,0000001 | 0,5 | 76,4% | 82,9% | 73,0% | 80,7% | 55,9% | 0,2580 | 26,6% |
+| 0,0000001 | 1 | 71,7% | 81,0% | 67,9% | 78,7% | 52,1% | 0,2582 | 19,1% |
+| régua | - | 26,3% | 15,6% | 23,7% | 14,8% | 13,7% | 0,0001 | 100,0% |
+
+**Escolha, com a regra escrita no backlog antes de correr** (primeiro o `alpha` com τ = 0, depois o τ; cada candidato contra a opção em vigor, com a regra do E4-T1):
+
+| Comparação | Top-5 código | Top-5 classe | Fica |
+|---|---|---|---|
+| `alpha` 0,0001 → 0,00001 | +18,4 pontos (100% das amostras) | +22,9 (100%) | 0,00001 |
+| `alpha` 0,00001 → 0,000001 | +13,7 (100%) | +17,6 (100%) | 0,000001 |
+| `alpha` 0,000001 → 0,0000001 | +1,6 (100%) | +3,8 (100%) | 0,0000001 |
+| τ 0 → 0,25 | +0,04 (62%: não conta) | +0,75 (100%) | 0,25 (desempata a classe) |
+| τ 0,25 → 0,5 | −0,52 (0%) | −0,06 (30%) | 0,25 |
+| τ 0,25 → 1 | −5,22 (0%) | −1,98 (0%) | 0,25 |
+
+Escolhido: **`alpha` = 0,0000001 e τ = 0,25** (decisão 6 do E4, no `backlog.md`). Na avaliação completa: top-1 na divisão 81,0% e top-5 93,5%; no texto novo, top-1 na divisão 78,2%. Continua a bater a régua nos quatro casos do E4-H1, com o bootstrap.
+
+Como ler:
+- **O problema era a regularização.** Só baixar o `alpha` levou o top-5 no código completo de 43,2% para 76,9%, e o F1 macro de 0,0107 para 0,2417. A correção das etiquetas frequentes ajuda pouco quando o `alpha` já está certo (+0,75 pontos na classe); com o `alpha` forte do E4-H1, um τ grande deita tudo abaixo (τ = 1: 5,6%), porque tira a vantagem às etiquetas frequentes sem o modelo saber mais nada do texto.
+- **O 0,0000001 entrou depois de ver os resultados.** O 0,000001 ganhou e era o extremo da lista; quando o melhor valor fica no extremo, não se sabe se um valor mais pequeno seria melhor. O 0,0000001 ganhou outra vez, com uma diferença que conta (+1,6 pontos no código completo, contra +13,7 no passo anterior), e **voltou a ser o extremo da lista**. Parou-se aí porque o ganho caiu muito, mas esse critério não estava escrito antes de correr, e o 0,00000001 não foi testado. **Limitação:** não se sabe se um `alpha` ainda mais pequeno seria melhor; o ganho por passo caiu de +13,7 para +1,6 pontos, mas não se pode garantir que continue a cair. Testá-lo custa um treino de cerca de 8 minutos no pod.
+- **A regra em dois passos não mudou o resultado.** `alpha` = 0,000001 com τ = 0,5 tem mais 0,87 pontos no top-5 do código completo, mas menos 0,96 na classe (as duas diferenças contam). A guarda da classe elimina-a, também numa comparação direta (última célula do notebook).
+- **Comparação com o publicado:** o top-1 na divisão (81,0%) fica agora na zona dos 75% a 79% dos estudos citados no `readme.md`. Não é uma comparação exata: eles treinaram só com as divisões, com outros dados.
+- **Otimista, mas pouco:** o `alpha` e o τ foram escolhidos na validação, por isso estes números ficam um pouco acima do que o teste vai mostrar. O teste continua fechado.
+- **Custo:** os 4 treinos levaram 6 a 8 minutos a vetorizar e treinar, com 6 a 12 épocas (`treino.json`, célula 3 do notebook); com a sugestão, cada um levou 7 a 9 minutos (`metrics/e4_s4/pod_treino*.log`). Com a preparação dos pods, cerca de 40 minutos de pod, perto de 0,21 $ (`metrics/e4_s4/pod_info.json`, escrito à mão a partir das leituras da Runpod).
+- **Ainda não medido com o modelo novo:** as sugestões para as 3 descrições escritas à mão (secção 13) são do modelo do E4-H1. Os treinos deste spike não gravaram o modelo (`--sem-modelo`), por isso o comando de sugestões ainda não correu com o `alpha` e o τ novos.
 
 ## Decisões
 

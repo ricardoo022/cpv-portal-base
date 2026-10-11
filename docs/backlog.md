@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0 e E4-H1 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1 e E4-S4 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -358,6 +358,36 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [x] Nos contratos da validação com texto que não aparece no treino, o top-5 também é maior do que o da régua, no código completo e na classe, medidos nesses mesmos contratos. O `qualidade_dados.md` mostra lado a lado os resultados com texto novo e com texto já visto, para se ver quanto do resultado vem de decorar textos.
 - [x] O comando mostra as sugestões para pelo menos 3 descrições escritas à mão, por exemplo "serviços de limpeza de três escolas básicas durante 12 meses".
 
+### E4-S4 · Spike: afinar o TF-IDF (regularização e etiquetas frequentes) (timebox: 1 dia, feito)
+
+**Porque é precisa:** no E4-H1 o TF-IDF bateu a régua, mas a 1.ª sugestão é quase sempre uma das 5 etiquetas mais frequentes e o F1 macro é quase zero (secção 13 do `qualidade_dados.md`). Uma baseline mal afinada fazia o BERTimbau e o Albertina parecerem melhores do que são.
+
+**Pergunta:** um `alpha` (a força da regularização) mais pequeno, ou a correção das etiquetas frequentes de Menon et al. (2021), melhoram as sugestões na validação?
+
+**Depende de:** E4-H1. Usa N = 10 e a janela desde 2022.
+
+**Como** (com o treino completo, no pod; o melhor `alpha` depende do número de exemplos, por isso uma amostra no portátil não serve):
+
+- `alpha` = 0,0001 (o do E4-H1), 0,00001 e 0,000001 (intervalo recomendado pela documentação do scikit-learn);
+- **acrescentado depois de ver os resultados** (11 de outubro de 2026): `alpha` = 0,0000001, porque o 0,000001 ganhou e era o extremo da lista. Quando o melhor valor fica no extremo, não se sabe se um valor mais pequeno seria ainda melhor. Entra no fim da lista, com a mesma regra;
+- para cada `alpha`, a correção das etiquetas frequentes: ordenar por pontuação − τ · log(frequência da etiqueta no treino), com τ = 0 (sem correção), 0,25, 0,5 e 1.
+
+**Regra de escolha, escrita antes de correr:** primeiro escolhe-se o `alpha` com τ = 0, depois o τ com esse `alpha`. Em cada passo começa-se com a opção por defeito (`alpha` = 0,0001 no 1.º passo, τ = 0 no 2.º) e compara-se cada candidato com a opção em vigor, pela ordem da lista acima, com a regra de comparação do E4-T1. Se o candidato ganhar, passa a ser a opção em vigor; em empate, fica a que já estava. Como o `alpha` e o τ se escolhem na validação, os números do vencedor ficam um pouco otimistas; o teste continua fechado e mede isso no fim.
+
+**Também se mostra** (sem entrar na decisão): o F1 macro e a parte das 1.as sugestões que são uma das 5 etiquetas da régua.
+
+**Resultado:**
+
+- uma tabela com todas as opções;
+- o `alpha` e o τ escolhidos, escritos como decisão do E4; se mudarem, passam a ser o valor por defeito em `src/tfidf.py` e os resultados do E4-H1 voltam a calcular-se.
+
+**Feito** no PR #15 (11 de outubro de 2026), descrição completa em [`prs/pr_E4-S4.md`](prs/pr_E4-S4.md). A tabela e as comparações estão na secção 14 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/05_tfidf_afinacao.ipynb`](../notebooks/05_tfidf_afinacao.ipynb), e os ficheiros dos treinos no pod estão em `metrics/e4_s4/`.
+
+- **Escolhido:** `alpha` = 0,0000001 e τ = 0,25 (decisão 6 abaixo). Passam a ser o valor por defeito em `src/tfidf.py` (`ALPHA`, `TAU`), no `train_tfidf.py` e no comando de sugestões.
+- **Na validação:** top-5 de 76,9% no código completo e 82,9% na classe (E4-H1: 43,2% e 37,9%); 73,5% e 80,8% no texto novo; F1 macro 0,2565 (E4-H1: 0,0107). Os resultados do E4-H1 com os valores novos são estes: o notebook 05 mostra a avaliação completa do escolhido ao lado da do E4-H1.
+- **Custo:** cerca de 40 minutos de pod, perto de 0,21 $ (um pod calhou outra vez na máquina de EU-SE-1 cuja porta SSH não respondia, e foi apagado sem uso; ver `metrics/e4_s4/pod_info.json`).
+- **Por fazer:** o comando de sugestões ainda não correu com o modelo novo, porque os treinos do spike não gravaram o modelo. Faz-se no próximo treino no pod.
+
 ### E4-T3 · Tarefa: testes ao treino que correm no CI (P)
 
 **Porque é precisa:** um treino com um erro pode correr sem dar erro nenhum e só produzir um modelo mau. Estes testes apanham isso antes de se gastar tempo com dados reais.
@@ -449,7 +479,7 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 
 **Critérios de aceitação:**
 
-- [ ] As métricas da validação do TF-IDF e da régua ficam guardadas no git, num ficheiro pequeno. Cada bloco de métricas diz de que conjunto vem e o período de datas.
+- [ ] As métricas da validação do TF-IDF e da régua ficam guardadas no git, num ficheiro pequeno. Cada bloco de métricas diz de que conjunto vem e o período de datas. As métricas do TF-IDF são as do modelo por defeito (`alpha` e τ da decisão 6): o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o `sugestoes_validacao.parquet`, que é o de τ = 0.
 - [ ] O CI falha se o top-5 guardado do TF-IDF não for maior do que o da régua, no código completo e na classe.
 - [ ] O CI falha se algum bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025).
 - [ ] O treino e a avaliação carregam os conjuntos sempre da mesma maneira, que recusa o teste sem uma autorização explícita. Um teste no CI confirma a recusa.
@@ -465,7 +495,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0 e o E4-H1 estão feitos. Seguem-se o E4-T3, o E4-T5 e o E4-S1; o E4-T4 não depende de nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1 e o E4-S4 estão feitos. Seguem-se o E4-T3, o E4-T5 e o E4-S1 (com o `alpha` e o τ da decisão 6); o E4-T4 não depende de nada.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
 ### Decisões tomadas para o E4 (10 de outubro de 2026)
@@ -475,6 +505,7 @@ E4-T4 ────────────────────────�
 3. **Máquina:** alugar um pod na Runpod com pelo menos 32 GB de memória para o TF-IDF (mudado a 11 de outubro de 2026; antes era a Hetzner CX53). Ver o E4-S0.
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
 5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade e ficou confirmada no E4-H1, porque bateu a régua na validação (secção 13 do `qualidade_dados.md`). Ver o E4-S0.
+6. **Regularização e correção das etiquetas frequentes do TF-IDF** (11 de outubro de 2026, spike E4-S4): `alpha` = 0,0000001 (em vez do valor por defeito do scikit-learn, 0,0001) e τ = 0,25. Escolhidos na validação com a regra do E4-T1, escrita antes de correr. O `alpha` 0,0000001 foi acrescentado à lista depois de ver os resultados, porque o 0,000001 ganhou e era o extremo da lista. O 0,0000001 voltou a ganhar e continua no extremo; o 0,00000001 não foi testado (limitação escrita na secção 14 do `qualidade_dados.md`).
 
 ### Decisões pendentes do E4
 

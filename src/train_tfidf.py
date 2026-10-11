@@ -9,6 +9,8 @@ Lê só o treino e a validação, por caminhos explícitos; recusa um ficheiro c
 3. sugere 5 códigos para cada contrato da validação e grava `sugestoes_validacao.parquet`
    (`idcontrato`, `sugestoes`), pela ordem do `validacao.parquet`. Este ficheiro é pequeno (sem
    texto) para ir para o git e ser lido no portátil, onde o modelo não cabe;
+   Com vários τ (`--taus`, spike E4-S4), grava também um ficheiro por τ diferente de 0
+   (`sugestoes_validacao_tau0.5.parquet`, ...), com a correção das etiquetas frequentes;
 4. grava `treino.json` com o que é preciso para repetir e comparar o treino (datas, N, tamanho
    do vocabulário, tempos, memória, versões).
 
@@ -17,6 +19,8 @@ de 6 GB e o portátil tem 5,8 GB partilhados com o editor (E4-S0).
 
 Exemplo (da raiz do projeto):
     .venv/bin/python src/train_tfidf.py --n-min 10
+    .venv/bin/python src/train_tfidf.py --alpha 1e-5 --taus 0 0.25 0.5 1 --sem-modelo \
+        --saida metrics/e4_s4/alpha_1e-5
 """
 
 import argparse
@@ -39,7 +43,7 @@ from labels import DEFAULT_N_MIN, collapse_rare_codes
 RAIZ = Path(__file__).resolve().parents[1]
 TREINO = RAIZ / "data" / "processed" / "treino.parquet"
 VALIDACAO = RAIZ / "data" / "processed" / "validacao.parquet"
-SAIDA = RAIZ / "metrics" / "e4_h1"
+SAIDA = RAIZ / "metrics" / "tfidf"  # metrics/e4_h1/ e metrics/e4_s4/ ficam como registo fixo
 SUGESTOES = "sugestoes_validacao.parquet"
 RESUMO = "treino.json"
 PROIBIDO = "teste.parquet"
@@ -67,8 +71,18 @@ def _versions():
             "numpy": np.__version__, "scipy": scipy.__version__, "pandas": pd.__version__}
 
 
-def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min_df=2):
+def suggestions_file(tau):
+    """Nome do ficheiro das sugestões da validação com o τ dado (τ = 0: o nome do E4-H1)."""
+    return SUGESTOES if tau == 0 else f"sugestoes_validacao_tau{tau:g}.parquet"
+
+
+def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min_df=2,
+        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU)):
     """Treina, grava o modelo (se `model_path`), as sugestões da validação e o resumo.
+
+    `alpha` é a regularização do `SGDClassifier`; `taus` são os τ da correção das etiquetas
+    frequentes, um ficheiro de sugestões por τ. Por defeito, os valores escolhidos no E4-S4, e
+    também τ = 0 (sem correção), para comparar.
 
     Devolve o modelo treinado (um Pipeline do sklearn).
     """
@@ -89,7 +103,7 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     with warnings.catch_warnings(record=True) as avisos:
         warnings.simplefilter("always", ConvergenceWarning)
         t0 = time.perf_counter()
-        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df)
+        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha)
         t_treinar = time.perf_counter() - t0
     convergiu = not any(issubclass(w.category, ConvergenceWarning) for w in avisos)
     del treino  # o texto do treino já não é preciso; liberta memória antes da validação
@@ -104,11 +118,12 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto"])
     datas_val = _date_range(val["data"])
     t0 = time.perf_counter()
-    sugestoes = tfidf.suggest(model, val["texto"])
+    por_tau = tfidf.suggest_many(model, val["texto"], taus)
     t_sugerir = time.perf_counter() - t0
-    out = pd.DataFrame({"idcontrato": val["idcontrato"].astype(str).to_numpy(),
-                        "sugestoes": [[str(c) for c in s] for s in sugestoes]})
-    out.to_parquet(out_dir / SUGESTOES, index=False)
+    ids = val["idcontrato"].astype(str).to_numpy()
+    for tau, sugestoes in por_tau.items():
+        out = pd.DataFrame({"idcontrato": ids, "sugestoes": [[str(c) for c in s] for s in sugestoes]})
+        out.to_parquet(out_dir / suggestions_file(tau), index=False)
 
     # 4. Resumo
     vec, clf = model.named_steps["tfidf"], model.named_steps["clf"]
@@ -116,8 +131,14 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
         "data": dt.datetime.now().isoformat(timespec="seconds"),
         "n_min": n_min,
         "min_df": min_df,
+        "alpha": clf.alpha,
+        "taus": list(taus),
+        # Que τ tem cada ficheiro de sugestões, e qual é o do modelo por defeito (`tfidf.TAU`).
+        # O nome principal é o de τ = 0, por isso quem avalia o modelo escolhido lê este campo.
+        "ficheiros": {suggestions_file(t): t for t in taus},
+        "ficheiro_do_modelo_por_defeito": suggestions_file(tfidf.TAU) if tfidf.TAU in taus else None,
         "treino": {"ficheiro": Path(train_path).name, "datas": datas_treino},
-        "validacao": {"ficheiro": Path(val_path).name, "datas": datas_val, "contratos": len(out)},
+        "validacao": {"ficheiro": Path(val_path).name, "datas": datas_val, "contratos": len(ids)},
         "exemplos_usados": n_usados,
         "exemplos_saidos": n_saidos,
         "etiquetas": int(len(clf.classes_)),
@@ -144,10 +165,14 @@ def main():
                    help="N da regra dos códigos raros")
     p.add_argument("--saida", default=str(SAIDA), help="pasta das sugestões e do treino.json")
     p.add_argument("--modelo", default=None, help="ficheiro do modelo (por defeito models/tfidf_n{N}.joblib)")
+    p.add_argument("--sem-modelo", action="store_true", help="não grava o modelo (poupa ~5 GB de disco)")
+    p.add_argument("--alpha", type=float, default=tfidf.ALPHA, help="regularização (por defeito a do E4-S4)")
+    p.add_argument("--taus", type=float, nargs="+", default=[0.0, tfidf.TAU],
+                   help="τ da correção das etiquetas frequentes; um ficheiro de sugestões por τ")
     a = p.parse_args()
-    modelo = a.modelo or str(RAIZ / "models" / f"tfidf_n{a.n_min}.joblib")
-    run(a.treino, a.validacao, a.saida, model_path=modelo, n_min=a.n_min)
-    print("Gravado:", modelo, "e", Path(a.saida) / SUGESTOES, "e", Path(a.saida) / RESUMO)
+    modelo = None if a.sem_modelo else (a.modelo or str(RAIZ / "models" / f"tfidf_n{a.n_min}.joblib"))
+    run(a.treino, a.validacao, a.saida, model_path=modelo, n_min=a.n_min, alpha=a.alpha, taus=a.taus)
+    print("Gravado:", modelo or "(sem modelo)", "e", a.saida)
 
 
 if __name__ == "__main__":

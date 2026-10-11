@@ -132,11 +132,15 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
     with open(treinado["saida"] / tt.RESUMO, encoding="utf-8") as f:
         resumo = json.load(f)
     assert set(resumo) == {
-        "data", "n_min", "min_df", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
+        "data", "n_min", "min_df", "alpha", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
         "etiquetas", "vocabulario", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
         "tempo_sugerir_s", "pico_rss_mb", "nucleos", "versoes", "coef_bytes"}
     tr = treinado["treino_df"]
     assert resumo["n_min"] == N_MIN and resumo["min_df"] == 1
+    # por defeito, os valores escolhidos no E4-S4, e também τ = 0 para comparar
+    assert resumo["alpha"] == tt.tfidf.ALPHA == 1e-7 and resumo["taus"] == [0.0, tt.tfidf.TAU] == [0.0, 0.25]
+    assert resumo["ficheiros"] == {"sugestoes_validacao.parquet": 0.0, "sugestoes_validacao_tau0.25.parquet": 0.25}
+    assert resumo["ficheiro_do_modelo_por_defeito"] == "sugestoes_validacao_tau0.25.parquet"
     assert resumo["treino"]["ficheiro"] == "treino.parquet"
     assert resumo["validacao"]["ficheiro"] == "validacao.parquet"
     assert resumo["treino"]["datas"] == [str(tr["data"].min().date()), str(tr["data"].max().date())]
@@ -150,7 +154,10 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
 def test_modelo_gravado_da_as_mesmas_sugestoes(treinado):
     gravado = joblib.load(treinado["modelo"])
     textos = treinado["val_df"]["texto"]
-    assert tt.tfidf.suggest(gravado, textos).tolist() == treinado["sugestoes"]["sugestoes"].map(list).tolist()
+    # o ficheiro principal é o sem correção (τ = 0); o do τ escolhido tem o seu próprio nome
+    assert tt.tfidf.suggest(gravado, textos, tau=0.0).tolist() == treinado["sugestoes"]["sugestoes"].map(list).tolist()
+    com_tau = pd.read_parquet(treinado["saida"] / tt.suggestions_file(tt.tfidf.TAU))
+    assert tt.tfidf.suggest(gravado, textos).tolist() == com_tau["sugestoes"].map(list).tolist()
 
 
 def test_comando_de_treino_grava_o_modelo_onde_o_comando_de_sugestoes_o_procura(treinado, tmp_path, monkeypatch):
@@ -163,6 +170,70 @@ def test_comando_de_treino_grava_o_modelo_onde_o_comando_de_sugestoes_o_procura(
     assert (tmp_path / "models" / "tfidf_n10.joblib").exists()
     makefile = (Path(tt.__file__).parents[1] / "Makefile").read_text(encoding="utf-8")
     assert "--modelo models/tfidf_n10.joblib" in makefile
+
+
+# --- Spike E4-S4: alpha e correção das etiquetas frequentes ---
+
+def test_alpha_e_taus_gravam_um_ficheiro_por_tau(treinado, tmp_path):
+    taus = [0.0, 0.5, 1.0]
+    model = tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=N_MIN, min_df=1,
+                   alpha=1e-5, taus=taus)
+    assert model.named_steps["clf"].alpha == 1e-5
+    with open(tmp_path / tt.RESUMO, encoding="utf-8") as f:
+        resumo = json.load(f)
+    assert resumo["alpha"] == 1e-5 and resumo["taus"] == taus
+    tr = pd.read_parquet(treinado["treino"], columns=["codigo"])["codigo"]
+    prior = tt.tfidf.log_prior(tr, model.classes_, n_min=N_MIN)
+    val = treinado["val_df"]
+    for tau in taus:
+        lido = pd.read_parquet(tmp_path / tt.suggestions_file(tau))
+        assert lido["idcontrato"].tolist() == val["idcontrato"].astype(str).tolist()
+        esperado = tt.tfidf.suggest(model, val["texto"], tau=tau, prior=prior)
+        assert lido["sugestoes"].map(list).tolist() == esperado.tolist()
+    assert tt.suggestions_file(0.0) == tt.SUGESTOES
+    assert not (tmp_path / "sugestoes_validacao_tau0.parquet").exists()
+
+
+def test_treino_por_defeito_grava_so_o_ficheiro_sem_correcao_e_o_do_tau_escolhido(treinado):
+    gravados = sorted(p.name for p in treinado["saida"].glob("sugestoes_validacao*.parquet"))
+    assert gravados == ["sugestoes_validacao.parquet", "sugestoes_validacao_tau0.25.parquet"]
+
+
+def test_mudar_a_validacao_nao_muda_as_frequencias_nem_as_sugestoes_corrigidas(treinado, tmp_path):
+    # A correção usa a frequência de cada etiqueta: tem de vir só do treino
+    outra = treinado["val_df"].copy()
+    outra["codigo"] = "33141400"
+    outra["codigos"] = "33141400"
+    outra.to_parquet(tmp_path / "validacao.parquet", index=False)
+    model2 = tt.run(treinado["treino"], tmp_path / "validacao.parquet", tmp_path / "saida", n_min=N_MIN, min_df=1)
+    np.testing.assert_array_equal(treinado["model"].log_prior_, model2.log_prior_)
+    textos = treinado["treino_df"]["texto"]
+    tau = tt.tfidf.TAU
+    assert (tt.tfidf.suggest(treinado["model"], textos, tau=tau).tolist()
+            == tt.tfidf.suggest(model2, textos, tau=tau).tolist())
+
+
+def test_comando_de_treino_com_alpha_taus_e_sem_modelo(treinado, tmp_path):
+    saida, modelo = tmp_path / "saida", tmp_path / "models" / "m.joblib"
+    subprocess.run([sys.executable, str(Path(tt.__file__)), "--treino", str(treinado["treino"]),
+                    "--validacao", str(treinado["validacao"]), "--n-min", "5", "--saida", str(saida),
+                    "--modelo", str(modelo), "--sem-modelo", "--alpha", "0.001", "--taus", "0", "0.5"],
+                   capture_output=True, text=True, check=True)
+    assert not modelo.exists()  # --sem-modelo: nada gravado, nem com --modelo
+    with open(saida / tt.RESUMO, encoding="utf-8") as f:
+        resumo = json.load(f)
+    assert resumo["alpha"] == 0.001 and resumo["taus"] == [0.0, 0.5] and resumo["n_min"] == 5
+    assert sorted(p.name for p in saida.glob("sugestoes_validacao*.parquet")) == [
+        "sugestoes_validacao.parquet", "sugestoes_validacao_tau0.5.parquet"]
+
+
+def test_comando_de_treino_por_defeito_grava_o_modelo(treinado, tmp_path):
+    modelo = tmp_path / "models" / "m.joblib"
+    subprocess.run([sys.executable, str(Path(tt.__file__)), "--treino", str(treinado["treino"]),
+                    "--validacao", str(treinado["validacao"]), "--n-min", "5", "--saida", str(tmp_path / "s"),
+                    "--modelo", str(modelo)], capture_output=True, text=True, check=True)
+    gravado = joblib.load(modelo)
+    assert gravado.named_steps["clf"].alpha == tt.tfidf.ALPHA
 
 
 # --- Comando de sugestões ---
@@ -193,7 +264,37 @@ def test_comando_sem_descricoes_mostra_os_3_exemplos_com_5_codigos(treinado):
         assert len(set(codigos)) == 5 and set(codigos) <= set(treinado["model"].classes_)
 
 
-def test_probabilidades_por_ordem_decrescente(treinado):
-    out = sg.format_suggestions(treinado["model"], ["papel de impressão"])
+def test_probabilidades_por_ordem_decrescente_sem_correcao(treinado):
+    out = sg.format_suggestions(treinado["model"], ["papel de impressão"], tau=0.0)
     probs = [float(l.split("probabilidade ")[1].rstrip(")")) for l in out.splitlines()[1:] if l]
     assert len(probs) == 5 and probs == sorted(probs, reverse=True)
+
+
+def test_comando_ordena_com_o_tau_escolhido(treinado):
+    textos = ["limpeza de escolas", "papel de impressão", "obras na estrada"]
+    out = sg.format_suggestions(treinado["model"], textos)
+    codigos = [[l.split()[1] for l in b.splitlines()[1:]] for b in _blocos(out)]
+    assert codigos == tt.tfidf.suggest(treinado["model"], textos, tau=tt.tfidf.TAU).tolist()
+
+
+def test_modelo_gravado_leva_as_frequencias_do_treino(treinado):
+    gravado = joblib.load(treinado["modelo"])
+    tr = treinado["treino_df"]["codigo"]
+    np.testing.assert_allclose(gravado.log_prior_, tt.tfidf.log_prior(tr, gravado.classes_, n_min=N_MIN))
+
+
+def test_comando_de_sugestoes_aceita_outro_tau(treinado):
+    textos = ["limpeza de escolas", "papel de impressão", "obras na estrada", "medicamentos"]
+    forte = tt.tfidf.suggest(treinado["model"], textos, tau=5.0).tolist()
+    # pré-condição: com τ = 5 a ordem muda, senão o teste não distinguia os dois τ
+    assert forte != tt.tfidf.suggest(treinado["model"], textos, tau=tt.tfidf.TAU).tolist()
+    r = subprocess.run([sys.executable, str(Path(tt.__file__).with_name("suggest.py")),
+                        "--modelo", str(treinado["modelo"]), "--tau", "5", *textos],
+                       capture_output=True, text=True, check=True)
+    codigos = [[l.split()[1] for l in b.splitlines()[1:]] for b in _blocos(r.stdout)]
+    assert codigos == forte
+
+
+def test_treino_por_defeito_grava_numa_pasta_propria_e_nao_no_registo_do_e4_h1():
+    # metrics/e4_h1/ e metrics/e4_s4/ são o registo fixo de cada item; um treino novo não os apaga
+    assert tt.SAIDA == Path(tt.__file__).parents[1] / "metrics" / "tfidf"

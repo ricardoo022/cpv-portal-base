@@ -124,7 +124,7 @@ class Empatado:
 
 def test_empate_fica_o_menor_codigo():
     classes = [f"{i}1111111" for i in range(1, 8)]  # por ordem crescente, como o classes_
-    sug = tfidf.suggest(Empatado(classes, melhor=6), ["a", "b"])
+    sug = tfidf.suggest(Empatado(classes, melhor=6), ["a", "b"], tau=0.0)  # só a pontuação
     assert sug[0] == ["71111111", "11111111", "21111111", "31111111", "41111111"]
     assert sug[1] == sug[0]
 
@@ -173,3 +173,107 @@ def test_indices_diferentes_da_erro():
     texto, codigo = treino()
     with pytest.raises(ValueError, match="índices diferentes"):
         tfidf.train(texto, codigo.reset_index(drop=True), n_min=1, min_df=1)
+
+
+# --- Spike E4-S4: correção das etiquetas frequentes (Menon et al., 2021) ---
+
+class _Fixo:
+    """Modelo falso com pontuações fixas, para controlar a ordenação."""
+
+    def __init__(self, scores, classes):
+        self.scores = np.asarray(scores, dtype=float)
+        self.classes_ = np.asarray(classes)
+
+    def decision_function(self, textos):
+        return np.tile(self.scores, (len(textos), 1))
+
+
+CLASSES = ["11000000", "22100000", "33600000", "44100000", "55100000", "66100000"]
+
+
+def test_log_prior_conta_etiquetas_do_treino_pela_ordem_das_classes():
+    codigo = pd.Series(["33600000"] * 6 + ["45233200"] * 2 + ["90911200"] * 2)
+    prior = tfidf.log_prior(codigo, np.array(["33600000", "45233200", "90911200"]), n_min=1)
+    np.testing.assert_allclose(prior, np.log([0.6, 0.2, 0.2]))
+
+
+def test_log_prior_usa_as_etiquetas_depois_dos_codigos_raros():
+    # Com N = 2, os dois códigos de limpeza sobem para a classe 90910000 (2 exemplos de 10)
+    codigo = pd.Series(["33600000"] * 8 + ["90911200", "90919300"])
+    prior = tfidf.log_prior(codigo, np.array(["33600000", "90910000"]), n_min=2)
+    np.testing.assert_allclose(prior, np.log([0.8, 0.2]))
+
+
+def test_log_prior_com_etiqueta_que_nao_esta_no_treino_da_erro():
+    with pytest.raises(ValueError, match="não estão no treino"):
+        tfidf.log_prior(pd.Series(["33600000"] * 3), np.array(["33600000", "45233200"]), n_min=1)
+
+
+def test_tau_zero_ignora_as_frequencias_e_ordena_so_pela_pontuacao(modelo):
+    textos = ["limpeza de escolas", "estrada", "papel"]
+    prior = np.log(np.linspace(0.01, 0.9, len(modelo.classes_)))  # frequências bem diferentes
+    so_pontuacao = tfidf.top_k(modelo.decision_function(textos), np.asarray(modelo.classes_))
+    assert tfidf.suggest(modelo, textos, tau=0.0, prior=prior).tolist() == so_pontuacao
+
+
+def test_tau_tira_vantagem_a_etiqueta_frequente():
+    # 33600000 tem a maior pontuação, mas é muito frequente; com τ = 1 desce para o fim
+    scores = [1.0, 0.9, 1.5, 0.8, 0.7, 0.6]
+    prior = np.log([0.1, 0.1, 0.5, 0.1, 0.1, 0.1])
+    m = _Fixo(scores, CLASSES)
+    assert tfidf.suggest(m, ["x"], tau=0.0)[0][0] == "33600000"
+    com = tfidf.suggest(m, ["x"], tau=1.0, prior=prior)[0]
+    # pontuações corrigidas: 1.0+2.30, 0.9+2.30, 1.5+0.69, 0.8+2.30, 0.7+2.30, 0.6+2.30
+    assert com == ["11000000", "22100000", "44100000", "55100000", "66100000"]
+
+
+def test_suggest_many_da_o_mesmo_que_suggest_para_cada_tau(modelo):
+    textos = pd.Series(["limpeza de escolas", "medicamentos", "automóveis"], index=[7, 3, 5])
+    prior = np.log(np.linspace(0.05, 0.3, len(modelo.classes_)))
+    varios = tfidf.suggest_many(modelo, textos, (0.0, 0.5, 2.0), prior, batch_size=2)
+    for tau, s in varios.items():
+        assert s.index.tolist() == [7, 3, 5]
+        assert s.tolist() == tfidf.suggest(modelo, textos, tau=tau, prior=prior).tolist()
+
+
+def test_tau_sem_prior_num_modelo_sem_frequencias_da_erro():
+    with pytest.raises(ValueError, match="prior"):
+        tfidf.suggest(_Fixo([1, 2, 3, 4, 5, 6], CLASSES), ["estrada"], tau=0.5)
+
+
+def test_train_guarda_as_frequencias_do_treino_no_modelo(modelo):
+    texto, codigo = treino()
+    np.testing.assert_allclose(modelo.log_prior_, tfidf.log_prior(codigo, modelo.classes_, n_min=N))
+
+
+def test_sem_prior_usa_as_frequencias_do_modelo(modelo):
+    textos = ["limpeza de escolas", "estrada", "papel"]
+    assert (tfidf.suggest(modelo, textos, tau=1.0).tolist()
+            == tfidf.suggest(modelo, textos, tau=1.0, prior=modelo.log_prior_).tolist())
+
+
+def test_train_usa_o_alpha_escolhido_por_defeito(modelo):
+    assert tfidf.ALPHA == 1e-7 and tfidf.TAU == 0.25
+    assert modelo.named_steps["clf"].alpha == tfidf.ALPHA
+    texto, codigo = treino()
+    assert tfidf.train(texto, codigo, n_min=N, min_df=1, alpha=1e-3).named_steps["clf"].alpha == 1e-3
+
+
+def test_prior_com_tamanho_errado_da_erro(modelo):
+    with pytest.raises(ValueError, match="uma entrada por etiqueta"):
+        tfidf.suggest(modelo, ["estrada"], tau=0.5, prior=np.zeros(2))
+
+
+def test_suggest_usa_o_tau_escolhido_por_defeito():
+    # 33600000 tem a maior pontuação mas é muito frequente; com τ = 0,25 sai das 5 sugestões:
+    # pontuação − 0,25·log(freq): 1,0+0,98 / 0,9+0,98 / 1,5+0,03 / 0,8+0,98 / 0,7+0,98 / 0,6+0,98
+    m = _Fixo([1.0, 0.9, 1.5, 0.8, 0.7, 0.6], CLASSES)
+    m.log_prior_ = np.log([0.02, 0.02, 0.9, 0.02, 0.02, 0.02])
+    assert tfidf.suggest(m, ["x"], tau=0.0)[0][0] == "33600000"  # pré-condição: sem correção ganha
+    assert tfidf.suggest(m, ["x"])[0] == ["11000000", "22100000", "44100000", "55100000", "66100000"]
+
+
+@pytest.mark.parametrize("taus", [(-0.25,), (0.0, -1.0)])
+def test_tau_negativo_da_erro(modelo, taus):
+    with pytest.raises(ValueError, match=">= 0"):
+        tfidf.suggest_many(modelo, ["estrada"], taus)

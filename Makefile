@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf
+.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -46,7 +46,7 @@ notebook: ## Volta a correr o notebook de exploração (precisa de "make prepara
 regua: ## Volta a correr o notebook da régua "códigos mais comuns" na validação (precisa de "make preparar" antes)
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 03_regua.ipynb
 
-treinar-tfidf: ## Treina o TF-IDF (N = 10) e grava as sugestões da validação em metrics/e4_h1/ (no pod: ~32 GB)
+treinar-tfidf: ## Treina o TF-IDF (N = 10, alpha e τ do E4-S4) e grava as sugestões da validação em metrics/tfidf/ (no pod: ~32 GB)
 	$(PY) src/train_tfidf.py --n-min 10
 
 sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo de "make treinar-tfidf")
@@ -54,3 +54,6 @@ sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo 
 
 tfidf: ## Volta a correr o notebook do TF-IDF contra a régua (precisa de metrics/e4_h1/ e de "make preparar")
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 04_tfidf.ipynb
+
+afinacao: ## Volta a correr o notebook da afinação do TF-IDF, alpha e τ (precisa de metrics/e4_s4/ e de "make preparar")
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 05_tfidf_afinacao.ipynb
