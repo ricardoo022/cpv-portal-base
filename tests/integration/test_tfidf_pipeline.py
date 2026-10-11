@@ -23,7 +23,6 @@ import evaluation as ev
 import suggest as sg
 import train_tfidf as tt
 from labels import collapse_rare_codes
-from test_pipeline import CONTRATOS_REGUA, run_pipeline
 
 # N = 6: com estes contratos, 33141400 (5 exemplos no treino) é raro, a classe 3314 só com ele
 # também, e o exemplo sai. Se a validação (mais 3 contratos 33141400) entrasse nas contagens,
@@ -31,7 +30,6 @@ from test_pipeline import CONTRATOS_REGUA, run_pipeline
 N_MIN = 6
 SO_VALIDACAO = "zzpalavravalidacao"  # palavra que só aparece nos textos da validação
 
-TREINO_REGUA = [c for c in CONTRATOS_REGUA if c[2] < datetime(2025, 10, 1)]
 VALIDACAO = [
     (2025, "v-limpeza", datetime(2025, 10, 2), "Limpeza 0", None, None, "90919300-5 - Limpeza"),  # texto visto
     (2025, "v-papel", datetime(2025, 10, 3), f"Papel {SO_VALIDACAO} A4", None, None, "30197630-1 - Papel"),
@@ -40,13 +38,14 @@ VALIDACAO = [
     (2025, "v-obras", datetime(2025, 10, 5), f"Obras {SO_VALIDACAO}", None, None, "45000000-0 - Obras"),
 ]
 TESTE = [(2025, "t-1", datetime(2025, 11, 5), "Papel novo", None, None, "30197630-1 - Papel")]
-CONTRATOS = TREINO_REGUA + VALIDACAO + TESTE
 
 
 @pytest.fixture(scope="module")
-def treinado(tmp_path_factory):
+def treinado(tmp_path_factory, run_pipeline, contratos_regua):
+    # O treino dos contratos da régua (tests/conftest.py), com a validação e o teste daqui
+    treino = [c for c in contratos_regua if c[2] < datetime(2025, 10, 1)]
     base = tmp_path_factory.mktemp("tfidf")
-    run_pipeline(base, CONTRATOS)
+    run_pipeline(base, treino + VALIDACAO + TESTE)
     paths = {"treino": base / "out" / "treino.parquet", "validacao": base / "out" / "validacao.parquet",
              "saida": base / "metrics", "modelo": base / "models" / "tfidf.joblib"}
     model = tt.run(paths["treino"], paths["validacao"], paths["saida"], model_path=paths["modelo"],
@@ -152,6 +151,18 @@ def test_modelo_gravado_da_as_mesmas_sugestoes(treinado):
     gravado = joblib.load(treinado["modelo"])
     textos = treinado["val_df"]["texto"]
     assert tt.tfidf.suggest(gravado, textos).tolist() == treinado["sugestoes"]["sugestoes"].map(list).tolist()
+
+
+def test_comando_de_treino_grava_o_modelo_onde_o_comando_de_sugestoes_o_procura(treinado, tmp_path, monkeypatch):
+    # O `make sugerir` lê models/tfidf_n10.joblib: o treino, sem --modelo, tem de o gravar aí
+    monkeypatch.setattr(tt, "RAIZ", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["train_tfidf.py", "--treino", str(treinado["treino"]),
+                                      "--validacao", str(treinado["validacao"]), "--n-min", "10",
+                                      "--saida", str(tmp_path / "saida")])
+    tt.main()
+    assert (tmp_path / "models" / "tfidf_n10.joblib").exists()
+    makefile = (Path(tt.__file__).parents[1] / "Makefile").read_text(encoding="utf-8")
+    assert "--modelo models/tfidf_n10.joblib" in makefile
 
 
 # --- Comando de sugestões ---
