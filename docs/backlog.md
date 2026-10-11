@@ -230,11 +230,18 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 - **Nível de um código:** os dígitos antes dos zeros finais. `33600000` tem 3 (grupo); `90911200` tem 6.
 - **Três medidas, de cada vez com as sugestões do modelo:**
-  - **código completo (no nível da etiqueta):** uma sugestão acerta se tiver os mesmos dígitos que o código até ao nível dele. Para `33600000`, acerta qualquer sugestão que comece por `336` (é a decisão 8). A regra vale em todos os níveis: para `45233200` (nível 6) acerta `45233200` e também um filho como `45233223`, que está dentro do código escolhido; não acertam o irmão `45233300` nem o pai `45233000`. Para um código de 8 dígitos, como `45233223`, só ele acerta;
+  - **código completo:** só contam os contratos com algum código abaixo da divisão, e só esses códigos servem para acertar; o modelo nunca sugere divisões (decisão 8). Uma sugestão acerta só se for igual ao código. Para `33600000`, só `33600000` acerta; `33651100` é erro, porque é mais específica do que o código escolhido (na literatura chama-se *sobre-especialização* e conta como erro, Kosmopoulos et al., 2015). Essa sugestão acerta na divisão (e na classe, quando o código é da classe ou abaixo);
   - **classe:** os mesmos 4 primeiros dígitos. Só contam os contratos com um código ao nível da classe ou abaixo;
   - **divisão:** os mesmos 2 primeiros dígitos. Contam todos os contratos.
+- **Contratos só com códigos de divisão** (por exemplo, só `45000000`): não contam no código completo nem na classe. Mostram-se numa linha à parte, `so_divisao`, com quantos são e o top-1, o top-5 e o F1 macro na divisão, para não ficarem escondidos.
 - **Vários códigos (decisão 4):** um contrato conta numa medida se algum dos seus códigos chegar a esse nível, e acerta se uma sugestão acertar em algum desses códigos. Exemplo: um contrato com `33000000` e `33690000` conta na classe (por causa do segundo código) e acerta se uma sugestão começar por `3369`.
 - **F1 macro:** calcula-se com a 1.ª sugestão contra a etiqueta (o 1.º código), no nível de cada medida. A média faz-se sobre as etiquetas presentes na validação nesse nível.
+- **Medidas hierárquicas** (as do artigo *Zero-Shot Hierarchical Classification on the CPV Taxonomy*, 2024, que vêm de Kiritchenko et al., 2005): dão meio acerto a uma sugestão perto do código certo. Mostram-se ao lado, mas **não entram na regra de comparação**.
+  - Cada código vale o conjunto dele e dos seus antepassados, do nível 2 até ao nível dele. `45233200` (nível 6) é {`45`, `452`, `4523`, `45233`, `452332`}, 5 nós.
+  - Com a 1.ª sugestão contra a etiqueta: **precisão hierárquica** = nós em comum / nós da sugestão; **recall hierárquico** = nós em comum / nós da etiqueta. Exemplo: etiqueta `45233200` (5 nós) e sugestão `45233223` (7 nós) têm 5 em comum, logo precisão 5/7 e recall 5/5. Com a sugestão `45200000` (o avô, 2 nós): precisão 2/2 e recall 2/5.
+  - **Micro:** somam-se os nós em comum e os nós de todos os contratos antes de dividir. **Macro:** como no artigo, a precisão (e o recall) de cada contrato faz-se média por etiqueta, e depois média sobre as etiquetas.
+  - **F1 hierárquico** = 2 · precisão · recall / (precisão + recall), em micro e em macro. É o resumo: castiga tanto a sugestão vaga (o avô) como a demasiado específica.
+  - Não se usam para decidir porque a precisão sozinha dá nota máxima a uma sugestão vaga (o avô acima tem precisão 1), e o objetivo do projeto é o código exato.
 
 **Regra de comparação entre duas opções** (decidida a 10 de outubro de 2026, usada nos spikes E4-S1, E4-S2 e E4-S3):
 
@@ -248,6 +255,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 - [x] Dadas as 5 sugestões de cada contrato e os seus códigos, a avaliação dá o top-1 e o top-5 em cada nível e diz quantos contratos entraram em cada nível.
 - [x] Dá também o F1 macro em cada medida, como descrito acima.
+- [x] Dá a precisão, o recall e o F1 hierárquicos da 1.ª sugestão, em micro e em macro, para todos os contratos e só para os de texto novo.
 - [x] Dadas as sugestões de duas opções para os mesmos contratos, dá a diferença entre elas em cada medida e diz se essa diferença conta, segundo a regra de comparação acima.
 - [x] Com a mesma semente aleatória, o bootstrap dá sempre o mesmo resultado. Duas opções com sugestões iguais dão diferença zero, que não conta.
 - [x] Os resultados aparecem para todos os contratos e, em separado, só para os contratos com texto que não aparece no treino.
@@ -421,3 +429,9 @@ E4-T4 ────────────────────────�
 ### Decisões pendentes do E4
 
 Nenhuma.
+
+---
+
+## Ideias para depois (ainda não são épicos)
+
+- **Interface por níveis da árvore** (proposta a 10 de outubro de 2026): em vez de uma lista de 5 códigos, o técnico escolhe a divisão, depois o grupo, depois a classe, com o modelo a ordenar as opções em cada passo. Ajudaria quando o técnico só sabe a área da compra. O projeto de Zwolle/Haskoning treinou um modelo por nível (ver `readme.md`). Fica para quando houver interface, que está fora do E4.

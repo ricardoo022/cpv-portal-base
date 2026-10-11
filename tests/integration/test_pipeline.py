@@ -3,6 +3,7 @@
 Cria ficheiros .xlsx inventados no formato do Portal BASE, corre a conversão para Parquet
 (src/convert_to_parquet.py) e a preparação (src/prepare.py), e verifica os ficheiros que saem,
 contrato a contrato. Cada contrato inventado põe à prova uma regra de docs/qualidade_dados.md.
+No fim, a avaliação (src/evaluation.py) corre sobre a validação que a preparação escreveu.
 """
 
 from datetime import datetime
@@ -12,6 +13,7 @@ import pandas as pd
 import pytest
 
 import convert_to_parquet as conv
+import evaluation as ev
 import prepare as pr
 
 COLS = pr.RAW_COLS + ["Ano"]
@@ -150,6 +152,36 @@ def test_nenhum_contrato_em_dois_conjuntos(sets):
 def test_datas_sao_lidas_do_excel_como_datas(sets):
     assert pd.api.types.is_datetime64_any_dtype(sets["teste"]["data"])
     assert by_id(sets["teste"]).loc["12", "data"] == pd.Timestamp("2025-11-05")
+
+
+# --- A avaliação lê o que a preparação escreve ---
+
+PREENCHER = ["99999991", "99999992", "99999993", "99999994", "99999995"]  # não acertam em nada
+
+
+def oraculo(df):
+    """Sugestões que são os próprios códigos do contrato: tudo o que se pode acertar, acerta."""
+    return df["codigos"].str.split().map(lambda c: (c + PREENCHER)[:5])
+
+
+def test_avaliacao_corre_sobre_a_validacao_da_preparacao(sets):
+    # Validação: o 10 (90919300, texto visto no treino) e o 11 (só 33000000, texto novo).
+    # O 10 conta no código completo, na classe e na divisão; o 11 só na divisão, e aparece
+    # em so_divisao. Com o oráculo, tudo o que conta acerta.
+    val = sets["validação"]
+    out = ev.report(oraculo(val), val["codigos"], val["visto_no_treino"])
+    todos = out.loc["todos"]
+    assert todos["contratos"].tolist() == [1, 1, 2, 1]
+    assert (todos[["top1", "top5", "f1_macro"]] == 1.0).all().all()
+    # Texto novo: só o 11 -> fora do código completo e da classe, dentro de so_divisao
+    assert out.loc["texto novo", "contratos"].tolist() == [0, 0, 1, 1]
+    assert out.loc[("texto novo", "so_divisao"), "top5"] == 1.0
+
+
+def test_medidas_hierarquicas_correm_sobre_a_validacao_da_preparacao(sets):
+    val = sets["validação"]
+    out = ev.hierarchical_report(oraculo(val), val["codigos"], val["visto_no_treino"])
+    assert (out == 1.0).all().all()
 
 
 # --- Propriedades do pipeline ---
