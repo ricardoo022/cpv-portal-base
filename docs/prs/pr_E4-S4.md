@@ -122,7 +122,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: nenhuma, porque o spik
 - Com `alpha` = 0,0001 e τ = 0, o treino repete exatamente o E4-H1 (100% das sugestões iguais): `test_alpha_antigo_sem_correcao_repete_o_e4_h1` → passa; notebook 05, célula 7.
 - Os números do E4-H1 (secção 13) continuam certos: `test_tfidf_dados_reais.py` → passa.
 - A régua não mudou: `test_regua_dados_reais.py` → passa.
-- CI: <a preencher com o estado no momento de abrir o PR>
+- CI: `success` no commit `59348d6` (o de cima, com estas correções).
 
 ### Os testes novos falham com o código estragado
 
