@@ -5,5 +5,5 @@ Cada ficheiro é o texto de um PR: porque foi feito, o que mudou (com o código)
 | Ficheiro | PR |
 |---|---|
 | [`pr_E4-T1.md`](pr_E4-T1.md) | #7 · E4-T1, avaliação comum a todos os modelos |
-| [`pr_E4-T1-docs.md`](pr_E4-T1-docs.md) | #8 · E4-T1 marcada como feita, documentação atualizada |
-| [`pr_makefile.md`](pr_makefile.md) | #9 · Makefile com atalhos para os comandos |
+| [`pr_E4-T2.md`](pr_E4-T2.md) | #10 · E4-T2, régua "códigos mais comuns" medida na validação |
+
