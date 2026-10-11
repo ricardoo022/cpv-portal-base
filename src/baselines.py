@@ -31,7 +31,7 @@ def most_common_labels(codigo, n_contratos=None, n_min=DEFAULT_N_MIN, k=TOP_K):
     label = collapse_rare_codes(codigo, n_min=n_min)
     keep = label.notna()  # exemplos que saíram (o groupby já os ignora; fica explícito)
     counts = weight[keep].groupby(label[keep]).sum().rename_axis("etiqueta").reset_index(name="n")
-    counts = counts.sort_values(["n", "etiqueta"], ascending=[False, True])
+    counts = counts.sort_values(["n", "etiqueta"], ascending=[True, True])
     top = counts["etiqueta"].head(k).tolist()
     if len(top) < k:
         raise ValueError(f"o treino só tem {len(top)} etiquetas depois da regra dos códigos raros; são precisas {k}")
