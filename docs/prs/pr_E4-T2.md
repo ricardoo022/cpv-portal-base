@@ -2,7 +2,7 @@
 
 ## Em poucas palavras
 
-Este PR cria a régua mais simples possível: sugerir sempre os mesmos 5 códigos CPV, os mais frequentes no treino, sem ler a descrição do contrato. Mede quanto essa régua acerta nos contratos de outubro de 2025 (a validação). Esses números são o mínimo que o primeiro modelo a sério (TF-IDF, história E4-H1) tem de bater. Sem eles, "o modelo acerta 30%" não dizia se o modelo é bom. Com eles sabe-se que, sem ler nada, já se acerta o código exato em 1 de cada 4 contratos, porque as compras de saúde dominam.
+Este PR cria a régua mais simples possível: sugerir sempre os mesmos 5 códigos CPV, os mais frequentes no treino, sem ler a descrição do contrato. Mede quanto essa régua acerta nos contratos de outubro de 2025 (a validação). Esses números são o mínimo que o primeiro modelo a sério (TF-IDF, história E4-H1) tem de bater. Sem eles, "o modelo acerta 30%" não dizia se o modelo é bom. Com eles sabe-se que, sem ler nada, já se acerta o código exato em 1 de cada 4 contratos, porque 4 das 5 sugestões são compras de saúde muito frequentes.
 
 | Na validação (outubro de 2025) | O código certo está nas 5 sugestões | A classe certa (4 dígitos) está nas 5 sugestões |
 |---|---|---|
@@ -77,7 +77,7 @@ Se depois da regra dos raros sobrarem menos de k etiquetas, dá erro em vez de d
 
 | Critério (copiado do backlog) | Cumprido? | Prova (comando → resultado) |
 |---|---|---|
-| A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas. | ✅ | `.venv/bin/pytest -q tests/integration -k regua` → passam; `test_regua_com_o_n_do_modelo_sobe_os_raros_e_ignora_divisoes` (12 códigos raros sobem juntos para `33140000` com N = 10 por defeito) e `test_n_por_defeito_e_o_do_modelo` |
+| A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas. | ✅ | `.venv/bin/pytest -q tests/integration -k regua` → passam; `test_regua_com_o_n_do_modelo_sobe_os_raros_e_ignora_divisoes` (dois códigos raros, com 7 e 5 exemplos, sobem juntos para `33140000` com o N = 10 por defeito, e não sobem com N = 5) e `test_n_por_defeito_e_o_do_modelo` |
 | Os seus números na validação, calculados com a avaliação E4-T1, estão escritos no `qualidade_dados.md`. | ✅ | secção 12, saída das células do `notebooks/03_regua.ipynb` (`ev.report`); `test_top5_da_regua_na_validacao_e_o_do_doc` → passa com os dados reais |
 
 Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: as duas do E4-T2.
