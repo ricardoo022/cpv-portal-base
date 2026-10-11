@@ -3,7 +3,8 @@
 Cria ficheiros .xlsx inventados no formato do Portal BASE, corre a conversão para Parquet
 (src/convert_to_parquet.py) e a preparação (src/prepare.py), e verifica os ficheiros que saem,
 contrato a contrato. Cada contrato inventado põe à prova uma regra de docs/qualidade_dados.md.
-No fim, a avaliação (src/evaluation.py) corre sobre a validação que a preparação escreveu.
+No fim, a régua (src/baselines.py) conta as etiquetas do treino que a preparação escreveu, e a
+avaliação (src/evaluation.py) corre sobre a validação que a preparação escreveu.
 """
 
 from datetime import datetime
@@ -12,6 +13,7 @@ import openpyxl
 import pandas as pd
 import pytest
 
+import baselines as bl
 import convert_to_parquet as conv
 import evaluation as ev
 import prepare as pr
@@ -182,6 +184,37 @@ def test_medidas_hierarquicas_correm_sobre_a_validacao_da_preparacao(sets):
     val = sets["validação"]
     out = ev.hierarchical_report(oraculo(val), val["codigos"], val["visto_no_treino"])
     assert (out == 1.0).all().all()
+
+
+# --- A régua conta o treino que a preparação escreve ---
+
+def regua(treino, k):
+    # N = 1: com tão poucos contratos, o N do modelo (10) tirava todos os exemplos
+    return bl.most_common_labels(treino["codigo"], treino["n_contratos"], n_min=1, k=k)
+
+
+def test_regua_conta_contratos_do_treino_da_preparacao(sets):
+    # Treino: 90919300 (1 exemplo, os contratos 1, 2 e 3 -> n_contratos=3), 30197630, 33652000 e
+    # 66512100 (1 contrato cada). Por contratos, 90919300 vem primeiro; os outros empatam com 1 e
+    # ficam por ordem de código. (Contando exemplos, empatavam os 4 e 90919300 ficava em último.)
+    assert regua(sets["treino"], 4) == ["90919300", "30197630", "33652000", "66512100"]
+
+
+def test_regua_nunca_sugere_divisoes(sets):
+    # O contrato 4 (33000000) saiu do treino (decisão 8) e nenhuma etiqueta sobe até à divisão
+    assert not any(c.endswith("000000") for c in regua(sets["treino"], 4))
+
+
+def test_regua_avaliada_sobre_a_validacao_da_preparacao(sets):
+    # Sugestões: 90919300, 30197630, 33652000, 66512100 e um código que não acerta em nada.
+    # O 10 (90919300) acerta o código à 1.ª. O 11 (só 33000000) acerta a divisão 33 à 3.ª
+    # (33652000): top-1 0, top-5 1 na divisão e em so_divisao.
+    val = sets["validação"]
+    sug = bl.suggest_most_common(regua(sets["treino"], 4) + PREENCHER[:1], val.index)
+    out = ev.report(sug, val["codigos"], val["visto_no_treino"]).loc["todos"]
+    assert out.loc["codigo", ["contratos", "top1", "top5"]].tolist() == [1, 1.0, 1.0]
+    assert out.loc["divisao", ["contratos", "top1", "top5"]].tolist() == [2, 0.5, 1.0]
+    assert out.loc["so_divisao", ["contratos", "top1", "top5"]].tolist() == [1, 0.0, 1.0]
 
 
 # --- Propriedades do pipeline ---
