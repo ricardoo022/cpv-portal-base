@@ -8,4 +8,5 @@ Um ficheiro de testes por ficheiro de [`src/`](../../src/).
 | [`test_prepare.py`](test_prepare.py) | Cada passo do `prepare.py`: texto de entrada, cópias repetidas, treino sem divisões, um exemplo por texto, verificações. | `make test-preparacao` |
 | [`test_labels.py`](test_labels.py) | Códigos raros sobem para a classe ou o grupo, nunca para a divisão. | `make test-preparacao` |
 | [`test_evaluation.py`](test_evaluation.py) | As notas: acerto no código, na classe e na divisão, top-1 e top-5, F1 macro, contratos só com divisão, medidas hierárquicas. | `make test-avaliacao` |
+| [`test_baselines.py`](test_baselines.py) | A régua: as 5 etiquetas com mais contratos, depois da regra dos códigos raros (que conta exemplos), empate pelo menor código. | `make test-avaliacao` |
 | [`test_comparison.py`](test_comparison.py) | O bootstrap emparelhado e a regra de escolha entre dois modelos. | `make test-avaliacao` |

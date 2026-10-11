@@ -9,5 +9,6 @@ Correm com `notebooks/` como pasta de trabalho (acrescentam `../src` ao caminho 
 | [`00_qualidade.ipynb`](00_qualidade.ipynb) | Os dados são usáveis? Campos vazios, contratos repetidos, formatos estranhos. | secções 1 a 6 do `qualidade_dados.md` |
 | [`01_exploracao.ipynb`](01_exploracao.ipynb) | Que colunas ajudam, se o mesmo texto tem sempre o mesmo código, a que nível se escolhem os códigos, quantos exemplos tem cada código. Lê o `treino.parquet`, por isso precisa de `make preparar` antes. | secções 7 a 10 |
 | [`02_anos_treino.ipynb`](02_anos_treino.ipynb) | Quantos anos usar no treino. | decisão 1 |
+| [`03_regua.ipynb`](03_regua.ipynb) | Quanto acerta a régua "códigos mais comuns" na validação (E4-T2). Lê o treino e a validação, por isso precisa de `make preparar` antes. | secção 12 |
 
-Voltar a correr o 01: `make notebook`.
+Voltar a correr o 01: `make notebook`. O 03: `make regua`.

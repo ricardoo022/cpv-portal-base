@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1 feita) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1 e E4-T2 feitas) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -264,16 +264,18 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [x] Há um teste com contratos inventados, com o resultado calculado à mão, para cada regra de contagem acima (incluindo uma etiqueta de grupo, uma de categoria, e um contrato com um código de divisão e outro de classe).
 - [x] Cada teste falha quando se estraga de propósito a regra que ele guarda.
 
-### E4-T2 · Tarefa: régua "códigos mais comuns" medida na validação (P)
+### E4-T2 · Tarefa: régua "códigos mais comuns" medida na validação (P, feito)
 
 **Porque é precisa:** sem ela, não há com que comparar o TF-IDF.
 
 **Depende de:** E4-T1.
 
+**Feito:** `src/baselines.py` (a régua), [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb) (os números) e a secção 12 do [`qualidade_dados.md`](qualidade_dados.md). A régua conta contratos (cada exemplo de treino pesa o seu `n_contratos`), como a validação. A régua a bater no E4-H1: top-5 de 26,0% no código completo e 15,6% na classe (23,3% e 14,8% nos contratos com texto novo). A 5.ª etiqueta muda com N = 5 e N = 20, por isso a régua volta a calcular-se se o E4-S1 mudar o N.
+
 **Critérios de aceitação:**
 
-- [ ] A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas.
-- [ ] Os seus números na validação, calculados com a avaliação E4-T1, estão escritos no `qualidade_dados.md`.
+- [x] A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas.
+- [x] Os seus números na validação, calculados com a avaliação E4-T1, estão escritos no `qualidade_dados.md`.
 
 ### E4-S0 · Spike: quanto custa cada treino na máquina alugada? (timebox: 1 dia)
 
