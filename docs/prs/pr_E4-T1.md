@@ -147,9 +147,9 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 8 critérios da E4-
 
 ### O comportamento que já existia continua igual
 
-- Suite inteira: `.venv/bin/pytest -q` → 139 passed (antes do trabalho, no `main` `8b73c17`, numa worktree à parte: 70 passed). Os 70 testes antigos continuam a passar sem alterações.
+- Suite inteira: `.venv/bin/pytest -q` → 142 passed (no `main` `9d1ae04`, antes deste trabalho, numa worktree à parte: 73 passed). Os 73 testes antigos continuam a passar sem alterações. O branch foi posto em cima do `main` atual (rebase, depois do PR #6), sem conflitos.
 - O diff não toca em nenhum ficheiro que já existia em `src/`. Em `tests/` só acrescenta 2 testes ao `test_pipeline.py`; os 13 testes que lá estavam ficaram iguais e passam.
-- CI: **não corrido**. O trabalho está por guardar (sem commit, por pedido) e o branch remoto `avaliacao/e4-t1` ainda está igual ao `main` antigo. Tem de correr depois do commit e do push, e depois de trazer o `origin/main` (o PR #6 entrou entretanto).
+- CI do commit de cima: ver os checks deste PR (o merge só se faz com eles verdes).
 
 ### Os testes novos falham com o código estragado
 
