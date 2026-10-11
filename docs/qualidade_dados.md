@@ -7,9 +7,11 @@ Resultados das verificações de qualidade (fase 2 do [`workflow.md`](workflow.m
   - As secções 1 a 6 foram medidas só com os ficheiros de 2025 e 2026 (433 838 contratos). Depois descobriu-se que o ficheiro de um ano é o ano de celebração (secção 2) e decidiu-se treinar desde 2022 (decisão 1). Servem para as decisões (são problemas técnicos que se repetem em todos os anos), mas os números não são os do treino final.
   - As secções 7 a 10 estão medidas com o **treino final**: contratos publicados de janeiro de 2022 a setembro de 2025, lidos de todos os ficheiros. A primeira versão destas secções usava só janeiro a setembro de 2025; onde a conclusão mudou, está dito.
   - A secção 11 é a saída do `src/prepare.py`.
+  - A secção 12 já é da fase 4: a régua "códigos mais comuns" medida na validação.
 - De onde vêm os números:
   - secções 1 a 6: [`notebooks/00_qualidade.ipynb`](../notebooks/00_qualidade.ipynb) (só conta);
-  - secções 7 a 10: [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (só o treino; a validação só na secção 10). Dois números deste notebook têm de bater com o funil da secção 11, e batem: 794 883 contratos de treino e 14 348 fora do código mais comum do seu texto.
+  - secções 7 a 10: [`notebooks/01_exploracao.ipynb`](../notebooks/01_exploracao.ipynb) (só o treino; a validação só na secção 10). Dois números deste notebook têm de bater com o funil da secção 11, e batem: 794 883 contratos de treino e 14 348 fora do código mais comum do seu texto;
+  - secção 12: [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb) (treino e validação; lê o `treino.parquet` e o `validacao.parquet`, por isso precisa do `prepare.py` antes).
 - Os notebooks só contam. Os exemplos que mostram vêm apenas de contratos publicados antes de novembro de 2025, para não espreitar o período de teste.
 
 ## O que está bem
@@ -206,6 +208,47 @@ Validação e teste (ficam todos os contratos):
 | Com texto que já aparece no treino | 3 706 (15,5%) | 4 484 (12,0%) |
 | Com código ao nível da divisão (avaliados só na divisão) | 4 051 (16,9%) | 5 642 (15,1%) |
 
+### 12. Régua "códigos mais comuns" na validação (E4-T2)
+
+De [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb), com `src/baselines.py` e a avaliação comum (`src/evaluation.py`).
+
+**O que é:** sugerir sempre os mesmos 5 códigos, sem ler o texto. São as 5 etiquetas mais frequentes no treino **depois** da regra dos códigos raros (decisão 9), com o mesmo N que o modelo (por defeito 10), contadas uma vez por exemplo de treino (um por texto, decisão 10). Empate: o menor código. É o mínimo que o TF-IDF tem de bater (E4-H1).
+
+| Posição | Etiqueta | Nome | Exemplos de treino |
+|---|---|---|---|
+| 1 | `33600000` | Produtos farmacêuticos | 37 151 (7,8%) |
+| 2 | `33140000` | Material médico de consumo | 22 540 (4,7%) |
+| 3 | `33690000` | Medicamentos vários | 10 848 (2,3%) |
+| 4 | `33100000` | Equipamento médico | 9 347 (2,0%) |
+| 5 | `98300000` | Serviços diversos | 4 277 (0,9%) |
+
+As 5 juntas são 17,6% dos exemplos de treino, entre 3 000 etiquetas distintas. Com N = 5 e N = 20 as 5 etiquetas são as mesmas, pela mesma ordem: se o E4-S1 mudar o N, a régua não muda.
+
+Resultados na validação (outubro de 2025):
+
+| Grupo | Medida | Contratos | Top-1 | Top-5 | F1 macro |
+|---|---|---|---|---|---|
+| Todos | código completo | 19 906 | 13,7% | **26,3%** | 0,0001 |
+| Todos | classe | 14 047 | 0,0% | **15,6%** | 0,0000 |
+| Todos | divisão | 23 945 | 31,0% | 33,4% | 0,0105 |
+| Todos | só divisão | 4 039 | 37,6% | 39,4% | 0,0121 |
+| Texto novo | código completo | 16 565 | 11,4% | **23,7%** | 0,0001 |
+| Texto novo | classe | 11 959 | 0,0% | **14,8%** | 0,0000 |
+| Texto novo | divisão | 20 239 | 28,3% | 30,6% | 0,0098 |
+| Texto novo | só divisão | 3 674 | 33,3% | 35,3% | 0,0111 |
+
+Medidas hierárquicas da 1.ª sugestão (só se mostram): F1 micro 0,179 em todos e 0,160 no texto novo; F1 macro 0,025 nos dois.
+
+**Contar exemplos ou contratos?** O treino tem um exemplo por texto (decisão 6), e o `n_contratos` diz quantos contratos tinham esse texto. Contar contratos (cada exemplo pesa o seu `n_contratos`) troca a 3.ª e a 4.ª etiqueta e põe `15800000` em 5.º lugar. Na validação, essa régua dá top-5 no código completo de 26,0% em todos os contratos e 23,3% no texto novo, menos 0,35 e 0,46 pontos. Com o bootstrap emparelhado do E4-T1, a régua que conta exemplos ganha em 100% das amostras nos dois grupos: a diferença conta, não é acaso. Na classe as duas dão exatamente o mesmo. Fica a que conta exemplos, a mais difícil de bater (decisão 10).
+
+Como ler:
+- **A régua a bater** (E4-H1) são os números a negrito: top-5 de 26,3% no código completo e 15,6% na classe em todos os contratos; 23,7% e 14,8% nos contratos com texto novo.
+- Um modelo que não lê o texto já acerta o código completo em 1 de cada 4 contratos, porque 4 das 5 etiquetas mais comuns são de saúde (divisão 33). Por isso um número sozinho ("o modelo acerta 30%") não diz se o modelo é bom: compara-se sempre com esta régua.
+- **Top-1 na classe é 0,0%.** A 1.ª sugestão, `33600000`, é um código de grupo (3 dígitos). Na classe comparam-se os 4 primeiros dígitos, `3360`, e nenhum contrato da validação tem um código da classe para baixo que comece por `3360`. O mesmo acontece com `33100000` e `98300000`: as três acertam 0 contratos na classe. Os 15,6% do top-5 vêm só de `33140000` (1 753 contratos, 12,5% dos que contam na classe) e `33690000` (438, 3,1%).
+- O F1 macro é quase zero: a régua só acerta em 5 etiquetas, e o F1 macro faz a média sobre todas as etiquetas da validação. É o que se espera, e mostra porque o F1 macro se reporta sempre (decisão do E1-T1).
+- Em **texto novo** a régua fica um pouco abaixo de **todos** (23,7% contra 26,3%), embora não leia o texto. Não é decorar: a etiqueta é uma das 5 da régua em 35,4% dos contratos com texto já visto e só em 19,4% dos de texto novo.
+- **Só divisão:** são 4 039 contratos, e não os 4 051 da secção 11: lá conta-se a etiqueta (1.º código) ao nível da divisão; aqui, os contratos com **todos** os códigos ao nível da divisão. O notebook confirma as duas contagens.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
@@ -234,3 +277,4 @@ Validação e teste (ficam todos os contratos):
    - Aplica-se no momento do treino, não no `prepare.py`: o N é um hiperparâmetro e o `treino.parquet` fica com os códigos originais.
    - Na avaliação a etiqueta verdadeira não muda: sugerir a classe quando o código certo é mais detalhado conta como acerto na classe e erro no código completo.
    - N a testar: 5, 10 e 20. Por defeito 10, até a fase 4 escolher com o TF-IDF na validação.
+10. Régua "códigos mais comuns" (E4-T2, secção 12): as 5 etiquetas mais frequentes do treino depois da regra dos códigos raros com o N do modelo, contadas **uma vez por exemplo** (um por texto), não pelo `n_contratos`. Primeiro escolheu-se contar contratos, porque a validação tem todos os contratos com as repetições. A medição mostrou que essa régua fica mais fácil de bater no código completo (diferença que conta no bootstrap), e mudou-se a 11 de outubro de 2026 para a mais exigente das duas. Escolher a régua depois de ver a validação não favorece o modelo: só lhe torna a tarefa mais difícil.

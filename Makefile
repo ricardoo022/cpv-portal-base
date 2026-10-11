@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao notebook
+.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao notebook regua
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -34,8 +34,11 @@ test-integracao: ## Só o teste do pipeline inteiro: .xlsx inventados -> treino,
 test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, prepare.py
 	$(PYTEST) -q tests/unit/test_cpv_data.py tests/unit/test_labels.py tests/unit/test_prepare.py
 
-test-avaliacao: ## Testes das notas aos modelos e do bootstrap (evaluation.py, comparison.py)
-	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py
+test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
+	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
 notebook: ## Volta a correr o notebook de exploração (precisa de "make preparar" antes)
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 01_exploracao.ipynb
+
+regua: ## Volta a correr o notebook da régua "códigos mais comuns" na validação (precisa de "make preparar" antes)
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 03_regua.ipynb
