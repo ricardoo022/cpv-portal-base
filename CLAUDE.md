@@ -11,6 +11,7 @@ All docs, notebooks, comments and replies are in **European Portuguese**. The us
 ## Commands
 
 ```
+make help                                              # shortcuts for the commands below (Makefile)
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # Python 3.10
 .venv/bin/python scripts/download_data.py [ANOS...]    # .xlsx from dados.gov.pt -> data/raw/
 .venv/bin/python src/convert_to_parquet.py [ANOS...]   # .xlsx -> data/processed/raw/*.parquet (~1 min/file)
