@@ -1,0 +1,21 @@
+Descrição: serviços de limpeza de três escolas básicas durante 12 meses
+  1. 90910000  (probabilidade 0.013)
+  2. 33140000  (probabilidade 0.004)
+  3. 33600000  (probabilidade 0.003)
+  4. 98390000  (probabilidade 0.002)
+  5. 33690000  (probabilidade 0.002)
+
+Descrição: fornecimento de refeições escolares para os alunos do 1.º ciclo do concelho
+  1. 33140000  (probabilidade 0.003)
+  2. 33100000  (probabilidade 0.003)
+  3. 33690000  (probabilidade 0.003)
+  4. 55524000  (probabilidade 0.002)
+  5. 33600000  (probabilidade 0.002)
+
+Descrição: empreitada de repavimentação de estradas municipais
+  1. 33140000  (probabilidade 0.005)
+  2. 33600000  (probabilidade 0.004)
+  3. 45453100  (probabilidade 0.003)
+  4. 33100000  (probabilidade 0.002)
+  5. 33690000  (probabilidade 0.002)
+

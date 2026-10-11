@@ -35,6 +35,8 @@ O pod do ensaio:
 
 Outros tipos só com CPU, se for preciso mais memória: `cpu3m` (Memory-Optimized, 8 GB por processador, 0,055 $ por processador por hora; 8 processadores dão 64 GB por 0,44 $/h).
 
+No E4-H1 (11 de outubro de 2026), um pod em EU-SE-1 recebeu IP e porta de SSH direto, mas a porta nunca respondeu (ligação esgotada, *timeout*, durante 4 minutos), enquanto o portátil chegava a outros servidores. Apagou-se e criou-se outro em US-NC-1, que funcionou. Se o SSH direto não responder 2 a 3 minutos depois de aparecer, o mais barato é apagar o pod e criá-lo noutro centro de dados.
+
 Depois de criado, o pod aparece como `RUNNING` logo, mas o **SSH direto** (`ssh.direct`, com IP e porta públicos) só aparece cerca de 1 minuto depois. Até lá só há o SSH por intermediário (`@ssh.runpod.io`), que **não serve**: não deixa correr comandos sem terminal interativo nem copiar ficheiros. O IP e a porta mudam sempre que o pod é recriado ou reiniciado.
 
 ## 3. Preparar o pod

@@ -249,6 +249,48 @@ Como ler:
 - Em **texto novo** a régua fica um pouco abaixo de **todos** (23,7% contra 26,3%), embora não leia o texto. Não é decorar: a etiqueta é uma das 5 da régua em 35,4% dos contratos com texto já visto e só em 19,4% dos de texto novo.
 - **Só divisão:** são 4 039 contratos, e não os 4 051 da secção 11: lá conta-se a etiqueta (1.º código) ao nível da divisão; aqui, os contratos com **todos** os códigos ao nível da divisão. O notebook confirma as duas contagens.
 
+### 13. TF-IDF contra a régua na validação (E4-H1)
+
+De [`notebooks/04_tfidf.ipynb`](../notebooks/04_tfidf.ipynb), que lê as sugestões gravadas pelo treino no pod (`metrics/e4_h1/sugestoes_validacao.parquet`) e o resumo do treino (`metrics/e4_h1/treino.json`).
+
+**O modelo** (`src/tfidf.py`, treinado com `src/train_tfidf.py` num pod da Runpod):
+- **TF-IDF:** transforma cada texto num vetor com um peso por palavra e por par de palavras. Uma palavra pesa mais quando aparece no texto e é rara no resto do treino: "limpeza" pesa mais do que "serviços".
+- **Classificador:** regressão logística um-contra-todos, treinada com o `SGDClassifier(loss="log_loss")` (decisão 5 do E4). "Um-contra-todos" quer dizer um modelo "sim/não" por etiqueta. As 5 sugestões são as 5 etiquetas com a pontuação mais alta.
+- **Treino:** N = 10, janela desde 2022, 478 234 exemplos (150 saíram pela regra dos códigos raros), 3 000 etiquetas, 402 084 palavras e pares de palavras no vocabulário. Convergiu em 6 épocas.
+- **Custo:** 454 s a vetorizar e treinar, 28 s a sugerir para os 23 945 contratos da validação. Os pesos do modelo ocupam 4,8 GB (`coef_bytes` do `treino.json`); o ficheiro gravado ocupa um pouco mais, porque leva também o vocabulário.
+
+Resultados na validação (outubro de 2025), lado a lado com a régua da secção 12:
+
+| Grupo | Medida | Contratos | Top-1 TF-IDF | Top-1 régua | Top-5 TF-IDF | Top-5 régua | F1 macro TF-IDF | F1 macro régua |
+|---|---|---|---|---|---|---|---|---|
+| Todos | código completo | 19 906 | 30,8% | 13,7% | **43,2%** | 26,3% | 0,0107 | 0,0001 |
+| Todos | classe | 14 047 | 25,1% | 0,0% | **37,9%** | 15,6% | 0,0279 | 0,0000 |
+| Todos | divisão | 23 945 | 43,3% | 31,0% | 62,2% | 33,4% | 0,1843 | 0,0105 |
+| Todos | só divisão | 4 039 | 44,5% | 37,6% | 61,3% | 39,4% | 0,1313 | 0,0121 |
+| Texto novo | código completo | 16 565 | 26,2% | 11,4% | **38,5%** | 23,7% | 0,0101 | 0,0001 |
+| Texto novo | classe | 11 959 | 21,4% | 0,0% | **34,2%** | 14,8% | 0,0246 | 0,0000 |
+| Texto novo | divisão | 20 239 | 38,7% | 28,3% | 59,0% | 30,6% | 0,1597 | 0,0098 |
+| Texto novo | só divisão | 3 674 | 40,3% | 33,3% | 58,5% | 35,3% | 0,1242 | 0,0111 |
+
+**A diferença conta?** Com o bootstrap emparelhado do E4-T1 (1 000 amostras), o TF-IDF ganha à régua em 100% das amostras no top-5 do código completo e da classe, tanto em todos os contratos como só no texto novo. O critério do E4-H1 está cumprido.
+
+**Quanto vem de decorar textos?** Os contratos da validação com texto que já aparece no treino, comparados com os de texto novo:
+
+| Grupo | Medida | Contratos | Top-1 TF-IDF | Top-5 TF-IDF | Top-5 régua |
+|---|---|---|---|---|---|
+| Texto já visto | código completo | 3 341 | 53,9% | 66,4% | 39,2% |
+| Texto já visto | classe | 2 088 | 46,4% | 59,1% | 19,9% |
+| Texto novo | código completo | 16 565 | 26,2% | 38,5% | 23,7% |
+| Texto novo | classe | 11 959 | 21,4% | 34,2% | 14,8% |
+
+Medidas hierárquicas da 1.ª sugestão (só se mostram): F1 micro 0,334 em todos e 0,289 no texto novo (régua: 0,179 e 0,160); F1 macro 0,073 e 0,068 (régua: 0,025 e 0,025).
+
+Como ler:
+- **O TF-IDF bate a régua com folga:** mais 16,9 pontos no top-5 do código completo e mais 22,3 na classe, em todos os contratos. No texto novo a vantagem é parecida (mais 14,8 e mais 19,4 pontos), por isso não vem só de decorar.
+- **Decorar ajuda muito:** com texto já visto, o top-5 no código completo é 66,4%; com texto novo, 38,5%. O número que interessa para o técnico é o do texto novo, porque é o caso normal.
+- **O F1 macro continua muito baixo** (0,0107 no código completo). O F1 macro faz a média sobre todas as etiquetas da validação, e o modelo acerta bem poucas etiquetas, as frequentes. As raras quase nunca saem em 1.º lugar. É o ponto fraco a seguir nos próximos modelos.
+- **Sugestões das 3 descrições escritas à mão** (os nomes dos códigos são os da nomenclatura CPV oficial, Regulamento (CE) n.º 213/2008; o repositório não tem a tabela CPV) (`metrics/e4_h1/sugestoes_exemplos.txt`, do comando `src/suggest.py`): para "serviços de limpeza de três escolas básicas durante 12 meses" a 1.ª sugestão é `90910000` (serviços de limpeza). Para as refeições escolares, o código esperado aparece só em 4.º lugar (`55524000`, refeições para escolas). Para a repavimentação de estradas, a única sugestão de obras é `45453100` (em inglês *refurbishment work*, renovação), em 3.º lugar, e nenhuma é um código de estradas. Os outros lugares são códigos de saúde da régua (`33140000`, `33600000`...). Quando o texto se parece pouco com os do treino, o modelo puxa para as etiquetas mais frequentes.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):

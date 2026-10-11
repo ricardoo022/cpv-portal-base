@@ -9,16 +9,12 @@ avaliação (src/evaluation.py) corre sobre a validação que a preparação esc
 
 from datetime import datetime
 
-import openpyxl
 import pandas as pd
 import pytest
 
 import baselines as bl
-import convert_to_parquet as conv
 import evaluation as ev
 import prepare as pr
-
-COLS = pr.RAW_COLS + ["Ano"]
 
 LIMPEZA_ESCOLAS = "90919300-5 - Serviços de limpeza de escolas"
 
@@ -56,34 +52,9 @@ CONTRATOS = [
 ]
 
 
-def write_xlsx(path, rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.append(COLS)
-    for _, idc, data, obj, desc, aq, cpv in rows:
-        values = {"idcontrato": idc, "dataPublicacao": data, "objectoContrato": obj, "descContrato": desc,
-                  "DescrAcordoQuadro": aq, "CPV": cpv, "adjudicante": "500000000 - Entidade",
-                  "tipoContrato": "Aquisição de serviços", "tipoprocedimento": "Ajuste Direto Regime Geral",
-                  "Ano": data.year}
-        ws.append([values[c] for c in COLS])
-    wb.save(path)
-
-
-def run_pipeline(base, contratos=CONTRATOS):
-    xlsx_dir, raw_dir, out_dir = base / "xlsx", base / "raw", base / "out"
-    xlsx_dir.mkdir()
-    raw_dir.mkdir()
-    for ano in sorted({c[0] for c in contratos}):
-        xlsx = xlsx_dir / f"contratos{ano}.xlsx"
-        write_xlsx(xlsx, [c for c in contratos if c[0] == ano])
-        conv.convert(xlsx, raw_dir / f"contratos{ano}.parquet")
-    pr.run(raw_dir=raw_dir, out_dir=out_dir, verbose=False)
-    return {nome: pd.read_parquet(out_dir / f"{f}.parquet") for nome, f in pr.FILES.items()}
-
-
 @pytest.fixture(scope="module")
-def sets(tmp_path_factory):
-    return run_pipeline(tmp_path_factory.mktemp("pipeline"))
+def sets(tmp_path_factory, run_pipeline):
+    return run_pipeline(tmp_path_factory.mktemp("pipeline"), CONTRATOS)
 
 
 def by_id(df):
@@ -228,46 +199,15 @@ def test_regua_avaliada_sobre_a_validacao_da_preparacao(sets):
 
 # --- A régua com o N do modelo (10), num treino com códigos suficientes ---
 #
-# Os contratos de cima são poucos para o N = 10. Aqui gera-se um segundo conjunto de .xlsx, com
-# textos todos diferentes ("<nome> <i>"), para a régua correr como no projeto: N por defeito e
-# 5 sugestões. Por código, no treino (publicados em 2024):
+# Os contratos de `contratos_regua` (tests/conftest.py, partilhados com o teste do TF-IDF) dão a
+# régua com o N por defeito e 5 sugestões. A explicação de cada código está lá.
 
-def _gerar(nome, codigo, n_textos, repete=1, data=datetime(2024, 3, 1), ano=2024):
-    cpv = f"{codigo}-0 - {nome}"
-    return [(ano, f"{nome}-{i}-{j}", data, f"{nome} {i}", None, None, cpv)
-            for i in range(n_textos) for j in range(repete)]
-
-
-CONTRATOS_REGUA = [
-    *_gerar("Limpeza", "90919300", 30),       # 1.º: 30 exemplos
-    *_gerar("Papel", "30197630", 25),         # 2.º: 25
-    *_gerar("Seguro", "66512100", 20),        # 3.º: 20
-    *_gerar("Jardins", "77311000", 15),       # 4.º: 15
-    # Dois códigos da classe 3314, com 7 e 5 exemplos: raros com N = 10, sobem juntos para 33140000
-    # (12). Empata com 45233200 (12) e fica à frente por ser o menor código: 5.º. Com N = 5 não
-    # são raros, a classe não existe e o 5.º passa a ser 45233200: o teste distingue N = 5 de 10.
-    *_gerar("Material", "33141100", 7),
-    *_gerar("Luvas", "33141400", 5),
-    *_gerar("Estradas", "45233200", 12),      # 6.º: fica de fora
-    # 10 exemplos, cada um repetido em 6 contratos (n_contratos = 6): 60 contratos, mas só 10
-    # exemplos. Contando contratos seria o 1.º; contando exemplos fica de fora.
-    *_gerar("Diversos", "98300000", 10, repete=6),
-    # Código de divisão: sai do treino (decisão 8), embora sejam 50 exemplos
-    *_gerar("Obras", "45000000", 50),
-    # Validação (outubro de 2025)
-    (2025, "v-limpeza", datetime(2025, 10, 2), "Limpeza 0", None, None, "90919300-5 - Limpeza"),   # texto visto
-    (2025, "v-material", datetime(2025, 10, 3), "Material novo", None, None, "33141100-0 - Material"),
-    (2025, "v-estradas", datetime(2025, 10, 4), "Estradas novas", None, None, "45233200-0 - Estradas"),
-    (2025, "v-obras", datetime(2025, 10, 5), "Obras novas", None, None, "45000000-0 - Obras"),
-    # Teste (novembro de 2025): a preparação exige-o; a régua nunca o lê
-    (2025, "t-1", datetime(2025, 11, 5), "Papel novo", None, None, "30197630-1 - Papel"),
-]
 TOP_REGUA = ["90919300", "30197630", "66512100", "77311000", "33140000"]
 
 
 @pytest.fixture(scope="module")
-def sets_regua(tmp_path_factory):
-    return run_pipeline(tmp_path_factory.mktemp("regua"), CONTRATOS_REGUA)
+def sets_regua(tmp_path_factory, run_pipeline, contratos_regua):
+    return run_pipeline(tmp_path_factory.mktemp("regua"), contratos_regua)
 
 
 def test_regua_com_o_n_do_modelo_sobre_o_treino_da_preparacao(sets_regua):
@@ -312,8 +252,8 @@ def test_regua_com_o_n_do_modelo_avaliada_na_validacao(sets_regua):
 
 # --- Propriedades do pipeline ---
 
-def test_correr_duas_vezes_da_exatamente_o_mesmo(sets, tmp_path):
-    outra_vez = run_pipeline(tmp_path)
+def test_correr_duas_vezes_da_exatamente_o_mesmo(sets, tmp_path, run_pipeline):
+    outra_vez = run_pipeline(tmp_path, CONTRATOS)
     for nome in sets:
         pd.testing.assert_frame_equal(sets[nome], outra_vez[nome])
 

@@ -10,5 +10,6 @@ Correm com `notebooks/` como pasta de trabalho (acrescentam `../src` ao caminho 
 | [`01_exploracao.ipynb`](01_exploracao.ipynb) | Que colunas ajudam, se o mesmo texto tem sempre o mesmo código, a que nível se escolhem os códigos, quantos exemplos tem cada código. Lê o `treino.parquet`, por isso precisa de `make preparar` antes. | secções 7 a 10 |
 | [`02_anos_treino.ipynb`](02_anos_treino.ipynb) | Quantos anos usar no treino. | decisão 1 |
 | [`03_regua.ipynb`](03_regua.ipynb) | Quanto acerta a régua "códigos mais comuns" na validação (E4-T2). Lê o treino e a validação, por isso precisa de `make preparar` antes. | secção 12 |
+| [`04_tfidf.ipynb`](04_tfidf.ipynb) | Quanto acerta o TF-IDF na validação, comparado com a régua (E4-H1). Lê as sugestões gravadas pelo treino no pod (`metrics/e4_h1/`), o treino e a validação. | secção 13 |
 
-Voltar a correr o 01: `make notebook`. O 03: `make regua`.
+Voltar a correr o 01: `make notebook`. O 03: `make regua`. O 04: `make tfidf` (cerca de 5 minutos, quase tudo no bootstrap).
