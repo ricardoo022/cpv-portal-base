@@ -154,6 +154,8 @@ cpv-portal-base/
   requirements.txt  versões exatas das bibliotecas
 ```
 
+Cada pasta tem um `readme.md` com o índice do que lá está.
+
 Ambiente: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` (Python 3.10).
 
 Atalhos: `make help` mostra os comandos do projeto, cada um com uma frase a explicar o que faz (por exemplo `make preparar`, `make test`, `make test-avaliacao`).
