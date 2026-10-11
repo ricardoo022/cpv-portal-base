@@ -134,7 +134,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 7 critérios do E4-
 - Suíte inteira: `.venv/bin/pytest -q` → 207 passed. Antes do trabalho, o `main` tinha 172 testes (numa cópia sem `data/`: 167 passed e 5 skipped, os testes com dados reais).
 - Os 172 testes que já existiam continuam a passar sem mudar o que verificam. O `test_pipeline.py` só passou a receber os ajudantes do `conftest.py`.
 - A régua continua igual: `test_regua_dados_reais.py` → passa, com as mesmas 5 etiquetas e o mesmo top-5 da secção 12.
-- CI do commit `47def09`: <a preencher com o estado no momento de abrir o PR>
+- CI: `success` nos commits `47def09` (testes) e `c623449` (esta descrição e as correções da revisão).
 
 ### Os testes novos falham com o código estragado
 
