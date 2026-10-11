@@ -8,6 +8,11 @@ As etiquetas vêm de `labels.collapse_rare_codes` com o mesmo N que a régua (`b
 o modelo e a régua escolherem entre as mesmas etiquetas. Como nenhuma etiqueta de treino está ao
 nível da divisão, o modelo nunca sugere divisões.
 
+Correção das etiquetas frequentes (spike E4-S4, Menon et al., 2021, "logit adjustment"): em vez
+de ordenar pela pontuação f(x), ordena-se por f(x) − τ · log(frequência da etiqueta no treino).
+Com τ = 0 não muda nada; com τ > 0 as etiquetas frequentes perdem vantagem. O artigo usa as
+pontuações de um modelo softmax; aqui aplica-se às pontuações do um-contra-todos, uma adaptação.
+
 Repetível: a semente é fixa (`SEED`) e os empates na pontuação resolvem-se pelo menor código, por
 isso o mesmo texto dá sempre as mesmas 5 sugestões pela mesma ordem, e dois treinos com os mesmos
 dados dão o mesmo modelo (o `SGDClassifier` tira uma semente por etiqueta antes de dividir o
@@ -68,21 +73,51 @@ def top_k(scores, classes, k=TOP_K):
     return [list(row) for row in classes[order]]
 
 
-def suggest(model, textos, k=TOP_K, batch_size=2000):
-    """k sugestões distintas por texto, da mais para a menos provável (formato da `evaluation`).
+def log_prior(codigo, classes, n_min=DEFAULT_N_MIN):
+    """log(frequência) de cada etiqueta de `classes` no treino, pela ordem de `classes`.
 
-    `textos` é uma Series (o índice mantém-se) ou uma lista (índice 0, 1, 2, ...). Os textos
-    pontuam-se em lotes de `batch_size` para a matriz textos x etiquetas não ocupar memória
-    demais (a validação tem ~24 mil textos e o modelo ~3 000 etiquetas).
+    As etiquetas contam-se como no `train` (`collapse_rare_codes` com o mesmo N), só com o treino.
+    """
+    label = collapse_rare_codes(codigo, n_min=n_min).dropna()
+    counts = label.value_counts()
+    missing = [c for c in classes if c not in counts.index]
+    if missing:
+        raise ValueError(f"etiquetas do modelo que não estão no treino: {missing[:3]}")
+    return np.log(counts.reindex(classes).to_numpy(dtype=float) / len(label))
+
+
+def suggest_many(model, textos, taus=(0.0,), prior=None, k=TOP_K, batch_size=2000):
+    """`suggest` para vários τ de uma vez: {τ: Series}. As pontuações calculam-se uma só vez.
+
+    `prior` é o `log_prior` das etiquetas do modelo; só é preciso se algum τ for diferente de 0.
     """
     classes = np.asarray(model.classes_)
     if len(classes) < k:
         raise ValueError(f"o modelo só tem {len(classes)} etiquetas; são precisas {k}")
+    if any(t != 0 for t in taus):
+        if prior is None:
+            raise ValueError("com τ diferente de 0 é preciso o `prior` (log_prior)")
+        prior = np.asarray(prior, dtype=float)
+        if prior.shape != classes.shape:
+            raise ValueError("o `prior` não tem uma entrada por etiqueta do modelo")
     if not isinstance(textos, pd.Series):
         textos = pd.Series(list(textos), dtype=object)
     values = textos.tolist()
-    out = []
+    out = {t: [] for t in taus}
     for start in range(0, len(values), batch_size):
-        scores = model.decision_function(values[start:start + batch_size])
-        out.extend(top_k(np.asarray(scores), classes, k))
-    return pd.Series(out, index=textos.index, dtype=object)
+        scores = np.asarray(model.decision_function(values[start:start + batch_size]))
+        for t in taus:
+            adjusted = scores if t == 0 else scores - t * prior
+            out[t].extend(top_k(adjusted, classes, k))
+    return {t: pd.Series(v, index=textos.index, dtype=object) for t, v in out.items()}
+
+
+def suggest(model, textos, k=TOP_K, batch_size=2000, tau=0.0, prior=None):
+    """k sugestões distintas por texto, da mais para a menos provável (formato da `evaluation`).
+
+    `textos` é uma Series (o índice mantém-se) ou uma lista (índice 0, 1, 2, ...). Os textos
+    pontuam-se em lotes de `batch_size` para a matriz textos x etiquetas não ocupar memória
+    demais (a validação tem ~24 mil textos e o modelo ~3 000 etiquetas). Com `tau` > 0 aplica-se
+    a correção das etiquetas frequentes, com o `prior` de `log_prior`.
+    """
+    return suggest_many(model, textos, (tau,), prior, k, batch_size)[tau]

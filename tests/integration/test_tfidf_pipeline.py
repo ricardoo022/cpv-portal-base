@@ -132,11 +132,12 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
     with open(treinado["saida"] / tt.RESUMO, encoding="utf-8") as f:
         resumo = json.load(f)
     assert set(resumo) == {
-        "data", "n_min", "min_df", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
+        "data", "n_min", "min_df", "alpha", "taus", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
         "etiquetas", "vocabulario", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
         "tempo_sugerir_s", "pico_rss_mb", "nucleos", "versoes", "coef_bytes"}
     tr = treinado["treino_df"]
     assert resumo["n_min"] == N_MIN and resumo["min_df"] == 1
+    assert resumo["alpha"] == 0.0001 and resumo["taus"] == [0.0]  # por defeito, como no E4-H1
     assert resumo["treino"]["ficheiro"] == "treino.parquet"
     assert resumo["validacao"]["ficheiro"] == "validacao.parquet"
     assert resumo["treino"]["datas"] == [str(tr["data"].min().date()), str(tr["data"].max().date())]
@@ -163,6 +164,28 @@ def test_comando_de_treino_grava_o_modelo_onde_o_comando_de_sugestoes_o_procura(
     assert (tmp_path / "models" / "tfidf_n10.joblib").exists()
     makefile = (Path(tt.__file__).parents[1] / "Makefile").read_text(encoding="utf-8")
     assert "--modelo models/tfidf_n10.joblib" in makefile
+
+
+# --- Spike E4-S4: alpha e correção das etiquetas frequentes ---
+
+def test_alpha_e_taus_gravam_um_ficheiro_por_tau(treinado, tmp_path):
+    taus = [0.0, 0.5, 1.0]
+    model = tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=N_MIN, min_df=1,
+                   alpha=1e-5, taus=taus)
+    assert model.named_steps["clf"].alpha == 1e-5
+    with open(tmp_path / tt.RESUMO, encoding="utf-8") as f:
+        resumo = json.load(f)
+    assert resumo["alpha"] == 1e-5 and resumo["taus"] == taus
+    tr = pd.read_parquet(treinado["treino"], columns=["codigo"])["codigo"]
+    prior = tt.tfidf.log_prior(tr, model.classes_, n_min=N_MIN)
+    val = treinado["val_df"]
+    for tau in taus:
+        lido = pd.read_parquet(tmp_path / tt.suggestions_file(tau))
+        assert lido["idcontrato"].tolist() == val["idcontrato"].astype(str).tolist()
+        esperado = tt.tfidf.suggest(model, val["texto"], tau=tau, prior=prior)
+        assert lido["sugestoes"].map(list).tolist() == esperado.tolist()
+    assert tt.suggestions_file(0.0) == tt.SUGESTOES
+    assert not (tmp_path / "sugestoes_validacao_tau0.parquet").exists()
 
 
 # --- Comando de sugestões ---

@@ -358,6 +358,28 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [x] Nos contratos da validação com texto que não aparece no treino, o top-5 também é maior do que o da régua, no código completo e na classe, medidos nesses mesmos contratos. O `qualidade_dados.md` mostra lado a lado os resultados com texto novo e com texto já visto, para se ver quanto do resultado vem de decorar textos.
 - [x] O comando mostra as sugestões para pelo menos 3 descrições escritas à mão, por exemplo "serviços de limpeza de três escolas básicas durante 12 meses".
 
+### E4-S4 · Spike: afinar o TF-IDF (regularização e etiquetas frequentes) (timebox: 1 dia)
+
+**Porque é precisa:** no E4-H1 o TF-IDF bateu a régua, mas a 1.ª sugestão é quase sempre uma das 5 etiquetas mais frequentes e o F1 macro é quase zero (secção 13 do `qualidade_dados.md`). Uma baseline mal afinada fazia o BERTimbau e o Albertina parecerem melhores do que são.
+
+**Pergunta:** um `alpha` (a força da regularização) mais pequeno, ou a correção das etiquetas frequentes de Menon et al. (2021), melhoram as sugestões na validação?
+
+**Depende de:** E4-H1. Usa N = 10 e a janela desde 2022.
+
+**Como** (com o treino completo, no pod; o melhor `alpha` depende do número de exemplos, por isso uma amostra no portátil não serve):
+
+- `alpha` = 0,0001 (o do E4-H1), 0,00001 e 0,000001 (intervalo recomendado pela documentação do scikit-learn);
+- para cada `alpha`, a correção das etiquetas frequentes: ordenar por pontuação − τ · log(frequência da etiqueta no treino), com τ = 0 (sem correção), 0,25, 0,5 e 1.
+
+**Regra de escolha, escrita antes de correr:** primeiro escolhe-se o `alpha` com τ = 0, depois o τ com esse `alpha`. Em cada passo começa-se com a opção por defeito (`alpha` = 0,0001 no 1.º passo, τ = 0 no 2.º) e compara-se cada candidato com a opção em vigor, pela ordem da lista acima, com a regra de comparação do E4-T1. Se o candidato ganhar, passa a ser a opção em vigor; em empate, fica a que já estava. Como o `alpha` e o τ se escolhem na validação, os números do vencedor ficam um pouco otimistas; o teste continua fechado e mede isso no fim.
+
+**Também se mostra** (sem entrar na decisão): o F1 macro e a parte das 1.as sugestões que são uma das 5 etiquetas da régua.
+
+**Resultado:**
+
+- uma tabela com todas as opções;
+- o `alpha` e o τ escolhidos, escritos como decisão do E4; se mudarem, passam a ser o valor por defeito em `src/tfidf.py` e os resultados do E4-H1 voltam a calcular-se.
+
 ### E4-T3 · Tarefa: testes ao treino que correm no CI (P)
 
 **Porque é precisa:** um treino com um erro pode correr sem dar erro nenhum e só produzir um modelo mau. Estes testes apanham isso antes de se gastar tempo com dados reais.
