@@ -270,7 +270,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Depende de:** E4-T1.
 
-**Feito:** `src/baselines.py` (a régua), [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb) (os números) e a secção 12 do [`qualidade_dados.md`](qualidade_dados.md). A régua conta exemplos de treino (um por texto); contar contratos dava uma régua mais fácil de bater (decisão 10). A régua a bater no E4-H1: top-5 de 26,3% no código completo e 15,6% na classe (23,7% e 14,8% nos contratos com texto novo). As 5 etiquetas são as mesmas com N = 5, 10 e 20, por isso a régua não muda se o E4-S1 mudar o N.
+**Feito** no PR #10 (11 de outubro de 2026), descrição completa em [`prs/pr_E4-T2.md`](prs/pr_E4-T2.md): `src/baselines.py` (a régua), [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb) (os números) e a secção 12 do [`qualidade_dados.md`](qualidade_dados.md). A régua conta exemplos de treino (um por texto); contar contratos dava uma régua mais fácil de bater (decisão 10). A régua a bater no E4-H1: top-5 de 26,3% no código completo e 15,6% na classe (23,7% e 14,8% nos contratos com texto novo). As 5 etiquetas são as mesmas com N = 5, 10 e 20, por isso a régua não muda se o E4-S1 mudar o N.
 
 **Critérios de aceitação:**
 
