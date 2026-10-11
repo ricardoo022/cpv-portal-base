@@ -381,7 +381,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - uma tabela com todas as opções;
 - o `alpha` e o τ escolhidos, escritos como decisão do E4; se mudarem, passam a ser o valor por defeito em `src/tfidf.py` e os resultados do E4-H1 voltam a calcular-se.
 
-**Feito** a 11 de outubro de 2026 (ramo `spike/e4-s4`). A tabela e as comparações estão na secção 14 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/05_tfidf_afinacao.ipynb`](../notebooks/05_tfidf_afinacao.ipynb), e os ficheiros dos treinos no pod estão em `metrics/e4_s4/`.
+**Feito** no PR #15 (11 de outubro de 2026), descrição completa em [`prs/pr_E4-S4.md`](prs/pr_E4-S4.md). A tabela e as comparações estão na secção 14 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/05_tfidf_afinacao.ipynb`](../notebooks/05_tfidf_afinacao.ipynb), e os ficheiros dos treinos no pod estão em `metrics/e4_s4/`.
 
 - **Escolhido:** `alpha` = 0,0000001 e τ = 0,25 (decisão 6 abaixo). Passam a ser o valor por defeito em `src/tfidf.py` (`ALPHA`, `TAU`), no `train_tfidf.py` e no comando de sugestões.
 - **Na validação:** top-5 de 76,9% no código completo e 82,9% na classe (E4-H1: 43,2% e 37,9%); 73,5% e 80,8% no texto novo; F1 macro 0,2565 (E4-H1: 0,0107). Os resultados do E4-H1 com os valores novos são estes: o notebook 05 mostra a avaliação completa do escolhido ao lado da do E4-H1.
