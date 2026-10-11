@@ -146,11 +146,12 @@ Referências:
 cpv-portal-base/
   data/raw/         ficheiros .xlsx originais (fora do git)
   data/processed/   Parquet limpo e splits (fora do git)
-  notebooks/        exploração: 00_qualidade, 01_exploracao, 02_anos_treino
+  notebooks/        exploração: 00_qualidade, 01_exploracao, 02_anos_treino, 03_regua
   src/              pipeline: conversão, preparação, treino e avaliação
   tests/            testes unitários e de integração (pytest)
-  scripts/          download_data.py
-  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões) e prs/ (a descrição de cada PR)
+  scripts/          download_data.py, ensaio_treino.py (o ensaio de custo do E4-S0)
+  metrics/          resultados guardados no git (e4_s0/: tempo e memória dos treinos de ensaio)
+  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada) e prs/ (a descrição de cada PR)
   requirements.txt  versões exatas das bibliotecas
 ```
 

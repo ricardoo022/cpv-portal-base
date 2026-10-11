@@ -295,7 +295,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - o tipo de pod confirmado (memória, processadores e preço por hora);
 - os passos para preparar a máquina e para a apagar no fim, escritos em [`maquina_runpod.md`](maquina_runpod.md). Um pod parado continua a pagar o disco de volume; só apagado deixa de ser cobrado.
 
-**Feito** a 11 de outubro de 2026. O script é o [`scripts/ensaio_treino.py`](../scripts/ensaio_treino.py), e os números vêm dos ficheiros em `metrics/e4_s0/`:
+**Feito** no PR #13 (11 de outubro de 2026), descrição completa em [`prs/pr_E4-S0.md`](prs/pr_E4-S0.md). O script é o [`scripts/ensaio_treino.py`](../scripts/ensaio_treino.py), e os números vêm dos ficheiros em `metrics/e4_s0/`:
 
 - `portatil.jsonl` e `portatil_vocabulario.jsonl`: amostras no portátil. Foram geradas por uma versão anterior do mesmo script, com a mesma lógica mas caminhos fixos e sem o campo `maquina`;
 - `portatil_logreg30k_parada.txt`: a corrida da `LogisticRegression` que foi parada;
@@ -458,7 +458,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- E4-T1, E4-S0 e E4-T4 podem começar já e não dependem uns dos outros.
+- O E4-T1, o E4-T2 e o E4-S0 estão feitos, por isso o E4-H1 pode começar. O E4-T4 não depende de nada e pode começar já.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
 ### Decisões tomadas para o E4 (10 de outubro de 2026)
