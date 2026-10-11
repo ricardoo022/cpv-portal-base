@@ -20,8 +20,8 @@ def most_common_labels(codigo, n_contratos=None, n_min=DEFAULT_N_MIN, k=TOP_K):
     """As k etiquetas de treino mais frequentes, da mais para a menos frequente.
 
     `codigo` é a coluna de códigos de 8 dígitos do treino. Sem `n_contratos`, cada exemplo vale 1
-    (a régua do projeto); com ela, cada exemplo pesa os seus contratos (só para comparar). Empate: o menor código primeiro, para o resultado não depender
-    da ordem das linhas.
+    (a régua do projeto); com ela, cada exemplo pesa os seus contratos (só para comparar).
+    Empate: o menor código primeiro, para o resultado não depender da ordem das linhas.
     """
     weight = pd.Series(1, index=codigo.index) if n_contratos is None else n_contratos
     if not weight.index.equals(codigo.index):
@@ -29,7 +29,7 @@ def most_common_labels(codigo, n_contratos=None, n_min=DEFAULT_N_MIN, k=TOP_K):
     if weight.isna().any() or (weight < 1).any():
         raise ValueError("`n_contratos` tem de ser >= 1 em todos os exemplos")
     label = collapse_rare_codes(codigo, n_min=n_min)
-    keep = label.notna()
+    keep = label.notna()  # exemplos que saíram (o groupby já os ignora; fica explícito)
     counts = weight[keep].groupby(label[keep]).sum().rename_axis("etiqueta").reset_index(name="n")
     counts = counts.sort_values(["n", "etiqueta"], ascending=[False, True])
     top = counts["etiqueta"].head(k).tolist()

@@ -243,9 +243,11 @@ CONTRATOS_REGUA = [
     *_gerar("Papel", "30197630", 25),         # 2.º: 25
     *_gerar("Seguro", "66512100", 20),        # 3.º: 20
     *_gerar("Jardins", "77311000", 15),       # 4.º: 15
-    # 12 códigos da classe 3314, 1 exemplo cada: raros com N = 10, sobem juntos para 33140000 (12).
-    # Empata com 45233200 (12) e fica à frente por ser o menor código: 5.º.
-    *[r for i in range(12) for r in _gerar(f"Material{i}", f"331411{i:02d}", 1)],
+    # Dois códigos da classe 3314, com 7 e 5 exemplos: raros com N = 10, sobem juntos para 33140000
+    # (12). Empata com 45233200 (12) e fica à frente por ser o menor código: 5.º. Com N = 5 não
+    # são raros, a classe não existe e o 5.º passa a ser 45233200: o teste distingue N = 5 de 10.
+    *_gerar("Material", "33141100", 7),
+    *_gerar("Luvas", "33141400", 5),
     *_gerar("Estradas", "45233200", 12),      # 6.º: fica de fora
     # 10 exemplos, cada um repetido em 6 contratos (n_contratos = 6): 60 contratos, mas só 10
     # exemplos. Contando contratos seria o 1.º; contando exemplos fica de fora.
@@ -276,8 +278,9 @@ def test_regua_com_o_n_do_modelo_sobe_os_raros_e_ignora_divisoes(sets_regua):
     top = bl.most_common_labels(sets_regua["treino"]["codigo"])
     assert "33140000" in top and not any(c.startswith("331411") for c in top)
     assert "45000000" not in top
-    # Sem a regra dos raros (N = 1), a classe não existe e entra 45233200
-    assert bl.most_common_labels(sets_regua["treino"]["codigo"], n_min=1)[4] == "45233200"
+    # Com N = 5 ou sem a regra dos raros (N = 1), a classe não existe e entra 45233200
+    for n in (1, 5):
+        assert bl.most_common_labels(sets_regua["treino"]["codigo"], n_min=n)[4] == "45233200"
 
 
 def test_regua_conta_exemplos_e_nao_contratos_no_pipeline(sets_regua):
