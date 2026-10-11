@@ -79,13 +79,13 @@ def test_indices_diferentes_da_erro():
 
 
 def test_n_por_defeito_e_o_do_modelo():
-    # 12 códigos da mesma classe 9091, com 1 exemplo cada: com N = 1 ficam todos; com o N do modelo
-    # (10) são raros e sobem juntos para 90910000, que passa a ser a 1.ª etiqueta (12 exemplos).
-    raros = {f"909111{i:02d}": 1 for i in range(12)}
-    c = codes({"11111111": 11, "22222222": 11, "33333333": 11, "44444444": 11, "55555555": 11, **raros})
+    # 90911100 e 90911200, com 6 exemplos cada: raros com o N do modelo (10), sobem juntos para
+    # 90910000 (12), que passa a ser a 1.ª etiqueta. Com N = 5 não são raros e a classe não existe.
+    c = codes({"11111111": 11, "22222222": 11, "33333333": 11, "44444444": 11, "55555555": 11,
+               "90911100": 6, "90911200": 6})
     assert bl.most_common_labels(c) == bl.most_common_labels(c, n_min=lb.DEFAULT_N_MIN)
     assert bl.most_common_labels(c)[0] == "90910000"
-    assert bl.most_common_labels(c, n_min=1)[0] != "90910000"
+    assert "90910000" not in bl.most_common_labels(c, n_min=5)
 
 
 @pytest.mark.parametrize("mau", [0, -1, float("nan")])

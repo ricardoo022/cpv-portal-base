@@ -9,6 +9,7 @@ teste. O último teste não precisa de dados: confirma que o notebook da régua 
 """
 
 import json
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -69,6 +70,13 @@ def test_top5_da_regua_na_validacao_e_o_do_doc(validacao):
 def test_notebook_da_regua_nao_abre_o_teste():
     nb = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
     codigo = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
-    for proibido in ("teste.parquet", "TEST_START", 'FILES["teste"]', "YEAR_END"):
+    for proibido in ("teste", "TEST_START", "YEAR_END"):
         assert proibido not in codigo, proibido
-    assert "validacao.parquet" in codigo  # o notebook lê a validação, e só ela
+    # Cada leitura de um ficheiro preparado é do treino ou da validação, escrita por extenso
+    lidos = re.findall(r'DATA / "([^"]+)"', codigo)
+    assert set(lidos) == {"treino.parquet", "validacao.parquet"}, lidos
+    assert codigo.count("read_parquet(") == codigo.count("read_parquet(DATA / \"treino.parquet\"") + \
+        codigo.count("read_parquet(DATA / \"validacao.parquet\"")
+    # Cada leitura dos ficheiros brutos para antes da validação
+    chamadas = re.findall(r"load_contracts\(([^)]*)\)", codigo)
+    assert chamadas and all("until=cd.VAL_START" in c for c in chamadas), chamadas
