@@ -5,6 +5,7 @@ import pytest
 
 import baselines as bl
 import evaluation as ev
+import labels as lb
 
 
 def codes(spec):
@@ -75,6 +76,16 @@ def test_indices_diferentes_da_erro():
     c = codes(SEIS)
     with pytest.raises(ValueError, match="índices diferentes"):
         bl.most_common_labels(c, pd.Series(1, index=c.index + 100), n_min=1)
+
+
+def test_n_por_defeito_e_o_do_modelo():
+    # 12 códigos da mesma classe 9091, com 1 exemplo cada: com N = 1 ficam todos; com o N do modelo
+    # (10) são raros e sobem juntos para 90910000, que passa a ser a 1.ª etiqueta (12 exemplos).
+    raros = {f"909111{i:02d}": 1 for i in range(12)}
+    c = codes({"11111111": 11, "22222222": 11, "33333333": 11, "44444444": 11, "55555555": 11, **raros})
+    assert bl.most_common_labels(c) == bl.most_common_labels(c, n_min=lb.DEFAULT_N_MIN)
+    assert bl.most_common_labels(c)[0] == "90910000"
+    assert bl.most_common_labels(c, n_min=1)[0] != "90910000"
 
 
 def test_k_escolhe_quantas_sugestoes():

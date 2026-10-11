@@ -7,8 +7,8 @@ régua e o modelo escolherem entre as mesmas etiquetas.
 Cada exemplo de treino (uma linha do `treino.parquet`, um por texto) pesa o seu `n_contratos`,
 os contratos que tinham esse texto. Assim a régua conta contratos, como a validação, que guarda
 todos os contratos com as repetições (decidido a 11 de outubro de 2026). Esperava-se uma régua mais
-exigente; na validação ficou 0,3 pontos abaixo da que conta exemplos (`qualidade_dados.md`,
-secção 12). A regra dos códigos raros continua a contar exemplos, como no modelo.
+exigente; na validação ficou 0,35 pontos abaixo da que conta exemplos (`qualidade_dados.md`,
+secção 12 e decisão 10). A regra dos códigos raros continua a contar exemplos, como no modelo.
 """
 
 import pandas as pd
