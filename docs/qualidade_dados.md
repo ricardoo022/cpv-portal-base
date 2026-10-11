@@ -212,45 +212,41 @@ Validação e teste (ficam todos os contratos):
 
 De [`notebooks/03_regua.ipynb`](../notebooks/03_regua.ipynb), com `src/baselines.py` e a avaliação comum (`src/evaluation.py`).
 
-**O que é:** sugerir sempre os mesmos 5 códigos, sem ler o texto. São as 5 etiquetas com mais contratos no treino **depois** da regra dos códigos raros (decisão 9), com o mesmo N que o modelo (por defeito 10). Empate: o menor código. É o mínimo que o TF-IDF tem de bater (E4-H1).
+**O que é:** sugerir sempre os mesmos 5 códigos, sem ler o texto. São as 5 etiquetas mais frequentes no treino **depois** da regra dos códigos raros (decisão 9), com o mesmo N que o modelo (por defeito 10), contadas uma vez por exemplo de treino (um por texto, decisão 10). Empate: o menor código. É o mínimo que o TF-IDF tem de bater (E4-H1).
 
-**Contam-se contratos, não exemplos** (decidido a 11 de outubro de 2026). O treino tem um exemplo por texto (decisão 6), e cada exemplo pesa o seu `n_contratos`, os contratos que tinham esse texto. Porquê: a validação guarda todos os contratos, com as repetições, por isso a régua conta da mesma maneira. A regra dos códigos raros continua a contar exemplos, como no modelo.
-
-| Posição | Etiqueta | Nome | Contratos de treino |
+| Posição | Etiqueta | Nome | Exemplos de treino |
 |---|---|---|---|
-| 1 | `33600000` | Produtos farmacêuticos | 88 199 (13,7%) |
-| 2 | `33140000` | Material médico de consumo | 38 140 (5,9%) |
-| 3 | `33100000` | Equipamento médico | 15 655 (2,4%) |
-| 4 | `33690000` | Medicamentos vários | 15 061 (2,3%) |
-| 5 | `15800000` | Produtos alimentares diversos | 5 949 (0,9%) |
+| 1 | `33600000` | Produtos farmacêuticos | 37 151 (7,8%) |
+| 2 | `33140000` | Material médico de consumo | 22 540 (4,7%) |
+| 3 | `33690000` | Medicamentos vários | 10 848 (2,3%) |
+| 4 | `33100000` | Equipamento médico | 9 347 (2,0%) |
+| 5 | `98300000` | Serviços diversos | 4 277 (0,9%) |
 
-As 5 juntas são 25,3% dos contratos de treino, entre 3 000 etiquetas distintas.
+As 5 juntas são 17,6% dos exemplos de treino, entre 3 000 etiquetas distintas. Com N = 5 e N = 20 as 5 etiquetas são as mesmas, pela mesma ordem: se o E4-S1 mudar o N, a régua não muda.
 
 Resultados na validação (outubro de 2025):
 
 | Grupo | Medida | Contratos | Top-1 | Top-5 | F1 macro |
 |---|---|---|---|---|---|
-| Todos | código completo | 19 906 | 13,7% | **26,0%** | 0,0001 |
+| Todos | código completo | 19 906 | 13,7% | **26,3%** | 0,0001 |
 | Todos | classe | 14 047 | 0,0% | **15,6%** | 0,0000 |
-| Todos | divisão | 23 945 | 31,0% | 32,9% | 0,0105 |
-| Todos | só divisão | 4 039 | 37,6% | 39,0% | 0,0121 |
-| Texto novo | código completo | 16 565 | 11,4% | **23,3%** | 0,0001 |
+| Todos | divisão | 23 945 | 31,0% | 33,4% | 0,0105 |
+| Todos | só divisão | 4 039 | 37,6% | 39,4% | 0,0121 |
+| Texto novo | código completo | 16 565 | 11,4% | **23,7%** | 0,0001 |
 | Texto novo | classe | 11 959 | 0,0% | **14,8%** | 0,0000 |
-| Texto novo | divisão | 20 239 | 28,3% | 30,0% | 0,0098 |
-| Texto novo | só divisão | 3 674 | 33,3% | 34,6% | 0,0111 |
+| Texto novo | divisão | 20 239 | 28,3% | 30,6% | 0,0098 |
+| Texto novo | só divisão | 3 674 | 33,3% | 35,3% | 0,0111 |
 
 Medidas hierárquicas da 1.ª sugestão (só se mostram): F1 micro 0,179 em todos e 0,160 no texto novo; F1 macro 0,025 nos dois.
 
-Contar exemplos em vez de contratos troca a ordem da 3.ª e da 4.ª etiqueta e põe `98300000` Serviços diversos em 5.º lugar. Na validação, essa régua dá top-5 no código completo de 26,3% em todos os contratos e 23,7% no texto novo (contra 26,0% e 23,3% da régua por contratos), e o mesmo na classe. Esperava-se que contar contratos desse uma régua mais exigente; deu menos 0,35 pontos em todos os contratos e menos 0,46 no texto novo. Com o bootstrap emparelhado do E4-T1, a régua por exemplos ganha em 100% das amostras nos dois grupos: a diferença conta, não é acaso. Na classe as duas dão exatamente o mesmo. Manteve-se a decisão, porque foi tomada antes de ver os números e trocar pela que dá mais seria escolher pelo resultado na validação (decisão 10).
-
-**A régua muda com o N.** Com N = 5 e N = 20 a 5.ª etiqueta é `63510000` (serviços de agências de viagens) em vez de `15800000`; as 4 primeiras são as mesmas. Se o E4-S1 escolher outro N, a régua volta a calcular-se.
+**Contar exemplos ou contratos?** O treino tem um exemplo por texto (decisão 6), e o `n_contratos` diz quantos contratos tinham esse texto. Contar contratos (cada exemplo pesa o seu `n_contratos`) troca a 3.ª e a 4.ª etiqueta e põe `15800000` em 5.º lugar. Na validação, essa régua dá top-5 no código completo de 26,0% em todos os contratos e 23,3% no texto novo, menos 0,35 e 0,46 pontos. Com o bootstrap emparelhado do E4-T1, a régua que conta exemplos ganha em 100% das amostras nos dois grupos: a diferença conta, não é acaso. Na classe as duas dão exatamente o mesmo. Fica a que conta exemplos, a mais difícil de bater (decisão 10).
 
 Como ler:
-- **A régua a bater** (E4-H1) são os números a negrito: top-5 de 26,0% no código completo e 15,6% na classe em todos os contratos; 23,3% e 14,8% nos contratos com texto novo.
+- **A régua a bater** (E4-H1) são os números a negrito: top-5 de 26,3% no código completo e 15,6% na classe em todos os contratos; 23,7% e 14,8% nos contratos com texto novo.
 - Um modelo que não lê o texto já acerta o código completo em 1 de cada 4 contratos, porque 4 das 5 etiquetas mais comuns são de saúde (divisão 33). Por isso um número sozinho ("o modelo acerta 30%") não diz se o modelo é bom: compara-se sempre com esta régua.
-- **Top-1 na classe é 0,0%.** A 1.ª sugestão, `33600000`, é um código de grupo (3 dígitos). Na classe comparam-se os 4 primeiros dígitos, `3360`, e nenhum contrato da validação tem um código da classe para baixo que comece por `3360`. O mesmo acontece com `33100000` e `15800000`. Os 15,6% do top-5 vêm só de `33140000` (12,5% dos contratos que contam na classe) e `33690000` (3,1%).
+- **Top-1 na classe é 0,0%.** A 1.ª sugestão, `33600000`, é um código de grupo (3 dígitos). Na classe comparam-se os 4 primeiros dígitos, `3360`, e nenhum contrato da validação tem um código da classe para baixo que comece por `3360`. O mesmo acontece com `33100000` e `98300000`. Os 15,6% do top-5 vêm só de `33140000` (12,5% dos contratos que contam na classe) e `33690000` (3,1%).
 - O F1 macro é quase zero: a régua só acerta em 5 etiquetas, e o F1 macro faz a média sobre todas as etiquetas da validação. É o que se espera, e mostra porque o F1 macro se reporta sempre (decisão do E1-T1).
-- Em **texto novo** a régua fica um pouco abaixo de **todos** (23,3% contra 26,0%), embora não leia o texto. Não é decorar: a etiqueta é uma das 5 da régua em 35,6% dos contratos com texto já visto e só em 19,0% dos de texto novo.
+- Em **texto novo** a régua fica um pouco abaixo de **todos** (23,7% contra 26,3%), embora não leia o texto. Não é decorar: a etiqueta é uma das 5 da régua em 35,4% dos contratos com texto já visto e só em 19,4% dos de texto novo.
 - **Só divisão:** são 4 039 contratos, e não os 4 051 da secção 11: lá conta-se a etiqueta (1.º código) ao nível da divisão; aqui, os contratos com **todos** os códigos ao nível da divisão. O notebook confirma as duas contagens.
 
 ## Decisões
@@ -281,4 +277,4 @@ Como ler:
    - Aplica-se no momento do treino, não no `prepare.py`: o N é um hiperparâmetro e o `treino.parquet` fica com os códigos originais.
    - Na avaliação a etiqueta verdadeira não muda: sugerir a classe quando o código certo é mais detalhado conta como acerto na classe e erro no código completo.
    - N a testar: 5, 10 e 20. Por defeito 10, até a fase 4 escolher com o TF-IDF na validação.
-10. Régua "códigos mais comuns" (E4-T2, secção 12): as 5 etiquetas do treino com mais **contratos**, depois da regra dos códigos raros com o N do modelo. Cada exemplo de treino pesa o seu `n_contratos`, porque a validação guarda todos os contratos com as repetições. Decidido a 11 de outubro de 2026, antes de ver os resultados. Contar exemplos daria uma régua um pouco mais alta no código completo (diferença que conta no bootstrap); não se trocou para não escolher pelo resultado na validação.
+10. Régua "códigos mais comuns" (E4-T2, secção 12): as 5 etiquetas mais frequentes do treino depois da regra dos códigos raros com o N do modelo, contadas **uma vez por exemplo** (um por texto), não pelo `n_contratos`. Primeiro escolheu-se contar contratos, porque a validação tem todos os contratos com as repetições. A medição mostrou que essa régua fica mais fácil de bater no código completo (diferença que conta no bootstrap), e mudou-se a 11 de outubro de 2026 para a mais exigente das duas. Escolher a régua depois de ver a validação não favorece o modelo: só lhe torna a tarefa mais difícil.

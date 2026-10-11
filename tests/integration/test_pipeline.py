@@ -190,14 +190,15 @@ def test_medidas_hierarquicas_correm_sobre_a_validacao_da_preparacao(sets):
 
 def regua(treino, k):
     # N = 1: com tão poucos contratos, o N do modelo (10) tirava todos os exemplos
-    return bl.most_common_labels(treino["codigo"], treino["n_contratos"], n_min=1, k=k)
+    return bl.most_common_labels(treino["codigo"], n_min=1, k=k)
 
 
-def test_regua_conta_contratos_do_treino_da_preparacao(sets):
-    # Treino: 90919300 (1 exemplo, os contratos 1, 2 e 3 -> n_contratos=3), 30197630, 33652000 e
-    # 66512100 (1 contrato cada). Por contratos, 90919300 vem primeiro; os outros empatam com 1 e
-    # ficam por ordem de código. (Contando exemplos, empatavam os 4 e 90919300 ficava em último.)
-    assert regua(sets["treino"], 4) == ["90919300", "30197630", "33652000", "66512100"]
+def test_regua_conta_exemplos_do_treino_da_preparacao(sets):
+    # Treino: 90919300 (1 exemplo que junta os contratos 1, 2 e 3), 30197630, 33652000 e 66512100.
+    # Contando exemplos, os 4 empatam com 1 e ficam por ordem de código: o 90919300 fica em último,
+    # embora tenha 3 contratos. Contando contratos ficava em 1.º.
+    assert regua(sets["treino"], 4) == ["30197630", "33652000", "66512100", "90919300"]
+    assert bl.most_common_labels(sets["treino"]["codigo"], sets["treino"]["n_contratos"], n_min=1, k=1) == ["90919300"]
 
 
 def test_regua_nunca_sugere_divisoes(sets):
@@ -206,14 +207,15 @@ def test_regua_nunca_sugere_divisoes(sets):
 
 
 def test_regua_avaliada_sobre_a_validacao_da_preparacao(sets):
-    # Sugestões: 90919300, 30197630, 33652000, 66512100 e um código que não acerta em nada.
-    # O 10 (90919300) acerta o código à 1.ª. O 11 (só 33000000) acerta a divisão 33 à 3.ª
-    # (33652000): top-1 0, top-5 1 na divisão e em so_divisao.
+    # Sugestões: 30197630, 33652000, 66512100, 90919300 e um código que não acerta em nada.
+    # O 10 (90919300) acerta o código só à 4.ª: top-1 0, top-5 1. O 11 (só 33000000) acerta a
+    # divisão 33 à 2.ª (33652000): top-1 0, top-5 1 na divisão e em so_divisao.
     val = sets["validação"]
     sug = bl.suggest_most_common(regua(sets["treino"], 4) + PREENCHER[:1], val.index)
+    assert (sug.map(lambda s: s[:4]) == pd.Series([regua(sets["treino"], 4)] * len(val), index=val.index)).all()
     out = ev.report(sug, val["codigos"], val["visto_no_treino"]).loc["todos"]
-    assert out.loc["codigo", ["contratos", "top1", "top5"]].tolist() == [1, 1.0, 1.0]
-    assert out.loc["divisao", ["contratos", "top1", "top5"]].tolist() == [2, 0.5, 1.0]
+    assert out.loc["codigo", ["contratos", "top1", "top5"]].tolist() == [1, 0.0, 1.0]
+    assert out.loc["divisao", ["contratos", "top1", "top5"]].tolist() == [2, 0.0, 1.0]
     assert out.loc["so_divisao", ["contratos", "top1", "top5"]].tolist() == [1, 0.0, 1.0]
 
 

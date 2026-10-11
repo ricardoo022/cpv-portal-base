@@ -15,7 +15,7 @@ data/raw/*.xlsx → convert_to_parquet.py → prepare.py → treino / validaçã
 | [`cpv_data.py`](cpv_data.py) | Regras partilhadas pelo pipeline e pelos notebooks: tirar os códigos CPV do texto, o nível de um código, as datas que separam treino, validação e teste. | é importado |
 | [`labels.py`](labels.py) | Etiqueta de treino: um código raro sobe para a classe ou o grupo (decisão 9). Aplica-se no treino, não no `prepare.py`. | é importado |
 | [`evaluation.py`](evaluation.py) | Dá nota às 5 sugestões de um modelo: top-1, top-5 e F1 macro no código completo, na classe e na divisão, e as medidas hierárquicas. | é importado |
-| [`baselines.py`](baselines.py) | Régua "códigos mais comuns": sugere sempre as 5 etiquetas do treino com mais contratos, sem ler o texto. É o mínimo que qualquer modelo tem de bater. | é importado |
+| [`baselines.py`](baselines.py) | Régua "códigos mais comuns": sugere sempre as 5 etiquetas mais frequentes do treino, sem ler o texto. É o mínimo que qualquer modelo tem de bater. | é importado |
 | [`comparison.py`](comparison.py) | Decide entre dois modelos: bootstrap emparelhado e a regra de escolha do E4. | é importado |
 
 Testes destes ficheiros: [`tests/`](../tests/).
