@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | próximo |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1 feita) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -220,11 +220,13 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Tamanho:** a soma das estimativas é de 14 dias de trabalho, no máximo (2 itens M de 3 dias, 4 itens P de 1 dia e 4 spikes de 1 dia). Não há prazo fixo. Se for preciso cortar, o E4-S2 (janela de treino) é o primeiro a sair, e fica a decisão 1 como está.
 
-### E4-T1 · Tarefa: avaliação comum a todos os modelos (M)
+### E4-T1 · Tarefa: avaliação comum a todos os modelos (M, feito)
 
 **Porque é precisa:** todos os modelos (a régua, o TF-IDF, o BERTimbau, o Albertina) vão ser comparados com esta avaliação. Se tiver um erro, todas as comparações ficam erradas sem ninguém dar por isso.
 
 **Desbloqueia:** E4-T2, E4-H1 e os spikes.
+
+**Feito** no PR #7 (11 de outubro de 2026): `src/evaluation.py` (as notas) e `src/comparison.py` (bootstrap e regra de escolha). Descrição completa em [`prs/pr_E4-T1.md`](prs/pr_E4-T1.md).
 
 **Regras de contagem** (desenvolvem as decisões 4 e 8):
 

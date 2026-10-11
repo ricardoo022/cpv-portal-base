@@ -58,6 +58,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 **Geral:** começar por um modelo simples (baseline), para ter com que comparar. Depois treinar os modelos a sério e escolher o melhor pela validação, nunca pelo teste.
 
 **Neste projeto:**
+- [x] Avaliação comum a todos os modelos (`src/evaluation.py`, `src/comparison.py`, tarefa E4-T1): top-1 e top-5 no código completo, na classe e na divisão, F1 macro, medidas hierárquicas, e o bootstrap emparelhado para decidir entre dois modelos.
 - [ ] Baseline: TF-IDF com regressão logística, numa máquina alugada só com processador (Hetzner CX53, 32 GB). Plano em [`backlog.md`](backlog.md), épico E4.
 - [ ] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação.
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
@@ -75,7 +76,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 **Geral:** medir com dados que o modelo nunca viu (o teste), uma só vez, no fim. Olhar para os erros, não só para os números.
 
 **Neste projeto:**
-- [ ] Métricas no teste: top-1 e top-5 no código completo e na classe, acerto na divisão, F1 macro em todos os níveis.
+- [ ] Métricas no teste: top-1 e top-5 no código completo e na classe, acerto na divisão, F1 macro em todos os níveis, e as medidas hierárquicas. Com a mesma avaliação da validação (`src/evaluation.py`).
 - [ ] Duas situações, com o mesmo modelo:
   1. O modelo sugere 5 códigos entre todos.
   2. O técnico diz a divisão e o modelo sugere 5 códigos só dentro dela.
@@ -102,6 +103,10 @@ Vamos acrescentando à medida que aparecem.
 - **Data snooping:** tomar decisões com base nos dados de teste, o que faz o resultado no teste parecer melhor do que é.
 - **Fuga de dados (data leakage):** quando o modelo vê no treino informação que não devia, e por isso parece melhor no teste do que vai ser na realidade. Por exemplo, o mesmo texto no treino e no teste: o modelo acerta porque decorou, não porque aprendeu.
 - **Informação disponível no momento da previsão:** só se dá ao modelo informação que existe quando ele vai ser usado. Se usarmos uma coluna que só se preenche depois (por exemplo o preço final), o modelo parece bom no teste e falha na realidade. É uma forma de fuga de dados.
+- **Top-k:** o contrato conta como acerto se o código certo estiver entre as k primeiras sugestões. Top-1: só a 1.ª; top-5: qualquer uma das 5.
+- **Sobre-especialização:** o modelo sugere um código mais detalhado do que o certo (o técnico escolheu `33600000`, o modelo diz `33651100`). Conta como erro no código completo, como na literatura (Kosmopoulos et al., 2015).
+- **Medidas hierárquicas:** dão meio acerto a uma sugestão perto do código certo, contando os níveis da árvore em comum. Exemplo: certo `45233200`, sugerido `45200000` partilham 2 de 5 níveis. Só se mostram; não decidem.
+- **Bootstrap emparelhado:** para saber se a diferença entre dois modelos é real ou sorte, tira-se 1 000 vezes, à sorte, uma amostra dos contratos, a mesma para os dois, e vê-se quem ganha. A diferença só conta se o mesmo ganhar em pelo menos 95% das amostras.
 - **A avaliação só é tão boa como as etiquetas:** quando as etiquetas são incompletas (por exemplo um código genérico), mede-se só o que elas permitem medir e diz-se claramente que parte ficou de fora.
 - **Teste unitário:** testa uma função sozinha, com dados pequenos inventados em que se sabe a resposta certa.
 - **Teste de integração:** testa várias peças a funcionar juntas, do princípio ao fim. Aqui: o pipeline inteiro, de .xlsx a treino/validação/teste.
