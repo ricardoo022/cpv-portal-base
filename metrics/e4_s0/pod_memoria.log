@@ -20,7 +20,6 @@ bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directo
 }
 10:06:27 mem_atual_GB=3 pico_GB=6 linhas_json=1
 }
-ssh: connect to host 103.196.86.91 port 42910: Connection timed out
 10:10:44 mem_atual_GB=6 pico_GB=6 linhas_json=1
 }
 10:11:45 mem_atual_GB=6 pico_GB=6 linhas_json=1

@@ -295,10 +295,20 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - o tipo de pod confirmado (memória, processadores e preço por hora);
 - os passos para preparar a máquina e para a apagar no fim, escritos em [`maquina_runpod.md`](maquina_runpod.md). Um pod parado continua a pagar o disco de volume; só apagado deixa de ser cobrado.
 
-**Feito** a 11 de outubro de 2026. O script é o [`scripts/ensaio_treino.py`](../scripts/ensaio_treino.py), e os números vêm dos ficheiros em `metrics/e4_s0/`: `portatil.jsonl` e `portatil_vocabulario.jsonl` (amostras no portátil) e `pod.jsonl` (treino completo no pod).
+**Feito** a 11 de outubro de 2026. O script é o [`scripts/ensaio_treino.py`](../scripts/ensaio_treino.py), e os números vêm dos ficheiros em `metrics/e4_s0/`:
 
-1. **Classificador.** No portátil, com amostras, a `LogisticRegression` (solver `saga`) não convergiu em 100 iterações com 10 000 exemplos (170 s) e foi parada ao fim de 10 minutos com 30 000. O `SGDClassifier(loss="log_loss")` convergiu sempre. É a mesma regressão logística, treinada de outra maneira (um classificador "sim/não" por etiqueta). Decisão: o TF-IDF usa o `SGDClassifier(loss="log_loss")` (decisão 5 abaixo).
-2. **Treino completo no pod** (TF-IDF com palavras e pares de palavras, `min_df=2`, valores em float32; `SGDClassifier(loss="log_loss")` em 8 processadores):
+- `portatil.jsonl` e `portatil_vocabulario.jsonl`: amostras no portátil. Foram geradas por uma versão anterior do mesmo script, com a mesma lógica mas caminhos fixos e sem o campo `maquina`;
+- `portatil_logreg30k_parada.txt`: a corrida da `LogisticRegression` que foi parada;
+- `pod.jsonl`: treino completo no pod;
+- `pod_info.json`: o pod, escrito à mão a partir das leituras da Runpod e do cgroup;
+- `pod_memoria.log`: a memória do pod lida a cada minuto.
+
+1. **Classificador.** No portátil, com amostras, a `LogisticRegression` (solver `saga`) não convergiu em 100 iterações com 10 000 exemplos (170 s). Com 30 000 exemplos e o vocabulário cortado a 20 000 palavras, foi parada ao fim de 600 s sem acabar. O `SGDClassifier(loss="log_loss")` convergiu sempre. Os dois treinam regressão logística, mas de maneira diferente:
+   - a `LogisticRegression` treina um só modelo para todas as etiquetas;
+   - o SGD treina um modelo "sim/não" por etiqueta (um contra todos), ajustando os pesos exemplo a exemplo, com a regularização `alpha` = 0,0001 (o valor por defeito).
+
+   Decisão 5 do E4 (provisória): o TF-IDF usa o `SGDClassifier(loss="log_loss")`. Escolheu-se pela velocidade, sem medir a qualidade, e confirma-se no E4-H1, se bater a régua na validação.
+2. **Treino completo no pod** (TF-IDF com palavras e pares de palavras, `min_df=2`, valores em float32; `SGDClassifier(loss="log_loss", n_jobs=-1)` num pod com 8 processadores):
 
    | | N = 10 | N = 5 |
    |---|---|---|
@@ -309,11 +319,19 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
    | treinar | 462 s (7,7 min) | 616 s (10,3 min) |
    | épocas até convergir | 6 | 6 |
    | pesos do modelo | 4,8 GB | 6,2 GB |
-   | pico de memória do processo | 5,5 GB | 6,9 GB |
+   | pico de memória do processo | 5,7 GB | 7,2 GB |
 
-   O pico de memória do pod inteiro (`memory.peak` do cgroup, em `metrics/e4_s0/pod_info.json`) foi 8,3 GB, de 32 GB. O campo `nucleos` do `pod.jsonl` diz 192, mas esse é o número de núcleos da máquina física; o pod tinha 8.
-3. **Tipo de pod confirmado:** `cpu3g` (General Purpose) com 8 processadores e 32 GB, a 0,32 $/h. Os 32 GB chegam com folga, e o portátil (cerca de 5,8 GB) não chegava. O ensaio deixou o pod ligado de cerca das 09:54 às 10:15 (UTC), cerca de 21 minutos (`pod_info.json`), ou seja, cerca de 0,35 h × 0,32 $/h ≈ 0,11 $ (conta feita com o preço por hora; a faturação da Runpod ainda não tinha o registo).
-4. **Custo estimado do resto do épico:** cerca de 6 a 10 treinos (E4-H1, mais 2 valores de N no E4-S1, 1 ou 2 no E4-S3, 2 janelas no E4-S2 e os recálculos que essas decisões pedirem), de 8 a 11 minutos cada, mais cerca de 10 minutos para preparar cada pod. Com um pod por item, são 3 a 5 horas de pod no total, ou seja, cerca de 1 a 1,60 $. É uma estimativa: a janela desde 2019 (E4-S2) tem mais dados e a sua memória e tempo medem-se lá.
+   Todas as memórias estão em GB (mil milhões de bytes). O pico do processo vem do `pico_rss_mb.final` do `pod.jsonl`, que está em MiB: por exemplo, 5 480 MiB × 1 048 576 bytes ≈ 5,7 GB. O pico de memória do pod inteiro (`memory.peak` do cgroup, em `pod_info.json`) foi 8,3 GB, de 32 GB. O campo `nucleos` do `pod.jsonl` diz 192, mas esse é o número de núcleos da máquina física; o pod tinha 8. Não ficou registado quantos núcleos o treino usou de facto.
+3. **Tipo de pod confirmado:** `cpu3g` (General Purpose) com 8 processadores e 32 GB, a 0,32 $/h. Os 32 GB chegam com folga, e o portátil (cerca de 5,8 GB) não chegava. Custo do ensaio, pelas horas do `pod_info.json`:
+   - o pod esteve ligado das 09:54:30 às cerca de 10:15:30 (UTC), cerca de 21 minutos (0,35 h);
+   - 0,35 h × 0,32 $/h ≈ 0,11 $;
+   - a conta foi feita com o preço por hora, porque a faturação da Runpod ainda não tinha o registo.
+4. **Custo estimado do resto do épico.** É uma estimativa, e esta é a conta:
+   - **Treinos:** 6 a 10 (o E4-H1, mais 2 valores de N no E4-S1, 1 ou 2 no E4-S3, 2 janelas no E4-S2, e os recálculos que essas decisões pedirem). A 8 a 11 minutos cada, dão 0,8 a 1,8 h.
+   - **Preparar os pods:** cerca de 10 minutos por pod (criar, copiar, `make setup` e testes), com 5 pods (um por item), dão cerca de 0,8 h.
+   - **Total:** 1,6 a 2,6 h de pod, ou seja, cerca de 0,50 a 0,85 $.
+   - **Com margem:** dobrando o tempo, para avaliar na validação, gravar modelos e esperas, fica abaixo de 2 $.
+   - A janela desde 2019 (E4-S2) tem mais dados; a sua memória e o seu tempo medem-se lá.
 
 ### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M)
 
@@ -449,7 +467,7 @@ E4-T4 ────────────────────────�
 2. **Como se escolhe entre opções:** decide o top-5 no código completo, com o top-5 na classe como métrica de guarda. Uma diferença só conta se o bootstrap mostrar que não é acaso. Regra completa no E4-T1.
 3. **Máquina:** alugar um pod na Runpod com pelo menos 32 GB de memória para o TF-IDF (mudado a 11 de outubro de 2026; antes era a Hetzner CX53). Ver o E4-S0.
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
-5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Ver o E4-S0.
+5. **Classificador do TF-IDF** (11 de outubro de 2026, provisória): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade: confirma-se no E4-H1, se bater a régua na validação. Ver o E4-S0.
 
 ### Decisões pendentes do E4
 

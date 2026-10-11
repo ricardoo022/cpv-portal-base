@@ -67,7 +67,7 @@ $E root@IP 'cd /root/projeto_CPV && tmux new -d -s treino "<comando do treino> >
 $E root@IP tail -3 /root/projeto_CPV/ensaio.log          # ver como vai; acabou quando aparecer FIM
 ```
 
-**Memória: não confiar no `free -h`.** Dentro do pod, o `free -h` mostra a memória da máquina física inteira (no ensaio, 1133 GB), não a do pod. O limite do pod e o que ele está a gastar leem-se no cgroup (o mecanismo do Linux que limita a memória do contentor):
+**Memória: não confiar no `free -h`.** Dentro do pod, o `free -h` mostra a memória da máquina física inteira (no ensaio, muito mais do que os 32 GB do pod), não a do pod. O limite do pod e o que ele está a gastar leem-se no cgroup (o mecanismo do Linux que limita a memória do contentor):
 ```bash
 cat /sys/fs/cgroup/memory.max        # limite: 32000000000 bytes = 32 GB
 cat /sys/fs/cgroup/memory.current    # quanto está a usar agora
@@ -84,7 +84,7 @@ Confirma que os ficheiros abrem no portátil **antes** de apagar o pod: depois d
 
 ## 5. Apagar o pod
 
-**A Runpod cobra enquanto o pod estiver ligado, esteja ele a trabalhar ou parado à espera.** Por isso apaga-se logo que os resultados estão no portátil.
+**A Runpod cobra enquanto o pod estiver ligado, esteja ele a trabalhar ou sem nada para fazer.** Por isso apaga-se logo que os resultados estão no portátil.
 
 - **Stop** (parar): deixa de cobrar o processador, mas apaga o disco do contentor. Num pod só com CPU não há disco de volume, por isso parar não guarda nada que interesse.
 - **Terminate** (apagar): acaba com o pod e com toda a cobrança. É o que se faz no fim.
