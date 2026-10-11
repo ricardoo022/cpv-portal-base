@@ -20,7 +20,7 @@ de 6 GB e o portátil tem 5,8 GB partilhados com o editor (E4-S0).
 Exemplo (da raiz do projeto):
     .venv/bin/python src/train_tfidf.py --n-min 10
     .venv/bin/python src/train_tfidf.py --alpha 1e-5 --taus 0 0.25 0.5 1 --sem-modelo \
-        --saida metrics/e4_s4/alpha_1e-05
+        --saida metrics/e4_s4/alpha_1e-5
 """
 
 import argparse
@@ -43,7 +43,7 @@ from labels import DEFAULT_N_MIN, collapse_rare_codes
 RAIZ = Path(__file__).resolve().parents[1]
 TREINO = RAIZ / "data" / "processed" / "treino.parquet"
 VALIDACAO = RAIZ / "data" / "processed" / "validacao.parquet"
-SAIDA = RAIZ / "metrics" / "e4_h1"
+SAIDA = RAIZ / "metrics" / "tfidf"  # metrics/e4_h1/ e metrics/e4_s4/ ficam como registo fixo
 SUGESTOES = "sugestoes_validacao.parquet"
 RESUMO = "treino.json"
 PROIBIDO = "teste.parquet"

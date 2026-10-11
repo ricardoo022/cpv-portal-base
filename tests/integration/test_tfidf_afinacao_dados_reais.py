@@ -122,7 +122,9 @@ def test_regra_de_escolha_da_os_vencedores_do_doc_e_o_valor_por_defeito(opcoes, 
 @pytest.mark.data
 @dados
 def test_top5_do_escolhido_e_o_do_doc(opcoes, validacao):
-    escolhido = opcoes[(f"{tfidf.ALPHA:.0e}".replace("e-0", "e-"), tfidf.TAU)]
+    pasta = {float(a): a for a in ALPHAS}  # 1e-07 -> "1e-7", o nome da pasta
+    assert tfidf.ALPHA in pasta, f"o ALPHA por defeito ({tfidf.ALPHA}) não é nenhum dos testados"
+    escolhido = opcoes[(pasta[tfidf.ALPHA], tfidf.TAU)]
     out = ev.report(escolhido, validacao["codigos"], validacao["visto_no_treino"])
     for (grupo, medida), esperado in TOP5.items():
         assert round(out.loc[(grupo, medida), "top5"], 3) == esperado, (grupo, medida)

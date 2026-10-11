@@ -152,7 +152,10 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
 def test_modelo_gravado_da_as_mesmas_sugestoes(treinado):
     gravado = joblib.load(treinado["modelo"])
     textos = treinado["val_df"]["texto"]
-    assert tt.tfidf.suggest(gravado, textos).tolist() == treinado["sugestoes"]["sugestoes"].map(list).tolist()
+    # o ficheiro principal é o sem correção (τ = 0); o do τ escolhido tem o seu próprio nome
+    assert tt.tfidf.suggest(gravado, textos, tau=0.0).tolist() == treinado["sugestoes"]["sugestoes"].map(list).tolist()
+    com_tau = pd.read_parquet(treinado["saida"] / tt.suggestions_file(tt.tfidf.TAU))
+    assert tt.tfidf.suggest(gravado, textos).tolist() == com_tau["sugestoes"].map(list).tolist()
 
 
 def test_comando_de_treino_grava_o_modelo_onde_o_comando_de_sugestoes_o_procura(treinado, tmp_path, monkeypatch):
@@ -288,3 +291,8 @@ def test_comando_de_sugestoes_aceita_outro_tau(treinado):
                        capture_output=True, text=True, check=True)
     codigos = [[l.split()[1] for l in b.splitlines()[1:]] for b in _blocos(r.stdout)]
     assert codigos == forte
+
+
+def test_treino_por_defeito_grava_numa_pasta_propria_e_nao_no_registo_do_e4_h1():
+    # metrics/e4_h1/ e metrics/e4_s4/ são o registo fixo de cada item; um treino novo não os apaga
+    assert tt.SAIDA == Path(tt.__file__).parents[1] / "metrics" / "tfidf"

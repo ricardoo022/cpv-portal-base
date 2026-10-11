@@ -103,6 +103,8 @@ def suggest_many(model, textos, taus=(0.0,), prior=None, k=TOP_K, batch_size=200
     classes = np.asarray(model.classes_)
     if len(classes) < k:
         raise ValueError(f"o modelo só tem {len(classes)} etiquetas; são precisas {k}")
+    if any(t < 0 for t in taus):
+        raise ValueError(f"τ tem de ser >= 0: {list(taus)}")
     if any(t != 0 for t in taus):
         if prior is None:
             prior = getattr(model, "log_prior_", None)
@@ -123,14 +125,13 @@ def suggest_many(model, textos, taus=(0.0,), prior=None, k=TOP_K, batch_size=200
     return {t: pd.Series(v, index=textos.index, dtype=object) for t, v in out.items()}
 
 
-def suggest(model, textos, k=TOP_K, batch_size=2000, tau=0.0, prior=None):
+def suggest(model, textos, k=TOP_K, batch_size=2000, tau=TAU, prior=None):
     """k sugestões distintas por texto, da mais para a menos provável (formato da `evaluation`).
 
     `textos` é uma Series (o índice mantém-se) ou uma lista (índice 0, 1, 2, ...). Os textos
     pontuam-se em lotes de `batch_size` para a matriz textos x etiquetas não ocupar memória
     demais (a validação tem ~24 mil textos e o modelo ~3 000 etiquetas). Com `tau` > 0 aplica-se
     a correção das etiquetas frequentes, com o `prior` de `log_prior` (por defeito o do modelo).
-    Por defeito τ = 0 (só a pontuação); o valor escolhido para usar é `TAU`, que o treino e o
-    comando de sugestões passam.
+    Por defeito usa-se o τ escolhido no E4-S4 (`TAU`); τ = 0 dá a ordem só pela pontuação.
     """
     return suggest_many(model, textos, (tau,), prior, k, batch_size)[tau]

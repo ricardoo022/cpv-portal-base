@@ -124,7 +124,7 @@ class Empatado:
 
 def test_empate_fica_o_menor_codigo():
     classes = [f"{i}1111111" for i in range(1, 8)]  # por ordem crescente, como o classes_
-    sug = tfidf.suggest(Empatado(classes, melhor=6), ["a", "b"])
+    sug = tfidf.suggest(Empatado(classes, melhor=6), ["a", "b"], tau=0.0)  # só a pontuação
     assert sug[0] == ["71111111", "11111111", "21111111", "31111111", "41111111"]
     assert sug[1] == sug[0]
 
@@ -220,7 +220,7 @@ def test_tau_tira_vantagem_a_etiqueta_frequente():
     scores = [1.0, 0.9, 1.5, 0.8, 0.7, 0.6]
     prior = np.log([0.1, 0.1, 0.5, 0.1, 0.1, 0.1])
     m = _Fixo(scores, CLASSES)
-    assert tfidf.suggest(m, ["x"])[0][0] == "33600000"
+    assert tfidf.suggest(m, ["x"], tau=0.0)[0][0] == "33600000"
     com = tfidf.suggest(m, ["x"], tau=1.0, prior=prior)[0]
     # pontuações corrigidas: 1.0+2.30, 0.9+2.30, 1.5+0.69, 0.8+2.30, 0.7+2.30, 0.6+2.30
     assert com == ["11000000", "22100000", "44100000", "55100000", "66100000"]
@@ -261,3 +261,14 @@ def test_train_usa_o_alpha_escolhido_por_defeito(modelo):
 def test_prior_com_tamanho_errado_da_erro(modelo):
     with pytest.raises(ValueError, match="uma entrada por etiqueta"):
         tfidf.suggest(modelo, ["estrada"], tau=0.5, prior=np.zeros(2))
+
+
+def test_suggest_usa_o_tau_escolhido_por_defeito(modelo):
+    textos = ["limpeza de escolas", "estrada", "papel", "medicamentos"]
+    assert tfidf.suggest(modelo, textos).tolist() == tfidf.suggest(modelo, textos, tau=tfidf.TAU).tolist()
+
+
+@pytest.mark.parametrize("taus", [(-0.25,), (0.0, -1.0)])
+def test_tau_negativo_da_erro(modelo, taus):
+    with pytest.raises(ValueError, match=">= 0"):
+        tfidf.suggest_many(modelo, ["estrada"], taus)
