@@ -1,0 +1,14 @@
+{
+  "fonte": "leituras do MCP da Runpod (create-pod, get-pod, delete-pod) e do cgroup do pod, 11/10/2026",
+  "pod_id": "pgevlwa64vmt3l",
+  "tipo": {"cpu": "cpu3g", "vcpu": 8, "memoria_gb": 32},
+  "custo_por_hora_usd": 0.32,
+  "imagem": "runpod/base:1.0.2-ubuntu2204",
+  "centro_de_dados": "US-NC-1",
+  "criado_utc": "2026-10-11T09:54:30Z",
+  "apagado_utc_aprox": "2026-10-11T10:15:30Z",
+  "cgroup_memory_max_bytes": 32000000000,
+  "cgroup_memory_peak_bytes": 8297082880,
+  "python": "3.10.12",
+  "pytest_no_pod": "172 passed"
+}

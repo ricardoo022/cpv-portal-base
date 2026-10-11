@@ -1,0 +1,33 @@
+09:56:11 mem_atual_GB=2 pico_GB=2 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+09:57:13 mem_atual_GB=2 pico_GB=2 linhas_json=0
+09:58:14 mem_atual_GB=3 pico_GB=3 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+09:59:16 mem_atual_GB=3 pico_GB=3 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+10:00:17 mem_atual_GB=4 pico_GB=4 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+10:01:19 mem_atual_GB=5 pico_GB=5 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+10:02:21 mem_atual_GB=5 pico_GB=5 linhas_json=0
+10:03:22 mem_atual_GB=6 pico_GB=6 linhas_json=0
+bash: line 1: /root/projeto_CPV/metrics/e4_s0/pod.jsonl: No such file or directory
+10:04:24 mem_atual_GB=2 pico_GB=6 linhas_json=1
+}
+10:05:25 mem_atual_GB=2 pico_GB=6 linhas_json=1
+}
+10:06:27 mem_atual_GB=3 pico_GB=6 linhas_json=1
+}
+ssh: connect to host 103.196.86.91 port 42910: Connection timed out
+10:10:44 mem_atual_GB=6 pico_GB=6 linhas_json=1
+}
+10:11:45 mem_atual_GB=6 pico_GB=6 linhas_json=1
+}
+10:12:47 mem_atual_GB=7 pico_GB=7 linhas_json=1
+}
+10:13:48 mem_atual_GB=8 pico_GB=8 linhas_json=1
+}
+10:14:50 mem_atual_GB=1 pico_GB=8 linhas_json=2
+FIM

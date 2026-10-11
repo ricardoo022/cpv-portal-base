@@ -210,7 +210,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Fora do âmbito deste épico:**
 
-- tunar o BERTimbau e o Albertina, e alugar a GPU (a máquina alugada deste épico só tem processador);
+- tunar o BERTimbau e o Albertina, e treinar em GPU (o TF-IDF só usa o processador e a memória do pod, mesmo que o pod tenha GPU);
 - MLflow;
 - comparar com o modelo multilingue já tunado com concursos europeus;
 - medir no teste e fazer a análise de erros (fase 5);
@@ -277,9 +277,9 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [x] A régua sugere sempre as 5 etiquetas mais comuns do treino, contadas depois da regra dos códigos raros e com o mesmo N que o modelo usa. Assim a régua e o modelo escolhem entre as mesmas etiquetas.
 - [x] Os seus números na validação, calculados com a avaliação E4-T1, estão escritos no `qualidade_dados.md`.
 
-### E4-S0 · Spike: quanto custa cada treino na máquina alugada? (timebox: 1 dia)
+### E4-S0 · Spike: quanto custa cada treino na máquina alugada? (timebox: 1 dia, feito)
 
-**Decisão já tomada:** o TF-IDF treina numa máquina alugada, a Hetzner CX53 (16 processadores partilhados, 32 GB de memória, cerca de 0,05 € por hora sem IVA, segundo um comparador de preços de setembro de 2026; confirmar na consola antes de alugar). Se for lenta demais, passa-se para a CCX33 (8 processadores dedicados, 32 GB, cerca de 0,22 € por hora). Com 32 GB, a memória do portátil deixa de ser um limite.
+**Decisão já tomada (mudada a 11 de outubro de 2026):** o TF-IDF treina num pod alugado na Runpod, com pelo menos 32 GB de memória (só processador, ou com uma GPU barata se não houver pods só com processador; o TF-IDF não usa a GPU). A Hetzner CX53, a escolha anterior, estava indisponível na página oficial a 11 de outubro de 2026, e a conta nova pedia um pagamento adiantado. A Runpod é onde vão treinar o BERTimbau e o Albertina, por isso o saldo carregado serve às duas fases. O preço por hora vê-se na consola no dia. Com 32 GB, a memória do portátil deixa de ser um limite.
 
 **Pergunta:** quanto tempo e quanta memória gasta um treino nessa máquina, e quanto vão custar todos os treinos do épico?
 
@@ -292,8 +292,28 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 - o pico de memória e o tempo de treino medidos nos dois casos;
 - o custo estimado de todos os treinos do épico;
-- a máquina confirmada, ou trocada pela CCX33;
-- os passos para preparar a máquina e para a apagar no fim, escritos. Uma máquina desligada continua a ser cobrada; só apagada deixa de ser (confirmar nas regras da Hetzner).
+- o tipo de pod confirmado (memória, processadores e preço por hora);
+- os passos para preparar a máquina e para a apagar no fim, escritos em [`maquina_runpod.md`](maquina_runpod.md). Um pod parado continua a pagar o disco de volume; só apagado deixa de ser cobrado.
+
+**Feito** a 11 de outubro de 2026. O script é o [`scripts/ensaio_treino.py`](../scripts/ensaio_treino.py), e os números vêm dos ficheiros em `metrics/e4_s0/`: `portatil.jsonl` e `portatil_vocabulario.jsonl` (amostras no portátil) e `pod.jsonl` (treino completo no pod).
+
+1. **Classificador.** No portátil, com amostras, a `LogisticRegression` (solver `saga`) não convergiu em 100 iterações com 10 000 exemplos (170 s) e foi parada ao fim de 10 minutos com 30 000. O `SGDClassifier(loss="log_loss")` convergiu sempre. É a mesma regressão logística, treinada de outra maneira (um classificador "sim/não" por etiqueta). Decisão: o TF-IDF usa o `SGDClassifier(loss="log_loss")` (decisão 5 abaixo).
+2. **Treino completo no pod** (TF-IDF com palavras e pares de palavras, `min_df=2`, valores em float32; `SGDClassifier(loss="log_loss")` em 8 processadores):
+
+   | | N = 10 | N = 5 |
+   |---|---|---|
+   | exemplos de treino | 478 234 | 478 334 |
+   | etiquetas | 3 000 | 3 848 |
+   | vocabulário | 402 084 | 402 154 |
+   | vetorizar | 7,9 s | 8,8 s |
+   | treinar | 462 s (7,7 min) | 616 s (10,3 min) |
+   | épocas até convergir | 6 | 6 |
+   | pesos do modelo | 4,8 GB | 6,2 GB |
+   | pico de memória do processo | 5,5 GB | 6,9 GB |
+
+   O pico de memória do pod inteiro (`memory.peak` do cgroup, em `metrics/e4_s0/pod_info.json`) foi 8,3 GB, de 32 GB. O campo `nucleos` do `pod.jsonl` diz 192, mas esse é o número de núcleos da máquina física; o pod tinha 8.
+3. **Tipo de pod confirmado:** `cpu3g` (General Purpose) com 8 processadores e 32 GB, a 0,32 $/h. Os 32 GB chegam com folga, e o portátil (cerca de 5,8 GB) não chegava. O ensaio deixou o pod ligado de cerca das 09:54 às 10:15 (UTC), cerca de 21 minutos (`pod_info.json`), ou seja, cerca de 0,35 h × 0,32 $/h ≈ 0,11 $ (conta feita com o preço por hora; a faturação da Runpod ainda não tinha o registo).
+4. **Custo estimado do resto do épico:** cerca de 6 a 10 treinos (E4-H1, mais 2 valores de N no E4-S1, 1 ou 2 no E4-S3, 2 janelas no E4-S2 e os recálculos que essas decisões pedirem), de 8 a 11 minutos cada, mais cerca de 10 minutos para preparar cada pod. Com um pod por item, são 3 a 5 horas de pod no total, ou seja, cerca de 1 a 1,60 $. É uma estimativa: a janela desde 2019 (E4-S2) tem mais dados e a sua memória e tempo medem-se lá.
 
 ### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M)
 
@@ -427,8 +447,9 @@ E4-T4 ────────────────────────�
 
 1. **Entidade compradora:** testa-se já com o TF-IDF (spike E4-S3), não depois do BERTimbau. É mais barato: se não ajudar no TF-IDF, provavelmente não vale a pena gastar GPU a testá-la.
 2. **Como se escolhe entre opções:** decide o top-5 no código completo, com o top-5 na classe como métrica de guarda. Uma diferença só conta se o bootstrap mostrar que não é acaso. Regra completa no E4-T1.
-3. **Máquina:** alugar a Hetzner CX53 (32 GB) para o TF-IDF; a CCX33 se for lenta. Ver o E4-S0.
+3. **Máquina:** alugar um pod na Runpod com pelo menos 32 GB de memória para o TF-IDF (mudado a 11 de outubro de 2026; antes era a Hetzner CX53). Ver o E4-S0.
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
+5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Ver o E4-S0.
 
 ### Decisões pendentes do E4
 
