@@ -50,10 +50,12 @@ O que isto nos diz:
 - Entrada: `objectoContrato`, mais a `descContrato` quando é diferente, mais a `DescrAcordoQuadro` quando existe. É informação que o técnico tem quando escolhe o código. A entidade (`adjudicante`) entra só como experiência.
 - Saída: lista ordenada de códigos CPV (top-5).
 - Etiqueta: o primeiro código do `CPV` que cada entidade escolheu. No treino tiram-se os códigos ao nível da divisão, e os códigos raros sobem para a classe ou o grupo (decisões em [`docs/qualidade_dados.md`](docs/qualidade_dados.md)).
-- Avaliação ao nível em que o problema existe:
-  - Principal: top-1 e top-5 no código completo (8 dígitos) e na classe (4 dígitos).
+- Avaliação ao nível em que o problema existe (`src/evaluation.py`):
+  - Principal: top-1 e top-5 no código completo (o código exato) e na classe (4 dígitos). Os contratos que só têm um código de divisão não contam no código completo (o modelo não aprende divisões) e mostram-se à parte.
   - Secundária: divisão (2 dígitos). É fácil e não poupa trabalho a ninguém, mas permite comparar com as réguas abaixo.
   - Sempre F1 macro, porque as classes são muito desequilibradas.
+  - Só para mostrar: precisão, recall e F1 hierárquicos, que dão meio acerto a uma sugestão perto do código certo.
+  - Para decidir entre dois modelos: bootstrap emparelhado na validação (`src/comparison.py`).
 
 ## Dados
 
@@ -148,7 +150,7 @@ cpv-portal-base/
   src/              pipeline: conversão, preparação, treino e avaliação
   tests/            testes unitários e de integração (pytest)
   scripts/          download_data.py
-  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas) e qualidade_dados.md (verificações e decisões)
+  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões) e prs/ (a descrição de cada PR)
   requirements.txt  versões exatas das bibliotecas
 ```
 
