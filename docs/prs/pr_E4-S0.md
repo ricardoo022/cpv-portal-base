@@ -96,7 +96,7 @@ Não há testes novos (ver "Ficou igual de propósito"). O script correu de pont
 
 - Suíte inteira: `.venv/bin/pytest -q` → 172 passed (antes do trabalho: 172 passed). Também 172 passed no pod.
 - Nenhum ficheiro em `src/`, `tests/` ou `notebooks/` mudou: `git diff --stat main...HEAD` só tem `docs/`, `metrics/`, `scripts/` e `requirements.txt`.
-- CI do commit de cima: ver a secção "Revisão de código".
+- CI: o commit `5684a64` (o trabalho) passou (success). O commit de cima (só docs e `metrics/`) confere-se antes do merge.
 
 ### Os testes novos falham com o código estragado
 
