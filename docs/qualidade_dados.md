@@ -257,7 +257,7 @@ De [`notebooks/04_tfidf.ipynb`](../notebooks/04_tfidf.ipynb), que lê as sugest�
 - **TF-IDF:** transforma cada texto num vetor com um peso por palavra e por par de palavras. Uma palavra pesa mais quando aparece no texto e é rara no resto do treino: "limpeza" pesa mais do que "serviços".
 - **Classificador:** regressão logística um-contra-todos, treinada com o `SGDClassifier(loss="log_loss")` (decisão 5 do E4). "Um-contra-todos" quer dizer um modelo "sim/não" por etiqueta. As 5 sugestões são as 5 etiquetas com a pontuação mais alta.
 - **Treino:** N = 10, janela desde 2022, 478 234 exemplos (150 saíram pela regra dos códigos raros), 3 000 etiquetas, 402 084 palavras e pares de palavras no vocabulário. Convergiu em 6 épocas.
-- **Custo:** 454 s a vetorizar e treinar, 28 s a sugerir para os 23 945 contratos da validação. O modelo gravado ocupa 4,8 GB.
+- **Custo:** 454 s a vetorizar e treinar, 28 s a sugerir para os 23 945 contratos da validação. Os pesos do modelo ocupam 4,8 GB (`coef_bytes` do `treino.json`); o ficheiro gravado ocupa um pouco mais, porque leva também o vocabulário.
 
 Resultados na validação (outubro de 2025), lado a lado com a régua da secção 12:
 
@@ -289,7 +289,7 @@ Como ler:
 - **O TF-IDF bate a régua com folga:** mais 16,9 pontos no top-5 do código completo e mais 22,3 na classe, em todos os contratos. No texto novo a vantagem é parecida (mais 14,8 e mais 19,4 pontos), por isso não vem só de decorar.
 - **Decorar ajuda muito:** com texto já visto, o top-5 no código completo é 66,4%; com texto novo, 38,5%. O número que interessa para o técnico é o do texto novo, porque é o caso normal.
 - **O F1 macro continua muito baixo** (0,0107 no código completo). O F1 macro faz a média sobre todas as etiquetas da validação, e o modelo acerta bem poucas etiquetas, as frequentes. As raras quase nunca saem em 1.º lugar. É o ponto fraco a seguir nos próximos modelos.
-- **Sugestões das 3 descrições escritas à mão** (`metrics/e4_h1/sugestoes_exemplos.txt`, do comando `src/suggest.py`): para "serviços de limpeza de três escolas básicas durante 12 meses" a 1.ª sugestão é `90910000` (serviços de limpeza). Para as refeições escolares, o código esperado aparece só em 4.º lugar (`55524000`, refeições para escolas). Para a repavimentação de estradas, a única sugestão de obras é `45453100` (em inglês *refurbishment work*, renovação), em 3.º lugar, e nenhuma é um código de estradas. Os outros lugares são códigos de saúde da régua (`33140000`, `33600000`...). Quando o texto se parece pouco com os do treino, o modelo puxa para as etiquetas mais frequentes.
+- **Sugestões das 3 descrições escritas à mão** (os nomes dos códigos são os da nomenclatura CPV oficial, Regulamento (CE) n.º 213/2008; o repositório não tem a tabela CPV) (`metrics/e4_h1/sugestoes_exemplos.txt`, do comando `src/suggest.py`): para "serviços de limpeza de três escolas básicas durante 12 meses" a 1.ª sugestão é `90910000` (serviços de limpeza). Para as refeições escolares, o código esperado aparece só em 4.º lugar (`55524000`, refeições para escolas). Para a repavimentação de estradas, a única sugestão de obras é `45453100` (em inglês *refurbishment work*, renovação), em 3.º lugar, e nenhuma é um código de estradas. Os outros lugares são códigos de saúde da régua (`33140000`, `33600000`...). Quando o texto se parece pouco com os do treino, o modelo puxa para as etiquetas mais frequentes.
 
 ## Decisões
 

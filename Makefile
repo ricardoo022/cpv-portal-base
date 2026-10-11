@@ -38,7 +38,7 @@ test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evalu
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
 test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
-	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py
+	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py tests/integration/test_tfidf_dados_reais.py
 
 notebook: ## Volta a correr o notebook de exploração (precisa de "make preparar" antes)
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 01_exploracao.ipynb
