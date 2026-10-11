@@ -132,13 +132,15 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
     with open(treinado["saida"] / tt.RESUMO, encoding="utf-8") as f:
         resumo = json.load(f)
     assert set(resumo) == {
-        "data", "n_min", "min_df", "alpha", "taus", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
+        "data", "n_min", "min_df", "alpha", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
         "etiquetas", "vocabulario", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
         "tempo_sugerir_s", "pico_rss_mb", "nucleos", "versoes", "coef_bytes"}
     tr = treinado["treino_df"]
     assert resumo["n_min"] == N_MIN and resumo["min_df"] == 1
     # por defeito, os valores escolhidos no E4-S4, e também τ = 0 para comparar
     assert resumo["alpha"] == tt.tfidf.ALPHA == 1e-7 and resumo["taus"] == [0.0, tt.tfidf.TAU] == [0.0, 0.25]
+    assert resumo["ficheiros"] == {"sugestoes_validacao.parquet": 0.0, "sugestoes_validacao_tau0.25.parquet": 0.25}
+    assert resumo["ficheiro_do_modelo_por_defeito"] == "sugestoes_validacao_tau0.25.parquet"
     assert resumo["treino"]["ficheiro"] == "treino.parquet"
     assert resumo["validacao"]["ficheiro"] == "validacao.parquet"
     assert resumo["treino"]["datas"] == [str(tr["data"].min().date()), str(tr["data"].max().date())]

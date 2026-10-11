@@ -479,7 +479,7 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 
 **Critérios de aceitação:**
 
-- [ ] As métricas da validação do TF-IDF e da régua ficam guardadas no git, num ficheiro pequeno. Cada bloco de métricas diz de que conjunto vem e o período de datas.
+- [ ] As métricas da validação do TF-IDF e da régua ficam guardadas no git, num ficheiro pequeno. Cada bloco de métricas diz de que conjunto vem e o período de datas. As métricas do TF-IDF são as do modelo por defeito (`alpha` e τ da decisão 6): o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o `sugestoes_validacao.parquet`, que é o de τ = 0.
 - [ ] O CI falha se o top-5 guardado do TF-IDF não for maior do que o da régua, no código completo e na classe.
 - [ ] O CI falha se algum bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025).
 - [ ] O treino e a avaliação carregam os conjuntos sempre da mesma maneira, que recusa o teste sem uma autorização explícita. Um teste no CI confirma a recusa.

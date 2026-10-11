@@ -133,8 +133,12 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
         "min_df": min_df,
         "alpha": clf.alpha,
         "taus": list(taus),
+        # Que τ tem cada ficheiro de sugestões, e qual é o do modelo por defeito (`tfidf.TAU`).
+        # O nome principal é o de τ = 0, por isso quem avalia o modelo escolhido lê este campo.
+        "ficheiros": {suggestions_file(t): t for t in taus},
+        "ficheiro_do_modelo_por_defeito": suggestions_file(tfidf.TAU) if tfidf.TAU in taus else None,
         "treino": {"ficheiro": Path(train_path).name, "datas": datas_treino},
-        "validacao": {"ficheiro": Path(val_path).name, "datas": datas_val, "contratos": len(out)},
+        "validacao": {"ficheiro": Path(val_path).name, "datas": datas_val, "contratos": len(ids)},
         "exemplos_usados": n_usados,
         "exemplos_saidos": n_saidos,
         "etiquetas": int(len(clf.classes_)),
