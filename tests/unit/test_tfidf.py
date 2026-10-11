@@ -209,10 +209,11 @@ def test_log_prior_com_etiqueta_que_nao_esta_no_treino_da_erro():
         tfidf.log_prior(pd.Series(["33600000"] * 3), np.array(["33600000", "45233200"]), n_min=1)
 
 
-def test_tau_zero_e_igual_a_sem_correcao(modelo):
-    textos = pd.Series(["limpeza de escolas", "estrada", "papel"])
-    prior = np.zeros(len(modelo.classes_))
-    assert tfidf.suggest(modelo, textos, tau=0.0, prior=prior).tolist() == tfidf.suggest(modelo, textos).tolist()
+def test_tau_zero_ignora_as_frequencias_e_ordena_so_pela_pontuacao(modelo):
+    textos = ["limpeza de escolas", "estrada", "papel"]
+    prior = np.log(np.linspace(0.01, 0.9, len(modelo.classes_)))  # frequências bem diferentes
+    so_pontuacao = tfidf.top_k(modelo.decision_function(textos), np.asarray(modelo.classes_))
+    assert tfidf.suggest(modelo, textos, tau=0.0, prior=prior).tolist() == so_pontuacao
 
 
 def test_tau_tira_vantagem_a_etiqueta_frequente():
@@ -263,9 +264,13 @@ def test_prior_com_tamanho_errado_da_erro(modelo):
         tfidf.suggest(modelo, ["estrada"], tau=0.5, prior=np.zeros(2))
 
 
-def test_suggest_usa_o_tau_escolhido_por_defeito(modelo):
-    textos = ["limpeza de escolas", "estrada", "papel", "medicamentos"]
-    assert tfidf.suggest(modelo, textos).tolist() == tfidf.suggest(modelo, textos, tau=tfidf.TAU).tolist()
+def test_suggest_usa_o_tau_escolhido_por_defeito():
+    # 33600000 tem a maior pontuação mas é muito frequente; com τ = 0,25 sai das 5 sugestões:
+    # pontuação − 0,25·log(freq): 1,0+0,98 / 0,9+0,98 / 1,5+0,03 / 0,8+0,98 / 0,7+0,98 / 0,6+0,98
+    m = _Fixo([1.0, 0.9, 1.5, 0.8, 0.7, 0.6], CLASSES)
+    m.log_prior_ = np.log([0.02, 0.02, 0.9, 0.02, 0.02, 0.02])
+    assert tfidf.suggest(m, ["x"], tau=0.0)[0][0] == "33600000"  # pré-condição: sem correção ganha
+    assert tfidf.suggest(m, ["x"])[0] == ["11000000", "22100000", "44100000", "55100000", "66100000"]
 
 
 @pytest.mark.parametrize("taus", [(-0.25,), (0.0, -1.0)])

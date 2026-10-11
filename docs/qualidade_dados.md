@@ -343,7 +343,7 @@ Como ler:
 - **A regra em dois passos não mudou o resultado.** `alpha` = 0,000001 com τ = 0,5 tem mais 0,87 pontos no top-5 do código completo, mas menos 0,96 na classe (as duas diferenças contam). A guarda da classe elimina-a, também numa comparação direta (última célula do notebook).
 - **Comparação com o publicado:** o top-1 na divisão (81,0%) fica agora na zona dos 75% a 79% dos estudos citados no `readme.md`. Não é uma comparação exata: eles treinaram só com as divisões, com outros dados.
 - **Otimista, mas pouco:** o `alpha` e o τ foram escolhidos na validação, por isso estes números ficam um pouco acima do que o teste vai mostrar. O teste continua fechado.
-- **Custo:** os 4 treinos (cerca de 6 a 8 minutos cada, com 6 a 12 épocas) e a preparação dos pods somaram cerca de 40 minutos de pod, perto de 0,21 $.
+- **Custo:** os 4 treinos levaram 6 a 8 minutos a vetorizar e treinar, com 6 a 12 épocas (`treino.json`, célula 3 do notebook); com a sugestão, cada um levou 7 a 9 minutos (`metrics/e4_s4/pod_treino*.log`). Com a preparação dos pods, cerca de 40 minutos de pod, perto de 0,21 $ (`metrics/e4_s4/pod_info.json`, escrito à mão a partir das leituras da Runpod).
 - **Ainda não medido com o modelo novo:** as sugestões para as 3 descrições escritas à mão (secção 13) são do modelo do E4-H1. Os treinos deste spike não gravaram o modelo (`--sem-modelo`), por isso o comando de sugestões ainda não correu com o `alpha` e o τ novos.
 
 ## Decisões

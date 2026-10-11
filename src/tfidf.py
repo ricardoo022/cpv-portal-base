@@ -109,7 +109,8 @@ def suggest_many(model, textos, taus=(0.0,), prior=None, k=TOP_K, batch_size=200
         if prior is None:
             prior = getattr(model, "log_prior_", None)
         if prior is None:
-            raise ValueError("com τ diferente de 0 é preciso o `prior` (log_prior)")
+            raise ValueError("com τ diferente de 0 é preciso o `prior` (log_prior); um modelo gravado antes do "
+                             "E4-S4 não o tem: volte a treinar, ou use τ = 0 (`--tau 0`)")
         prior = np.asarray(prior, dtype=float)
         if prior.shape != classes.shape:
             raise ValueError("o `prior` não tem uma entrada por etiqueta do modelo")
