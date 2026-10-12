@@ -411,6 +411,11 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 As duas fazem-se numa só ida ao pod.
 
+**Duas notas da revisão do E4-H1 por um agente juiz** (12 de outubro de 2026):
+
+- **Porque a paragem automática pode chegar cedo demais.** No scikit-learn 1.7.2, cada classificador para quando a soma do erro sobre **todos** os exemplos de treino não desce mais do que 0,001 × o número de exemplos (cerca de 478 numa soma sobre ~478 mil exemplos; `_sgd_fast.pyx.tp`, linha 571). Numa etiqueta rara, quase todos os exemplos são "não" e acerta-se neles depressa, por isso a soma pode ficar abaixo desse limite logo nas primeiras épocas, mesmo que os poucos exemplos "sim" ainda estejam mal aprendidos. É uma suspeita, não uma medição: é o passo 3 que a confirma ou não.
+- **O `alpha` não muda só a regularização.** O treino usa a taxa de aprendizagem por defeito, `learning_rate="optimal"`, em que o tamanho de cada passo é 1 / (`alpha` × (t + t0)). Um `alpha` mais pequeno dá passos maiores e pode mudar quando a paragem automática chega. Por isso, no passo 1 a comparação de `alpha` mistura três efeitos (regularização, tamanho do passo e número de épocas), e o mesmo vale para o ganho de 43% para 77% no E4-S4, que a secção 14 atribui à regularização. A conclusão sobre o `alpha` escreve-se com este aviso; separar os efeitos só é possível com épocas fixas (passo 3).
+
 **Pergunta:** um `alpha` de 0,00000001, ou parar o treino noutra época, melhoram as sugestões na validação?
 
 **Depende de:** E4-S4 e E4-T3 (o E4-S5 mexe no treino, e os testes do E4-T3 confirmam que continua sem erros). Usa N = 10 e a janela desde 2022.
