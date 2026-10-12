@@ -395,7 +395,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Depende de:** E4-H1.
 
-**Feito** (12 de outubro de 2026), descrição completa em [`prs/pr_E4-T3.md`](prs/pr_E4-T3.md): dois testes unitários em `tests/unit/test_tfidf.py` e dois de integração em `tests/integration/test_tfidf_pipeline.py` (do `.xlsx` ao modelo gravado). Não guardam o `alpha` nem as épocas: com textos tão distintos, o modelo acerta com qualquer valor (o `alpha` já tem o seu teste; as épocas medem-se no E4-S5).
+**Feito** no PR #16 (12 de outubro de 2026), descrição completa em [`prs/pr_E4-T3.md`](prs/pr_E4-T3.md): dois testes unitários em `tests/unit/test_tfidf.py` e dois de integração em `tests/integration/test_tfidf_pipeline.py` (do `.xlsx` ao modelo gravado). Não guardam o `alpha` nem as épocas: com textos tão distintos, o modelo acerta com qualquer valor (o `alpha` já tem o seu teste; as épocas medem-se no E4-S5).
 
 **Critérios de aceitação:**
 
