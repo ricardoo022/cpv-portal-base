@@ -90,3 +90,22 @@ CONTRATOS_REGUA = [
 @pytest.fixture(scope="session")
 def contratos_regua():
     return CONTRATOS_REGUA
+
+
+# E4-T3: um tema por código, sem palavras de conteúdo em comum. 2 textos por código, menos o
+# 66512100, que tem 1: com N = 1 fica como etiqueta, com N = 2 sairia. Assim os testes de
+# sobreajuste distinguem N = 1 de N = 2, e cada texto de treino fica com o seu código.
+TEMAS_DECORAR = {
+    "90911200": ["Limpeza das escolas", "Lavagem dos pavilhões escolares"],
+    "33600000": ["Medicamentos hospitalares", "Antibióticos e analgésicos"],
+    "45233200": ["Pavimentação rodoviária", "Asfalto para estradas"],
+    "30192000": ["Papel e canetas", "Tinteiros para impressoras"],
+    "15800000": ["Refeições na cantina", "Almoços para idosos"],
+    "34110000": ["Automóveis ligeiros", "Viaturas elétricas"],
+    "66512100": ["Seguro de acidentes pessoais"],
+}
+
+
+@pytest.fixture(scope="session")
+def temas_decorar():
+    return TEMAS_DECORAR

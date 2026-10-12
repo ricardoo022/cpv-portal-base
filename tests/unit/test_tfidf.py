@@ -64,11 +64,18 @@ def test_codigo_raro_so_aparece_como_a_sua_classe(modelo):
     assert set(modelo.classes_) == set(lb.collapse_rare_codes(codigo, N).dropna())
 
 
-def test_as_sugestoes_sao_sempre_etiquetas_de_treino(modelo):
+@pytest.mark.parametrize("n_min", [N, 3])
+def test_as_sugestoes_sao_sempre_etiquetas_de_treino(modelo, n_min):
+    # E4-T3: pedindo tantas sugestões quantas as etiquetas do modelo, aparecem todas; o conjunto
+    # tem de ser o das etiquetas de treino (depois da regra dos códigos raros). O τ só muda a
+    # ordem, não o conjunto, por isso não entra aqui.
+    # Compara-se com as etiquetas calculadas aqui, não com o `classes_`, que viria do mesmo erro.
+    # Com N = 3 há exemplos que saem (o grupo 909): também não podem aparecer nas sugestões.
     texto, codigo = treino()
-    sug = tfidf.suggest(modelo, pd.Series(["xyz", "limpeza", "refeições e automóveis"]))
-    permitidas = set(lb.collapse_rare_codes(codigo, N).dropna())
-    assert all(set(s) <= permitidas for s in sug)
+    m = modelo if n_min == N else tfidf.train(texto, codigo, n_min=n_min, min_df=1)
+    permitidas = set(lb.collapse_rare_codes(codigo, n_min).dropna())
+    sug = tfidf.suggest(m, pd.concat([texto, pd.Series(["xyz", ""])]), k=len(m.classes_))
+    assert all(set(s) == permitidas for s in sug)
 
 
 def test_exemplos_que_saem_nao_entram_no_treino():
@@ -277,3 +284,21 @@ def test_suggest_usa_o_tau_escolhido_por_defeito():
 def test_tau_negativo_da_erro(modelo, taus):
     with pytest.raises(ValueError, match=">= 0"):
         tfidf.suggest_many(modelo, ["estrada"], taus)
+
+
+# --- E4-T3: o modelo decora um treino minúsculo ("overfit a tiny dataset") ---
+
+def test_treino_minusculo_sem_codigos_raros_acerta_todos_os_textos_no_top_1(temas_decorar):
+    # Com regularização fraca e N = 1, o modelo tem de acertar no top-1 de cada texto com que
+    # treinou. Se não acertar, há um erro no treino (etiquetas trocadas, exemplos perdidos,
+    # colunas fora de ordem...), mesmo que o treino corra sem dar erro.
+    texto, codigo = treino(temas_decorar)
+    # pré-condições: N = 1 não muda nada; N = 2 mudava (o tema com 1 texto saía)
+    assert lb.collapse_rare_codes(codigo, n_min=1).equals(codigo)
+    assert lb.collapse_rare_codes(codigo, n_min=2).isna().any()
+    m = tfidf.train(texto, codigo, n_min=1, min_df=1, alpha=tfidf.ALPHA)
+    # τ = 0: ordem só pela pontuação do modelo. Com τ > 0 a correção das etiquetas frequentes
+    # mexia na ordem, e o teste deixava de medir só o que o classificador aprendeu.
+    top1 = tfidf.suggest(m, texto, tau=0.0).str[0]
+    errados = top1[top1 != codigo]
+    assert errados.empty, f"top-1 errado em {len(errados)} de {len(codigo)} textos: {errados.to_dict()}"
