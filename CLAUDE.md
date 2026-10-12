@@ -16,17 +16,20 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # Python 3.
 .venv/bin/python scripts/download_data.py [ANOS...]    # .xlsx from dados.gov.pt -> data/raw/
 .venv/bin/python src/convert_to_parquet.py [ANOS...]   # .xlsx -> data/processed/raw/*.parquet (~1 min/file)
 .venv/bin/python src/prepare.py                        # -> data/processed/{treino,validacao,teste}.parquet (~1 min)
-.venv/bin/pytest                                       # all tests (~1 s)
+.venv/bin/pytest                                       # all tests (~40 s with data/processed/, less without)
+make test-unit | test-integracao | test-preparacao | test-avaliacao | test-tfidf   # subsets
 .venv/bin/pytest tests/unit/test_prepare.py::test_build_train_empate_fica_o_menor_codigo   # one test
 .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/01_exploracao.ipynb  # run from repo root
 ```
+
+`pyproject.toml` puts `src/` on the pytest path, so tests `import prepare` etc. directly. Tests marked `data` (`tests/integration/test_*_dados_reais.py`) read the real `data/processed/` files and skip when they are absent (as in CI); they never read `teste.parquet`.
 
 Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the working directory (nbconvert and the editor do this).
 
 ## Git and CI
 
 - Work on a branch and open a PR to `main` with `gh pr create`; don't commit straight to `main`. Commit messages and PR descriptions are in Portuguese.
-- `.github/workflows/testes.yml` runs the whole `pytest` suite on every push (any branch) and every PR, in about 40 s. Tests use only hand-made data, so CI never needs `data/`.
+- `.github/workflows/testes.yml` runs the whole `pytest` suite on every push (any branch) and every PR, in about 40 s. CI has no `data/`, so only the hand-made-data tests run there. `claude.yml` and `claude-code-review.yml` are the Claude GitHub App workflows (review on each PR).
 - The repo is private on the free plan, so `main` has no branch protection: wait until the CI runs for the PR's head commit are green before `gh pr merge --merge --delete-branch`.
 - The installed `gh` is 2.4.0: `gh run list` has no `--branch` flag and no `workflowName` JSON field. Filter runs with `--json headSha,status,conclusion` against `git rev-parse HEAD`.
 - GitHub's "Dependency Graph" runs on `main` are automatic (it reads `requirements.txt`), not ours.
@@ -58,6 +61,6 @@ Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the 
 - `src/` holds only pipeline code (code that transforms data, trains or evaluates). Exploration, counts and one-off analysis go in `notebooks/`; rules that must always hold become checks in the pipeline and tests.
 - Every number written in `docs/*.md` must come from a notebook cell or pipeline output, not from ad-hoc terminal commands. Sections 1–6 of `docs/qualidade_dados.md` were measured on the 2025/2026 files only; sections 7–10 (`notebooks/01_exploracao.ipynb`) use the final train (Jan 2022–Sep 2025, all files), and section 10 reads `data/processed/treino.parquet`, so `prepare.py` must run before that notebook. Its train-contract count and "outside the most common code" count must match the `prepare.py` funnel (section 11).
 - Never look at the test set (contracts published Nov–Dec 2025) during exploration or decisions; use the validation set (Oct 2025) to compare options. 2026 data is held in reserve.
-- `docs/workflow.md` (CRISP-DM phases with checkboxes) is the plan and status; `docs/backlog.md` holds the epics, user stories, technical tasks and spikes with acceptance criteria (done epics and the next one, written with the `writing-epics-and-stories` skill); `docs/qualidade_dados.md` holds measurements and numbered decisions (the E4 epic's own decisions are numbered separately at the end of the E4 section of `docs/backlog.md`); `docs/maquina_runpod.md` is the rented-machine guide; `metrics/` holds committed result files that numbers in the docs cite; `docs/dados.md` describes the 39 columns and whether each exists when the CPV is chosen (columns known only after award are leakage); `docs/prs/pr_<ID>.md` holds each PR description (committed, written with the `writing-pull-requests` skill).
+- `docs/workflow.md` (CRISP-DM phases with checkboxes) is the plan and status; `docs/backlog.md` holds the epics, user stories, technical tasks and spikes with acceptance criteria (done epics and the next one, written with the `writing-epics-and-stories` skill); `docs/qualidade_dados.md` holds measurements and numbered decisions (the E4 epic's own decisions are numbered separately at the end of the E4 section of `docs/backlog.md`); `docs/maquina_runpod.md` is the rented-machine guide; `docs/como_funciona_tfidf.md` walks through the TF-IDF model with a toy example; each folder has a `readme.md` describing its files; `metrics/` holds committed result files that numbers in the docs cite; `docs/dados.md` describes the 39 columns and whether each exists when the CPV is chosen (columns known only after award are leakage); `docs/prs/pr_<ID>.md` holds each PR description (committed, written with the `writing-pull-requests` skill).
 - When changing a rule in `prepare.py`, update the hand-made contracts in `tests/integration/test_pipeline.py`, which builds `.xlsx` files and runs the full pipeline end to end. New tests should be checked by injecting the bug they target (mutation testing).
 - The user often has notebooks open in Cursor, which can save a stale version over a regenerated one. Check the file on disk (cell count, mtime) before and after rewriting a notebook, and don't commit a notebook that changed unexpectedly.

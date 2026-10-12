@@ -218,7 +218,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 **Aviso:** se o TF-IDF não bater a régua (E4-H1), para-se aqui. Isso quer dizer que há um erro nos dados, no treino ou na avaliação, e os itens seguintes esperam até se perceber qual.
 
-**Tamanho:** a soma das estimativas é de 14 dias de trabalho, no máximo (2 itens M de 3 dias, 4 itens P de 1 dia e 4 spikes de 1 dia). Não há prazo fixo. Se for preciso cortar, o E4-S2 (janela de treino) é o primeiro a sair, e fica a decisão 1 como está.
+**Tamanho:** a soma das estimativas é de 16 dias de trabalho, no máximo (2 itens M de 3 dias, 4 itens P de 1 dia e 6 spikes de 1 dia). Não há prazo fixo. Se for preciso cortar, o E4-S2 (janela de treino) é o primeiro a sair, e fica a decisão 1 como está.
 
 ### E4-T1 · Tarefa: avaliação comum a todos os modelos (M, feito)
 
@@ -245,7 +245,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
   - **F1 hierárquico** = 2 · precisão · recall / (precisão + recall), em micro e em macro. É o resumo: castiga tanto a sugestão vaga (o avô) como a demasiado específica.
   - Não se usam para decidir porque a precisão sozinha dá nota máxima a uma sugestão vaga (o avô acima tem precisão 1), e o objetivo do projeto é o código exato.
 
-**Regra de comparação entre duas opções** (decidida a 10 de outubro de 2026, usada nos spikes E4-S1, E4-S2 e E4-S3):
+**Regra de comparação entre duas opções** (decidida a 10 de outubro de 2026, usada nos spikes E4-S1, E4-S2, E4-S3, E4-S4 e E4-S5):
 
 - **Quando uma diferença conta:** usa-se o bootstrap emparelhado. Tira-se 1 000 vezes, à sorte e com repetição, uma amostra dos contratos de validação, sempre a mesma amostra para as duas opções, e calcula-se a diferença em cada uma. A diferença só conta se for do mesmo lado em pelo menos 95% das amostras. Assim a margem vem dos dados, não de um número inventado.
 - **Métrica principal:** o top-5 no código completo. É o objetivo: sugerir o código exato.
@@ -332,6 +332,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
    - **Total:** 1,6 a 2,6 h de pod, ou seja, cerca de 0,50 a 0,85 $.
    - **Com margem:** dobrando o tempo, para avaliar na validação, gravar modelos e esperas, fica abaixo de 2 $.
    - A janela desde 2019 (E4-S2) tem mais dados; a sua memória e o seu tempo medem-se lá.
+   - Esta conta é de antes do E4-S4 (que custou cerca de 0,21 $) e do E4-S5 (estimativa no próprio item).
 
 ### E4-H1 · História: 5 sugestões de CPV a partir da descrição (M, feito)
 
@@ -401,11 +402,43 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [ ] Os testes correm no CI em menos de 1 minuto, sem dados reais.
 - [ ] Cada teste falha quando se estraga de propósito o que ele guarda.
 
+### E4-S5 · Spike: épocas e um `alpha` mais pequeno no TF-IDF (timebox: 1 dia)
+
+**Porque é precisa:** o TF-IDF vai ser a régua do BERTimbau e do Albertina. Ficaram duas coisas por medir que podem mudar o seu resultado:
+
+- **as épocas** (passagens completas pelo treino): hoje o treino para sozinho, pela regra por defeito do scikit-learn, quando o erro **no treino** não baixa pelo menos 0,001 em 5 épocas seguidas. Há um classificador por etiqueta e cada um para quando a regra lho diz; o mais lento parou ao fim de 6 épocas no E4-H1 e de 12 com o `alpha` do E4-S4 (`metrics/e4_s4/alpha_1e-7/treino.json` guarda só esse máximo). Nunca se mediu se outro número de épocas dá melhor resultado na **validação**;
+- **o `alpha`** = 0,00000001: o 0,0000001 ganhou no E4-S4 e é o extremo da lista testada (limitação da secção 14 do `qualidade_dados.md`).
+
+As duas fazem-se numa só ida ao pod.
+
+**Pergunta:** um `alpha` de 0,00000001, ou parar o treino noutra época, melhoram as sugestões na validação?
+
+**Depende de:** E4-S4 e E4-T3 (o E4-S5 mexe no treino, e os testes do E4-T3 confirmam que continua sem erros). Usa N = 10 e a janela desde 2022.
+
+**Como** (com o treino completo, no pod), em três passos, pela ordem:
+
+1. **`alpha`**, com τ = 0: o 0,00000001 contra o 0,0000001, que é a opção em vigor. Se o 0,00000001 ganhar, adota-se, e escreve-se que continua a ser o extremo da lista; não se acrescentam valores mais pequenos neste spike.
+2. **τ**, só se o `alpha` mudar: volta a escolher-se o τ com o `alpha` novo, com a lista e a regra do E4-S4 (0, 0,25, 0,5 e 1, a começar em τ = 0).
+3. **Épocas**, com o `alpha` e o τ em vigor. A opção em vigor é a regra por defeito (cada etiqueta para sozinha). Os candidatos são um número fixo de épocas, igual para todas as etiquetas e sem paragem automática, desta lista curta, escrita antes de correr: 3, 6, 12, 18 e 24 épocas. Cada candidato compara-se com a opção em vigor, por esta ordem.
+
+**Regra de escolha, escrita antes de correr:** a regra de comparação do E4-T1. Em cada passo, o candidato só substitui a opção em vigor se ganhar; em empate, fica a que já estava. Como o `alpha`, o τ e as épocas se escolhem todos na validação, os números do vencedor ficam um pouco otimistas; o teste continua fechado e mede isso no fim.
+
+**Também se mostra** (sem entrar na decisão): o F1 macro e, se for barato de obter, um gráfico do top-5 na validação em todas as épocas de 1 a 24. Só a lista curta entra na decisão: com 24 comparações, alguma época ganharia só por sorte.
+
+**Resultado:**
+
+- uma tabela com as opções de cada passo e o gráfico das épocas;
+- confirmação de que o treino com a regra por defeito, repetido com o mesmo código, dá o mesmo top-5 que o E4-S4 (76,9% no código completo e 82,9% na classe); se não der, a diferença fica explicada antes de se tirar qualquer conclusão;
+- o `alpha`, o τ e as épocas escolhidos, escritos como decisão do E4. Se algum mudar, passa a ser o valor por defeito do treino do TF-IDF, e os resultados do E4-H1 voltam a calcular-se;
+- **se ganhar um número fixo de épocas**, ele só vale para este treino (N = 10, desde 2022): com outro N ou outra janela há mais ou menos dados e etiquetas, e um número fixo não se adapta, ao contrário da regra por defeito. Por isso o E4-S1 e o E4-S2 treinam todas as opções com a regra por defeito, para nenhuma ficar favorecida, e as épocas voltam a medir-se no fim, com a mesma lista, para o N e a janela escolhidos. O `alpha` e o τ seguem a mesma lógica do E4-S4: usam-se nos spikes seguintes, sabendo que foram afinados com N = 10;
+- **se o timebox de 1 dia acabar a meio**, o passo 1 (`alpha`) e o 2 (τ) têm prioridade; as épocas ficam escritas como por medir;
+- o custo em tempo de pod e em dólares (estimativa antes de correr: menos de 1 hora a 0,32 $/h, não medida).
+
 ### E4-S1 · Spike: que N usar nos códigos raros? (timebox: 1 dia)
 
 **Pergunta:** com N = 5, 10 ou 20 (decisão 9), qual dá melhor resultado na validação?
 
-**Depende de:** E4-H1.
+**Depende de:** E4-H1 e E4-S5 (usa o `alpha` e o τ escolhidos, e a regra por defeito das épocas).
 
 **Regra de escolha:** a regra de comparação do E4-T1, escrita antes de se verem os resultados, para os resultados não a influenciarem. A opção por defeito, em caso de empate, é N = 10.
 
@@ -489,13 +522,15 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 
 ```
 E4-T1 ──> E4-T2 ──┐
-E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T3
-                               ├──> E4-T5
-                               └──> E4-S1 ──┬──> E4-S3 ──> (atualizar E4-T2, E4-H1 e E4-T5)
-E4-T4 ──────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
+E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T3 ────────┐
+                               ├──> E4-T5        │
+                               └──> E4-S4 ───────┴──> E4-S5 ──> E4-S1 ──┬──> E4-S3 ──> (atualizar E4-T2, E4-H1 e E4-T5)
+E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1 e o E4-S4 estão feitos. Seguem-se o E4-T3, o E4-T5 e o E4-S1 (com o `alpha` e o τ da decisão 6); o E4-T4 não depende de nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1 e o E4-S4 estão feitos. Segue-se o E4-T3, depois o E4-S5 e o E4-S1 (com o `alpha` e o τ do E4-S5); o E4-T5 e o E4-T4 não dependem de mais nada.
+- O E4-S1 e o E4-S2 treinam com a regra por defeito das épocas, mesmo que o E4-S5 escolha um número fixo (ver o E4-S5).
+- O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
 ### Decisões tomadas para o E4 (10 de outubro de 2026)
