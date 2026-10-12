@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1 e E4-S4 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4 e E4-T3 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -389,18 +389,20 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - **Custo:** cerca de 40 minutos de pod, perto de 0,21 $ (um pod calhou outra vez na máquina de EU-SE-1 cuja porta SSH não respondia, e foi apagado sem uso; ver `metrics/e4_s4/pod_info.json`).
 - **Por fazer:** o comando de sugestões ainda não correu com o modelo novo, porque os treinos do spike não gravaram o modelo. Faz-se no próximo treino no pod.
 
-### E4-T3 · Tarefa: testes ao treino que correm no CI (P)
+### E4-T3 · Tarefa: testes ao treino que correm no CI (P, feito)
 
 **Porque é precisa:** um treino com um erro pode correr sem dar erro nenhum e só produzir um modelo mau. Estes testes apanham isso antes de se gastar tempo com dados reais.
 
 **Depende de:** E4-H1.
 
+**Feito** (12 de outubro de 2026), descrição completa em [`prs/pr_E4-T3.md`](prs/pr_E4-T3.md): dois testes unitários em `tests/unit/test_tfidf.py` e dois de integração em `tests/integration/test_tfidf_pipeline.py` (do `.xlsx` ao modelo gravado). Não guardam o `alpha` nem as épocas: com textos tão distintos, o modelo acerta com qualquer valor (o `alpha` já tem o seu teste; as épocas medem-se no E4-S5).
+
 **Critérios de aceitação:**
 
-- [ ] Com um treino minúsculo inventado (poucos textos bem distintos), sem a regra dos códigos raros (N = 1) e com regularização fraca, o modelo acerta em todos os textos com que treinou, no top-1. Se não acertar, há um erro no treino.
-- [ ] As sugestões só contêm etiquetas que existem no treino.
-- [ ] Os testes correm no CI em menos de 1 minuto, sem dados reais.
-- [ ] Cada teste falha quando se estraga de propósito o que ele guarda.
+- [x] Com um treino minúsculo inventado (poucos textos bem distintos), sem a regra dos códigos raros (N = 1) e com regularização fraca, o modelo acerta em todos os textos com que treinou, no top-1. Se não acertar, há um erro no treino.
+- [x] As sugestões só contêm etiquetas que existem no treino.
+- [x] Os testes correm no CI em menos de 1 minuto, sem dados reais.
+- [x] Cada teste falha quando se estraga de propósito o que ele guarda.
 
 ### E4-S5 · Spike: épocas e um `alpha` mais pequeno no TF-IDF (timebox: 1 dia)
 
@@ -533,7 +535,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1 e o E4-S4 estão feitos. Segue-se o E4-T3, depois o E4-S5 e o E4-S1 (com o `alpha` e o τ do E4-S5); o E4-T5 e o E4-T4 não dependem de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4 e o E4-T3 estão feitos. Segue-se o E4-S5, depois o E4-S1 (com o `alpha` e o τ do E4-S5); o E4-T5 e o E4-T4 não dependem de mais nada.
 - O E4-S1 e o E4-S2 treinam com a regra por defeito das épocas, mesmo que o E4-S5 escolha um número fixo (ver o E4-S5).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.

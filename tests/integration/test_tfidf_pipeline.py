@@ -298,3 +298,47 @@ def test_comando_de_sugestoes_aceita_outro_tau(treinado):
 def test_treino_por_defeito_grava_numa_pasta_propria_e_nao_no_registo_do_e4_h1():
     # metrics/e4_h1/ e metrics/e4_s4/ são o registo fixo de cada item; um treino novo não os apaga
     assert tt.SAIDA == Path(tt.__file__).parents[1] / "metrics" / "tfidf"
+
+
+# --- E4-T3: testes ao treino, do .xlsx ao modelo gravado ---
+
+@pytest.mark.parametrize("n_min", [N_MIN, 10])
+def test_sugestoes_gravadas_sao_as_etiquetas_do_treino_gravado(treinado, tmp_path, n_min):
+    # As etiquetas contam-se aqui a partir do treino.parquet que a preparação escreveu, não do
+    # `classes_` do modelo, que viria do mesmo erro. Com N = 10 os dois códigos da classe 3314
+    # sobem juntos para 33140000 (tests/conftest.py): apanha um treino com os códigos originais.
+    treino_df = treinado["treino_df"]
+    permitidas = set(collapse_rare_codes(treino_df["codigo"], n_min).dropna())
+    if n_min == N_MIN:
+        sugestoes = treinado["sugestoes"]
+    else:
+        assert "33140000" in permitidas and "33141100" not in permitidas  # pré-condição
+        tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=n_min, min_df=1)
+        sugestoes = pd.read_parquet(tmp_path / tt.SUGESTOES)
+    for s in sugestoes["sugestoes"]:
+        assert set(s) <= permitidas
+
+
+def test_treino_minusculo_pelo_pipeline_acerta_todos_os_textos_no_top_1(tmp_path, run_pipeline, temas_decorar):
+    # Do .xlsx ao modelo gravado, com N = 1 (sem a regra dos códigos raros) e a regularização
+    # fraca do modelo: o modelo gravado tem de acertar no top-1 de cada texto do treino.parquet.
+    # Se não acertar, há um erro no caminho (textos e etiquetas desalinhados, exemplos perdidos,
+    # N ignorado, coluna errada, modelo gravado diferente do treinado), mesmo sem dar erro.
+    # Cada contrato tem um 2.º CPV: a etiqueta é o 1.º (coluna `codigo`), nunca a lista `codigos`.
+    treino = [(2024, f"d-{c}-{i}", datetime(2024, 3, 1), t, None, None, f"{c}-0 - Tema\n15800000-0 - Outro")
+              for c, textos in temas_decorar.items() for i, t in enumerate(textos)]
+    outros = [(2025, "v-1", datetime(2025, 10, 2), "Papel e canetas", None, None, "30192000-0 - Papel"),
+              (2025, "t-1", datetime(2025, 11, 5), "Papel novo", None, None, "30192000-0 - Papel")]
+    run_pipeline(tmp_path, treino + outros)
+    out = tmp_path / "out"
+    modelo = tmp_path / "models" / "tfidf.joblib"
+    tt.run(out / "treino.parquet", out / "validacao.parquet", tmp_path / "metrics", model_path=modelo,
+           n_min=1, min_df=1)
+    treino_df = pd.read_parquet(out / "treino.parquet")
+    # pré-condições: a preparação não juntou nem tirou textos, e os contratos têm 2 códigos
+    assert len(treino_df) == len(treino)
+    assert (treino_df["codigos"] != treino_df["codigo"]).all()
+    # τ = 0: ordem só pela pontuação; com τ > 0 a correção das etiquetas frequentes mexia na ordem
+    top1 = tt.tfidf.suggest(joblib.load(modelo), treino_df["texto"], tau=0.0).str[0]
+    errados = top1[top1 != treino_df["codigo"]]
+    assert errados.empty, f"top-1 errado em {len(errados)} de {len(treino_df)} textos: {errados.to_dict()}"
