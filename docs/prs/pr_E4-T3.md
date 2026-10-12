@@ -2,7 +2,7 @@
 
 ## Em poucas palavras
 
-Este PR acrescenta testes que apanham um treino com erro, mesmo quando o treino corre sem dar erro nenhum. A ideia é dar ao modelo um treino minúsculo e exigir que o decore: com 13 frases sem palavras em comum, se o modelo não acerta o código de cada frase, há um erro no caminho. Outro teste confirma que o modelo só sugere códigos que existem no treino. Os testes correm no GitHub em menos de 1 s, com dados inventados, por isso cada PR fica protegido sem precisar dos dados reais nem do pod. Não muda nenhum código do modelo: só testes e documentação.
+Este PR acrescenta testes que apanham um treino com erro, mesmo quando o treino corre sem dar erro nenhum. A ideia é dar ao modelo um treino minúsculo e exigir que o decore: com 13 frases sem palavras em comum, se o modelo não acerta o código de cada frase, há um erro no caminho. Outro teste confirma que o modelo só sugere códigos que existem no treino. Os testes novos correm em cerca de 1 s no portátil, com dados inventados, e a suíte inteira demora 8 s no CI, por isso cada PR fica protegido sem precisar dos dados reais nem do pod. Não muda nenhum código do modelo: só testes e documentação.
 
 | Erro injetado de propósito no código | Corre sem dar erro? | Os testes novos apanham? |
 |---|---|---|
@@ -98,7 +98,7 @@ assert all(set(s) == permitidas for s in sug)
 |---|---|---|
 | Com um treino minúsculo inventado (poucos textos bem distintos), sem a regra dos códigos raros (N = 1) e com regularização fraca, o modelo acerta em todos os textos com que treinou, no top-1. Se não acertar, há um erro no treino. | ✅ | `.venv/bin/pytest -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py -k "minusculo"` → passa; os dois testes de sobreajuste, unitário e de integração |
 | As sugestões só contêm etiquetas que existem no treino. | ✅ | `-k "sempre_etiquetas or gravadas"` → 4 casos passam (N = 2, 3 no unitário; N = 6, 10 na integração) |
-| Os testes correm no CI em menos de 1 minuto, sem dados reais. | ✅ | `--durations=0` → os 6 casos novos somam cerca de 0,7 s; nenhum lê `data/`. No CI, o passo dos testes demorou ~10 s nos últimos commits do `main`. CI deste ramo: por correr (ainda não há push) |
+| Os testes correm no CI em menos de 1 minuto, sem dados reais. | ✅ | `--durations=0` → os 6 casos novos somam cerca de 0,7 s; nenhum lê `data/`. CI do commit `3c03f80`: passo "Correr os testes" (a suíte inteira) em 8 s, success |
 | Cada teste falha quando se estraga de propósito o que ele guarda. | ✅ | tabela "Os testes novos falham com o código estragado" abaixo |
 
 Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 4 critérios do E4-T3.
@@ -111,7 +111,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 4 critérios do E4-
 
 - Suíte inteira: `.venv/bin/pytest -q` → 248 passed in 32.63s. Antes do trabalho eram 243: o reescrito `test_as_sugestoes_sao_sempre_etiquetas_de_treino` passou de 1 caso para 2, e entraram 1 teste unitário e 3 casos de integração novos (243 − 1 + 2 + 1 + 3 = 248). O número 243 é deduzido, não foi medido no `main`.
 - `src/` não mudou, por isso o modelo, o treino e as sugestões são os mesmos.
-- CI: por correr (ainda não há push).
+- CI do commit `3c03f80`: success (passo dos testes em 8 s).
 
 ### Os testes novos falham com o código estragado
 
@@ -139,6 +139,8 @@ Duas revisões por agentes "juiz", sem o contexto da conversa, sobre as mudança
 - 2.ª revisão (13 estragos tentados): o teste de sobreajuste não apanhava a coluna errada nem o N ignorado, e o teste das etiquetas não apanhava o treino com os códigos originais. Corrigido com o 2.º código CPV, o tema de uma só frase e o caso N = 10.
 - Não corrigido, e porquê: os testes não guardam o `alpha` nem as épocas (ver "Ficou igual de propósito").
 
-`/requesting-code-review` sobre `main..HEAD`: **por fazer**. O revisor independente lê o diff com git, e falta autorização para o commit e para o revisor correr git.
+`/requesting-code-review` sobre `5600dee..3c03f80`: **pronto para merge**, sem problemas críticos nem importantes. Confirmou os 4 critérios e estragou o código em 8 sítios; só o `alpha = 1,0` fixo passa, que é a limitação já declarada.
+- Corrigido: a descrição dizia que o CI estava por correr e que os testes demoravam "menos de 1 s no GitHub" sem medição; agora tem o tempo do CI.
+- Não corrigido, e porquê: o `alpha=tfidf.ALPHA` explícito no teste unitário fica, para o teste dizer à vista que usa a regularização fraca do modelo; o link para o ficheiro do scikit-learn nas notas do E4-S5 fica de fora, porque não é do E4-T3.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
