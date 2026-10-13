@@ -189,6 +189,15 @@ def test_fase_grelha_usa_a_regra_por_defeito_quando_as_epocas_sao_null():
     assert "--regra-por-defeito" in args and "--epocas" not in args
 
 
+def test_fase_grelha_tambem_passa_treino_e_validacao():
+    exp = ce.ler(E4_S1)
+    for _, args, _ in ce.comandos(exp, "grelha", treino="t.parquet", validacao="v.parquet"):
+        assert args[args.index("--treino") + 1] == "t.parquet"
+        assert args[args.index("--validacao") + 1] == "v.parquet"
+    for _, args, _ in ce.comandos(exp, "grelha"):
+        assert "--treino" not in args and "--validacao" not in args
+
+
 def test_uma_grelha_so_corre_a_fase_grelha():
     with pytest.raises(ValueError, match="grelha"):
         ce.comandos(ce.ler(E4_S1), "alpha")

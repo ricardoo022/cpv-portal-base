@@ -410,7 +410,7 @@ De [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb), que 
 
 **Repetível:** o treino com N = 10 e 24 épocas (o modelo do E4-S5) deu sugestões 100% iguais às do E4-S5, com τ = 0 e τ = 0,25 (célula 7 do notebook). Os números da secção 15 confirmam-se.
 
-Resultados na validação (outubro de 2025), todos os contratos. As 54 combinações completas estão no notebook; as primeiras:
+Resultados na validação (outubro de 2025), todos os contratos. As 54 combinações completas estão no notebook; as primeiras (a régua usa N = 10, e as suas 5 etiquetas são as mesmas com N = 5 e 20, secção 12):
 
 | N | Épocas | τ | Top-5 código | Top-5 classe | Top-5 código (novo) | F1 macro código |
 |---|---|---|---|---|---|---|
@@ -429,7 +429,7 @@ Como ler:
 - **O N = 5 fica perto, mas perde.** Com 24 épocas e τ = 0,25, o N = 5 faz 78,05% no código completo (contra 78,35%), com melhor F1 macro (0,2647 contra 0,2568), porque mantém mais códigos detalhados. A regra decide pelo código completo, e a diferença conta. O N = 20 é o pior dos três (melhor caso: 77,49%).
 - **Limitação (viés de seleção):** com 54 combinações, alguma ganharia só por sorte, por isso o número do vencedor fica **otimista**; confirma-se no teste, na fase 5. Aqui o efeito é pequeno, porque o vencedor coincide com a opção que já estava em vigor — não foi escolhido à custa de muitas comparações.
 - **A interação N × épocas existe, mas é pequena.** Com N = 10 o melhor é 24 épocas e com N = 5 também; a diferença entre os três N é de décimas de ponto. A suspeita de que o N mudaria muito as épocas ótimas não se confirmou dentro da lista testada.
-- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 78 minutos (15:40–16:54 UTC), com 4 treinos ao mesmo tempo: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`, escrito à mão a partir das leituras da Runpod). O N = 5 é o mais pesado (3 848 etiquetas): o treino de 24 épocas levou 2 474 s, contra 1 873 s a N = 10 e 1 287 s a N = 20 (`treino.json`). O pico de memória do pod inteiro foi 29,4 GB de 128.
+- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 80 minutos (15:36–16:56 UTC; os 18 treinos correram das 15:41 às 16:54), com 4 treinos ao mesmo tempo: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`, escrito à mão a partir das leituras da Runpod). O N = 5 é o mais pesado (3 848 etiquetas): o treino de 24 épocas levou 2 474 s, contra 1 873 s a N = 10 e 1 287 s a N = 20 (`treino.json`). O pico de memória do pod inteiro foi 29,4 GB de 128.
 - **Otimista, mas pouco:** o N, as épocas e o τ foram escolhidos na validação; o teste continua fechado.
 
 ## Decisões

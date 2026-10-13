@@ -448,7 +448,7 @@ As duas fazem-se numa só ida ao pod.
 - **Passo 1:** o `alpha` 0,00000001 perde (−7,5 pontos no top-5 do código completo, −6,4 na classe); fica o 0,0000001, que deixa de estar no extremo da lista. **Passo 2** não se fez (o `alpha` não mudou); o τ fica 0,25.
 - **Passo 3:** ganharam **24 épocas fixas** (regra por defeito → 12 → 24). Na validação, top-5 de 78,3% no código completo e 84,1% na classe (E4-S4: 76,9% e 82,9%); 75,1% e 82,2% no texto novo. Continua a bater a régua nos quatro casos.
 - **Duas limitações escritas na secção 15:** 24 é o extremo da lista (não se acrescentaram valores, como a regra dizia); e o bootstrap não mede a variação entre treinos com outra semente, por isso parte do ganho de 18 para 24 épocas pode ser sorte do treino.
-- **O valor por defeito do treino muda:** `EPOCAS = 24` em `src/tfidf.py`, ao lado do `ALPHA` e do `TAU`. Para treinar com a regra por defeito do scikit-learn, como o E4-S1 e o E4-S2 vão fazer, usa-se `--regra-por-defeito` (ou `epocas=None`).
+- **O valor por defeito do treino muda:** `EPOCAS = 24` em `src/tfidf.py`, ao lado do `ALPHA` e do `TAU`. Para treinar com a regra por defeito do scikit-learn, como o E4-S2 vai fazer, usa-se `--regra-por-defeito` (ou `epocas=None`).
 - **A curva época a época** (aproximação, só para ver) fica quase plana da época 15 à 24.
 - **Custo:** um pod `cpu3g` de 32 processadores, 4 treinos ao mesmo tempo, cerca de 44 minutos a 1,28 $/h: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`).
 
@@ -476,14 +476,14 @@ As duas fazem-se numa só ida ao pod.
 - se o N mudar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se com o novo N;
 - o custo em tempo de pod e em dólares (estimativa: 18 treinos; mede-se com o primeiro).
 
-**Feito** no PR #18 (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S1.md`](prs/pr_E4-S1.md). As 54 combinações estão na secção 16 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb); os ficheiros dos treinos no pod estão em `metrics/e4_s1/`.
+**Feito** no PR #18 (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S1.md`](prs/pr_E4-S1.md). As 54 combinações estão no [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb), e as primeiras na secção 16 do [`qualidade_dados.md`](qualidade_dados.md); os ficheiros dos treinos no pod estão em `metrics/e4_s1/`.
 
 - **Repetível:** o treino com N = 10 e 24 épocas deu sugestões 100% iguais às do E4-S5, com τ = 0 e τ = 0,25.
 - **Vencedor:** a combinação do E4-S5 (N = 10, 24 épocas, τ = 0,25), com 78,35% no top-5 do código completo e 84,11% na classe. Como já era a opção em vigor, a decisão é mantê-la: **N = 10** (decisão 9), com as 24 épocas e o τ = 0,25 (decisão 7). Os concorrentes mais próximos (N = 5 com 24 épocas, N = 10 com τ = 0) perdem com uma diferença que conta.
 - **A grelha confirmou o E4-S5**, em vez de o substituir: nenhuma das outras 53 combinações bate a que já estava em vigor.
 - **Limitação escrita na secção 16:** com 54 combinações, o vencedor fica otimista (viés de seleção); confirma-se no teste, na fase 5.
 - **Ferramenta:** o `scripts/correr_experiencia.py` ganhou o modo `grelha` (`modo: grelha` no YAML): o produto cartesiano dos eixos, um treino por (N, épocas) e um ficheiro de sugestões por τ.
-- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, ligado cerca de 78 minutos: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`).
+- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, ligado cerca de 80 minutos (15:36–16:56 UTC; os 18 treinos correram das 15:41 às 16:54): cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`).
 
 ### E4-S3 · Spike: a entidade compradora ajuda o modelo? (timebox: 1 dia)
 
