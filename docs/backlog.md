@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3 e E4-S5 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5 e E4-S1 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -437,7 +437,7 @@ As duas fazem-se numa só ida ao pod.
 - uma tabela com as opções de cada passo e o gráfico das épocas;
 - confirmação de que o treino com a regra por defeito, repetido com o mesmo código, dá o mesmo top-5 que o E4-S4 (76,9% no código completo e 82,9% na classe); se não der, a diferença fica explicada antes de se tirar qualquer conclusão;
 - o `alpha`, o τ e as épocas escolhidos, escritos como decisão do E4. Se algum mudar, passa a ser o valor por defeito do treino do TF-IDF, e os resultados do E4-H1 voltam a calcular-se;
-- **se ganhar um número fixo de épocas**, ele só vale para este treino (N = 10, desde 2022): com outro N ou outra janela há mais ou menos dados e etiquetas, e um número fixo não se adapta, ao contrário da regra por defeito. Por isso o E4-S1 e o E4-S2 treinam todas as opções com a regra por defeito, para nenhuma ficar favorecida, e as épocas voltam a medir-se no fim, com a mesma lista, para o N e a janela escolhidos. O `alpha` e o τ seguem a mesma lógica do E4-S4: usam-se nos spikes seguintes, sabendo que foram afinados com N = 10;
+- **se ganhar um número fixo de épocas**, ele só vale para este treino (N = 10, desde 2022): com outro N ou outra janela há mais ou menos dados e etiquetas, e um número fixo não se adapta, ao contrário da regra por defeito. Por isso o E4-S2 treina todas as opções com a regra por defeito, para nenhuma ficar favorecida, e as épocas voltam a medir-se no fim, com a mesma lista, para o N e a janela escolhidos (o E4-S1 passou depois a testar as épocas dentro de uma grelha com o N — mudado a 13 de outubro de 2026, ver o E4-S1). O `alpha` e o τ seguem a mesma lógica do E4-S4: usam-se nos spikes seguintes, sabendo que foram afinados com N = 10;
 - **se o timebox de 1 dia acabar a meio**, o passo 1 (`alpha`) e o 2 (τ) têm prioridade; as épocas ficam escritas como por medir;
 - o custo em tempo de pod e em dólares (estimativa antes de correr: menos de 1 hora a 0,32 $/h, não medida).
 
@@ -452,19 +452,38 @@ As duas fazem-se numa só ida ao pod.
 - **A curva época a época** (aproximação, só para ver) fica quase plana da época 15 à 24.
 - **Custo:** um pod `cpu3g` de 32 processadores, 4 treinos ao mesmo tempo, cerca de 44 minutos a 1,28 $/h: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`).
 
-### E4-S1 · Spike: que N usar nos códigos raros? (timebox: 1 dia)
+### E4-S1 · Spike: que N, épocas e τ usar nos códigos raros? (timebox: 1 dia)
 
-**Pergunta:** com N = 5, 10 ou 20 (decisão 9), qual dá melhor resultado na validação?
+**Pergunta:** que combinação de N (5, 10 ou 20, decisão 9), de épocas (a regra por defeito ou um número fixo de 3, 6, 12, 18 ou 24) e de τ (0, 0,25 ou 0,5) dá melhor resultado na validação?
 
-**Depende de:** E4-H1 e E4-S5 (usa o `alpha` e o τ escolhidos, e a regra por defeito das épocas: `--regra-por-defeito`).
+**Porque uma grelha, e não só o N** (mudado a 13 de outubro de 2026): o número ótimo de épocas **depende do N** — o N muda quantas etiquetas existem e quantos exemplos tem cada uma, e por isso quanto cada etiqueta precisa de treinar. O τ também depende do N, porque corrige a frequência das etiquetas, que muda com o N. Escolher o N com as épocas e o τ fixos podia escolher um N que não seria o melhor com os seus próprios valores: é a **interação** entre hiperparâmetros, e um eixo de cada vez não a vê. Por isso testam-se as combinações de uma vez. O `alpha` fica **fixo** em 0,0000001 (E4-S4/S5): o seu efeito já foi medido, é grande e claro (o 0,00000001 perdeu), e reabri-lo multiplicaria a grelha sem ganho provável.
 
-**Regra de escolha:** a regra de comparação do E4-T1, escrita antes de se verem os resultados, para os resultados não a influenciarem. A opção por defeito, em caso de empate, é N = 10.
+**Depende de:** E4-H1 e E4-S5.
+
+**Como** (com o treino completo, no pod; 3 N × 6 épocas = **18 treinos**, cada um com `--taus 0 0.25 0.5`):
+
+- **N** = 5, 10 e 20;
+- **épocas** = a regra de paragem por defeito do scikit-learn (`null`) e um número fixo, igual para todas as etiquetas, de 3, 6, 12, 18 e 24;
+- **τ** = 0, 0,25 e 0,5 (o 1,0 perdeu claramente no E4-S4). O τ só muda a ordem das sugestões ao sugerir, não retreina o modelo: cada treino grava os três ficheiros de sugestões, e daí as 3 × 6 × 3 = 54 combinações avaliadas saírem de 18 treinos.
+
+**Regra de escolha, escrita antes de correr:** as opções e a forma de decidir ficam em [`experiencias/e4_s1.yaml`](../experiencias/e4_s1.yaml), escritas antes de correr. O vencedor é a combinação com o melhor top-5 no **código completo**, desde que não perca o top-5 na **classe** (métrica de guarda, por bootstrap) e desde que bata a opção em vigor — o modelo do E4-S5, N = 10, 24 épocas e τ = 0,25 — pela regra de comparação do E4-T1. Em caso de empate, fica a opção em vigor (N = 10, 24 épocas, τ = 0,25). Com 54 combinações, alguma ganharia só por sorte, por isso o número do vencedor fica **otimista** (viés de seleção): escreve-se como limitação no `qualidade_dados.md` e confirma-se no teste, na fase 5.
 
 **Resultado:**
 
-- uma tabela com o top-5 no código completo e na classe, e o F1 macro, para os três valores de N;
-- o N escolhido, escrito na decisão 9 do `qualidade_dados.md`, e passa a ser o valor por defeito;
-- se o N mudar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se com o novo N.
+- uma tabela com as 54 combinações (top-5 no código completo e na classe, e F1 macro) e a combinação escolhida;
+- a limitação do viés de seleção escrita no `qualidade_dados.md`;
+- o N escolhido na decisão 9 do `qualidade_dados.md`, com as épocas e o τ escolhidos, e passa a ser o valor por defeito;
+- se o N mudar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se com o novo N;
+- o custo em tempo de pod e em dólares (estimativa: 18 treinos; mede-se com o primeiro).
+
+**Feito** no PR #18 (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S1.md`](prs/pr_E4-S1.md). As 54 combinações estão na secção 16 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb); os ficheiros dos treinos no pod estão em `metrics/e4_s1/`.
+
+- **Repetível:** o treino com N = 10 e 24 épocas deu sugestões 100% iguais às do E4-S5, com τ = 0 e τ = 0,25.
+- **Vencedor:** a combinação do E4-S5 (N = 10, 24 épocas, τ = 0,25), com 78,35% no top-5 do código completo e 84,11% na classe. Como já era a opção em vigor, a decisão é mantê-la: **N = 10** (decisão 9), com as 24 épocas e o τ = 0,25 (decisão 7). Os concorrentes mais próximos (N = 5 com 24 épocas, N = 10 com τ = 0) perdem com uma diferença que conta.
+- **A grelha confirmou o E4-S5**, em vez de o substituir: nenhuma das outras 53 combinações bate a que já estava em vigor.
+- **Limitação escrita na secção 16:** com 54 combinações, o vencedor fica otimista (viés de seleção); confirma-se no teste, na fase 5.
+- **Ferramenta:** o `scripts/correr_experiencia.py` ganhou o modo `grelha` (`modo: grelha` no YAML): o produto cartesiano dos eixos, um treino por (N, épocas) e um ficheiro de sugestões por τ.
+- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, ligado cerca de 78 minutos: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`).
 
 ### E4-S3 · Spike: a entidade compradora ajuda o modelo? (timebox: 1 dia)
 
@@ -546,8 +565,8 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3 e o E4-S5 estão feitos. Segue-se o E4-S1 (com o `alpha` e o τ do E4-S5 e a regra por defeito das épocas); o E4-T5 e o E4-T4 não dependem de mais nada.
-- O E4-S1 e o E4-S2 treinam com a regra por defeito das épocas, mesmo que o E4-S5 escolha um número fixo (ver o E4-S5).
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5 e o E4-S1 estão feitos. Seguem-se o E4-S3 (a entidade, que usa o N = 10 do E4-S1) e o E4-T4 (a data de início na preparação, que desbloqueia o E4-S2); o E4-T5 não depende de mais nada.
+- O E4-S1 testa o N, as épocas e o τ numa só grelha, porque interagem (ver o E4-S1). O E4-S2 continua a treinar com a regra por defeito das épocas: a janela muda a quantidade de dados e um número fixo de épocas não se adapta (as épocas voltam a medir-se no fim, para o N e a janela escolhidos).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
 
@@ -560,7 +579,7 @@ E4-T4 ────────────────────────�
 5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade e ficou confirmada no E4-H1, porque bateu a régua na validação (secção 13 do `qualidade_dados.md`). Ver o E4-S0.
 6. **Regularização e correção das etiquetas frequentes do TF-IDF** (11 de outubro de 2026, spike E4-S4): `alpha` = 0,0000001 (em vez do valor por defeito do scikit-learn, 0,0001) e τ = 0,25. Escolhidos na validação com a regra do E4-T1, escrita antes de correr. O `alpha` 0,0000001 foi acrescentado à lista depois de ver os resultados, porque o 0,000001 ganhou e era o extremo da lista. O 0,0000001 voltou a ganhar e continua no extremo; o 0,00000001 não foi testado (limitação escrita na secção 14 do `qualidade_dados.md`).
 
-7. **Épocas do TF-IDF** (12 de outubro de 2026, spike E4-S5): 24 épocas fixas, iguais para todas as etiquetas, sem a paragem automática do scikit-learn (`EPOCAS = 24` em `src/tfidf.py`). O `alpha` e o τ da decisão 6 mantêm-se: o `alpha` 0,00000001 perdeu. Escolhidos na validação com a regra do E4-T1 e a lista escrita antes de correr (`experiencias/e4_s5.yaml`). Só vale para N = 10 e o treino desde 2022: o E4-S1 e o E4-S2 comparam as suas opções com a regra por defeito, e as épocas voltam a medir-se no fim. 24 é o extremo da lista testada (limitação escrita na secção 15 do `qualidade_dados.md`).
+7. **Épocas do TF-IDF** (12 de outubro de 2026, spike E4-S5): 24 épocas fixas, iguais para todas as etiquetas, sem a paragem automática do scikit-learn (`EPOCAS = 24` em `src/tfidf.py`). O `alpha` e o τ da decisão 6 mantêm-se: o `alpha` 0,00000001 perdeu. Escolhidos na validação com a regra do E4-T1 e a lista escrita antes de correr (`experiencias/e4_s5.yaml`). Só vale para N = 10 e o treino desde 2022. O E4-S2 continua a comparar as suas opções com a regra por defeito, e as épocas voltam a medir-se no fim, para o N e a janela escolhidos. O E4-S1 reabre as épocas dentro de uma grelha N × épocas × τ, porque o número ótimo de épocas depende do N (mudado a 13 de outubro de 2026 — ver o E4-S1). 24 é o extremo da lista testada (limitação escrita na secção 15 do `qualidade_dados.md`).
 
 ### Decisões pendentes do E4
 

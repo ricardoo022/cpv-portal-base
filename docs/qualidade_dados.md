@@ -394,11 +394,43 @@ Como ler:
 - **A paragem automática chegava cedo demais, mas pouco.** Treinar todas as etiquetas mais tempo ganha +0,58 pontos (12 épocas) e +1,41 (24 épocas) no código completo sobre a regra por defeito, e +1,2 na classe com 24. É menos do que a mudança do `alpha` no E4-S4 (+33,7). A suspeita da revisão era que as etiquetas raras paravam cedo demais. O F1 macro quase não muda (0,2565 → 0,2568), o que sugere que o ganho **não** vem sobretudo das etiquetas raras. É uma leitura, não uma medição: nenhuma célula mede o ganho por frequência da etiqueta.
 - **Limitação 1: 24 é o extremo da lista.** O mesmo problema do `alpha` no E4-S4: não se sabe se 30 ou 36 épocas seriam melhores. Pela regra escrita antes de correr, não se acrescentaram valores neste spike. A curva aproximada está quase plana da época 15 à 24, o que sugere que o ganho para lá de 24 seria pequeno, mas a curva não é o treino normal.
 - **Limitação 2: o salto das 18 para as 24 épocas pode ser, em parte, sorte do treino.** Os treinos normais dão 77,5% com 12 e com 18 épocas, e 78,3% com 24, enquanto a curva sobe de forma suave e nunca passa de 77,8%. O bootstrap só mede a variação por causa da **amostra de contratos da validação**, com cada modelo fixo; não mede a variação que vem de **treinar** com outra ordem dos exemplos (outra semente). Saber quanto vale essa variação pedia treinar o mesmo modelo com várias sementes, o que não estava no plano. A diferença de 12 para 24 conta no bootstrap (100% das amostras), e a regra escrita aplica-se como está; esta limitação diz que a margem real pode ser menor do que +0,82 pontos.
-- **Só vale para N = 10 e o treino desde 2022.** Um número fixo de épocas não se adapta a mais ou menos dados, ao contrário da regra por defeito. O E4-S1 (N) e o E4-S2 (janela) treinam todas as opções com a regra por defeito (`--regra-por-defeito`), e as épocas voltam a medir-se no fim, com o N e a janela escolhidos.
+- **Só vale para N = 10 e o treino desde 2022.** Um número fixo de épocas não se adapta a mais ou menos dados, ao contrário da regra por defeito. O E4-S2 (janela) continua a treinar as suas opções com a regra por defeito (`--regra-por-defeito`). O E4-S1 (N) acabou por testar as épocas dentro de uma grelha com o N (secção 16): o número ótimo de épocas depende do N, e a grelha confirmou as 24 épocas para N = 10.
 - **Custo de treinar.** Com 24 épocas fixas, cada etiqueta treina sempre 24 épocas; com a regra por defeito, a maior parte parava antes (o máximo foi 12). Neste pod, com 4 treinos ao mesmo tempo e 8 processadores cada, o treino de 24 épocas levou 1 581 s a vetorizar e treinar, e o de 12, 821 s (`treino.json`, célula 3 do notebook). O tempo cresce quase em linha com as épocas. Os tempos da regra por defeito (224 s) foram medidos com 2 treinos ao mesmo tempo e 16 processadores, por isso não se comparam diretamente com estes.
 - **Otimista, mas pouco:** o `alpha`, o τ e as épocas foram escolhidos na validação; o teste continua fechado.
 - **Custo do spike:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 44 minutos: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`, escrito à mão a partir das leituras da Runpod). O pico de memória do pod inteiro foi 36,0 GB, com 4 treinos ao mesmo tempo. Mais do que a estimativa do backlog (menos de 0,32 $), porque a curva e os 5 números de épocas somam cerca de 90 épocas de treino; o pod maior custa o mesmo por época e acaba 4 vezes mais depressa.
 - **Ainda não medido com o modelo novo:** o comando de sugestões (secção 13) continua sem ter corrido com o modelo escolhido. Os treinos deste spike também não gravaram o modelo.
+
+### 16. Grelha N × épocas × τ no TF-IDF (E4-S1)
+
+De [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb), que lê as sugestões gravadas pelos treinos no pod (`metrics/e4_s1/`).
+
+**Porquê:** o E4-S5 escolheu 24 épocas com N = 10, mas o número ótimo de épocas **depende do N** (o N muda quantas etiquetas existem e quantos exemplos tem cada uma), e o τ também (corrige a frequência das etiquetas, que muda com o N). Escolher o N com as épocas e o τ fixos podia escolher um N que não seria o melhor com os seus próprios valores — é a **interação** entre hiperparâmetros, e um eixo de cada vez não a vê. Por isso testou-se o produto **N × épocas × τ** de uma vez. O `alpha` ficou fixo em 0,0000001 (o efeito já tinha sido medido, é grande e claro).
+
+**Como:** as opções foram escritas antes de correr em [`experiencias/e4_s1.yaml`](../experiencias/e4_s1.yaml). N = 5, 10 e 20; épocas = a regra de paragem por defeito do scikit-learn e 3, 6, 12, 18 e 24; τ = 0, 0,25 e 0,5. O τ **não retreina** o modelo — só muda a ordem das sugestões ao sugerir — por isso os 18 treinos (3 N × 6 épocas) deram as 3 × 6 × 3 = 54 combinações.
+
+**Repetível:** o treino com N = 10 e 24 épocas (o modelo do E4-S5) deu sugestões 100% iguais às do E4-S5, com τ = 0 e τ = 0,25 (célula 7 do notebook). Os números da secção 15 confirmam-se.
+
+Resultados na validação (outubro de 2025), todos os contratos. As 54 combinações completas estão no notebook; as primeiras:
+
+| N | Épocas | τ | Top-5 código | Top-5 classe | Top-5 código (novo) | F1 macro código |
+|---|---|---|---|---|---|---|
+| **10** | **24** | **0,25** | **78,35%** | **84,11%** | **75,14%** | 0,2568 |
+| 10 | 24 | 0 | 78,18% | 83,31% | 74,89% | 0,2469 |
+| 5 | 24 | 0,25 | 78,05% | 83,33% | 74,72% | 0,2647 |
+| 5 | 18 | 0,25 | 77,94% | 83,26% | 74,54% | 0,2651 |
+| régua | - | - | 26,3% | 15,6% | 23,7% | 0,0001 |
+
+**Escolha, com a regra escrita antes de correr:** a melhor das 54 é a combinação do E4-S5 (N = 10, 24 épocas, τ = 0,25), com 78,35% no código completo. Como é a opção que já estava em vigor, o duelo dá diferença 0 e a decisão é mantê-la. Os concorrentes mais próximos perdem com uma diferença que conta no bootstrap: N = 10/24 épocas/τ = 0 (−0,17 pontos), N = 5/24/τ = 0,25 (−0,30) e N = 5/18/τ = 0,25 (−0,41).
+
+Escolhido: **N = 10** (decisão 9), com as 24 épocas e o τ = 0,25 que já estavam em vigor (decisão 7). A avaliação completa do escolhido é a da secção 15; continua a bater a régua nos quatro casos do E4-H1 (última célula do notebook).
+
+Como ler:
+- **A grelha confirma o E4-S5, não o substitui.** O N = 10 já era o valor por defeito e nenhuma das outras 53 combinações o bate. Não há razão para mudar.
+- **O N = 5 fica perto, mas perde.** Com 24 épocas e τ = 0,25, o N = 5 faz 78,05% no código completo (contra 78,35%), com melhor F1 macro (0,2647 contra 0,2568), porque mantém mais códigos detalhados. A regra decide pelo código completo, e a diferença conta. O N = 20 é o pior dos três (melhor caso: 77,49%).
+- **Limitação (viés de seleção):** com 54 combinações, alguma ganharia só por sorte, por isso o número do vencedor fica **otimista**; confirma-se no teste, na fase 5. Aqui o efeito é pequeno, porque o vencedor coincide com a opção que já estava em vigor — não foi escolhido à custa de muitas comparações.
+- **A interação N × épocas existe, mas é pequena.** Com N = 10 o melhor é 24 épocas e com N = 5 também; a diferença entre os três N é de décimas de ponto. A suspeita de que o N mudaria muito as épocas ótimas não se confirmou dentro da lista testada.
+- **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 78 minutos (15:40–16:54 UTC), com 4 treinos ao mesmo tempo: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`, escrito à mão a partir das leituras da Runpod). O N = 5 é o mais pesado (3 848 etiquetas): o treino de 24 épocas levou 2 474 s, contra 1 873 s a N = 10 e 1 287 s a N = 20 (`treino.json`). O pico de memória do pod inteiro foi 29,4 GB de 128.
+- **Otimista, mas pouco:** o N, as épocas e o τ foram escolhidos na validação; o teste continua fechado.
 
 ## Decisões
 
@@ -427,5 +459,5 @@ Como ler:
    - As contagens fazem-se só com o treino (contar com a validação seria fuga de dados).
    - Aplica-se no momento do treino, não no `prepare.py`: o N é um hiperparâmetro e o `treino.parquet` fica com os códigos originais.
    - Na avaliação a etiqueta verdadeira não muda: sugerir a classe quando o código certo é mais detalhado conta como acerto na classe e erro no código completo.
-   - N a testar: 5, 10 e 20. Por defeito 10, até a fase 4 escolher com o TF-IDF na validação.
+   - N a testar: 5, 10 e 20. **Escolhido N = 10** no E4-S1 (secção 16): a grelha N × épocas × τ mostrou que N = 10 é o melhor dos três, confirmando o valor por defeito. Continua a ser o valor por defeito.
 10. Régua "códigos mais comuns" (E4-T2, secção 12): as 5 etiquetas mais frequentes do treino depois da regra dos códigos raros com o N do modelo, contadas **uma vez por exemplo** (um por texto), não pelo `n_contratos`. Primeiro escolheu-se contar contratos, porque a validação tem todos os contratos com as repetições. A medição mostrou que essa régua fica mais fácil de bater no código completo (diferença que conta no bootstrap), e mudou-se a 11 de outubro de 2026 para a mais exigente das duas. Escolher a régua depois de ver a validação não favorece o modelo: só lhe torna a tarefa mais difícil.

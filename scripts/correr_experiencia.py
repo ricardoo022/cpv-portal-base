@@ -4,15 +4,19 @@ O YAML diz que opções se testam e por que ordem se comparam, escrito antes de 
 só lança os treinos (`src/train_tfidf.py` e `scripts/curva_epocas.py`); a decisão faz-se no
 portátil, num notebook, que lê o mesmo YAML com `ler`.
 
-Duas fases, porque a 2.ª depende da decisão da 1.ª (spike E4-S5):
+Dois modos, conforme o YAML:
 
-- `alpha`: um treino por `alpha` (o em vigor e os candidatos), com as épocas em vigor no YAML e
-  um ficheiro de sugestões por τ (o em vigor e os candidatos), para o passo 2 não pedir outro treino.
-  `epocas.em_vigor: null` é a regra de paragem por defeito do scikit-learn e passa-se
-  explicitamente (`--regra-por-defeito`): sem isso, o `train_tfidf.py` treinava as `tfidf.EPOCAS`
-  épocas fixas escolhidas no E4-S5, sem ninguém dar por isso;
-- `epocas`: com o `alpha` e o τ escolhidos (`--alpha`, `--tau`), um treino por número fixo de
-  épocas e a curva época a época.
+- **fases** (por defeito; spike E4-S5), com duas fases, porque a 2.ª depende da decisão da 1.ª:
+  - `alpha`: um treino por `alpha` (o em vigor e os candidatos), com as épocas em vigor no YAML e
+    um ficheiro de sugestões por τ (o em vigor e os candidatos), para o passo 2 não pedir outro treino.
+    `epocas.em_vigor: null` é a regra de paragem por defeito do scikit-learn e passa-se
+    explicitamente (`--regra-por-defeito`): sem isso, o `train_tfidf.py` treinava as `tfidf.EPOCAS`
+    épocas fixas escolhidas no E4-S5, sem ninguém dar por isso;
+  - `epocas`: com o `alpha` e o τ escolhidos (`--alpha`, `--tau`), um treino por número fixo de
+    épocas e a curva época a época.
+- **grelha** (`modo: grelha`; spike E4-S1), uma só fase `grelha`: um treino por combinação de N e
+  épocas (o produto cartesiano), cada um com `--taus` a lista de τ do YAML. O τ não retreina o
+  modelo — só muda as sugestões ao sugerir — por isso as combinações com τ saem todas do mesmo treino.
 
 Cada treino usa `--n-jobs` processadores e correm `--paralelo` ao mesmo tempo (num pod de 32
 processadores: 4 × 8). Os mais demorados começam primeiro, para o último a acabar não ficar sozinho.
@@ -20,7 +24,8 @@ processadores: 4 × 8). Os mais demorados começam primeiro, para o último a ac
 Exemplos (da raiz do projeto, no pod):
     .venv/bin/python scripts/correr_experiencia.py experiencias/e4_s5.yaml alpha --paralelo 2 --n-jobs 16
     .venv/bin/python scripts/correr_experiencia.py experiencias/e4_s5.yaml epocas --alpha 1e-7 --tau 0.25
-    .venv/bin/python scripts/correr_experiencia.py experiencias/e4_s5.yaml epocas --alpha 1e-7 --tau 0.25 --mostrar
+    .venv/bin/python scripts/correr_experiencia.py experiencias/e4_s1.yaml grelha --paralelo 4 --n-jobs 8
+    .venv/bin/python scripts/correr_experiencia.py experiencias/e4_s1.yaml grelha --mostrar
 """
 
 import argparse
@@ -34,7 +39,9 @@ import yaml
 
 RAIZ = Path(__file__).resolve().parents[1]
 PY = sys.executable
-CHAVES = {"spike", "n_min", "saida", "alpha", "tau", "epocas", "curva_epocas"}
+OBRIGATORIAS_FASES = {"spike", "saida", "n_min", "alpha", "tau", "epocas", "curva_epocas"}
+OBRIGATORIAS_GRELHA = {"spike", "saida", "n_min", "alpha", "tau", "epocas"}
+MODOS = ("fases", "grelha")
 
 
 def _numero(valor, onde):
@@ -50,21 +57,50 @@ def _inteiro_positivo(valor, onde):
     return valor
 
 
-def ler(path):
-    """Lê e valida o YAML de uma experiência. Devolve um dict com os valores já convertidos.
+def _lista(valor, onde):
+    """Uma lista não vazia de valores distintos (o eixo de uma grelha)."""
+    if isinstance(valor, (str, bytes)) or not isinstance(valor, (list, tuple)) or not valor:
+        raise ValueError(f"{onde}: tem de ser uma lista não vazia de valores: {valor!r}")
+    if len(set(valor)) != len(valor):
+        raise ValueError(f"{onde}: há valores repetidos: {list(valor)}")
+    return list(valor)
 
-    `alpha` e `tau` ficam {"em_vigor": float, "candidatos": [float]}; `epocas` fica
-    {"em_vigor": None (regra por defeito) ou int, "candidatos": [int]}.
+
+def ler(path):
+    """Lê e valida o YAML de uma experiência (modo `fases` ou `grelha`).
+
+    `fases` (por defeito, ver `e4_s5.yaml`): dois passos, cada eixo testado na forma
+    {"em_vigor": valor, "candidatos": [...]}, com `curva_epocas` obrigatório.
+    `grelha` (ver `e4_s1.yaml`): cada eixo é uma lista de valores e testa-se o produto cartesiano;
+    `alpha` é um número fixo (não uma lista) e `curva_epocas` não existe. O `modo` é opcional e,
+    sem ele, é `fases`.
     """
     with open(path, encoding="utf-8") as f:
         exp = yaml.safe_load(f)
-    if not isinstance(exp, dict) or set(exp) != CHAVES:
-        faltam = CHAVES - set(exp or {})
-        a_mais = set(exp or {}) - CHAVES
+    if not isinstance(exp, dict):
+        raise ValueError(f"{path}: o YAML tem de ser um mapa de chaves")
+    modo = exp.get("modo", "fases")
+    if modo not in MODOS:
+        raise ValueError(f"{path}: `modo` tem de ser um de {MODOS}, não {modo!r}")
+    obrigatorias = OBRIGATORIAS_FASES if modo == "fases" else OBRIGATORIAS_GRELHA
+    faltam = obrigatorias - set(exp)
+    a_mais = set(exp) - (obrigatorias | {"modo"})
+    if faltam or a_mais:
         raise ValueError(f"{path}: chaves em falta {sorted(faltam)}, a mais {sorted(a_mais)}")
-    out = {"spike": str(exp["spike"]), "saida": str(exp["saida"]),
-           "n_min": _inteiro_positivo(exp["n_min"], "n_min"),
-           "curva_epocas": _inteiro_positivo(exp["curva_epocas"], "curva_epocas")}
+    out = {"spike": str(exp["spike"]), "saida": str(exp["saida"]), "modo": modo}
+    if modo == "grelha":
+        out["alpha"] = _numero(exp["alpha"], "alpha")
+        if out["alpha"] <= 0:
+            raise ValueError("alpha tem de ser > 0")
+        out["n_min"] = [_inteiro_positivo(v, "n_min") for v in _lista(exp["n_min"], "n_min")]
+        out["tau"] = [_numero(v, "tau") for v in _lista(exp["tau"], "tau")]
+        if any(t < 0 for t in out["tau"]):
+            raise ValueError("τ tem de ser >= 0")
+        out["epocas"] = [None if v is None else _inteiro_positivo(v, "epocas")
+                         for v in _lista(exp["epocas"], "epocas")]
+        return out
+    out["n_min"] = _inteiro_positivo(exp["n_min"], "n_min")
+    out["curva_epocas"] = _inteiro_positivo(exp["curva_epocas"], "curva_epocas")
     for nome in ("alpha", "tau"):
         bloco = exp[nome]
         out[nome] = {"em_vigor": _numero(bloco["em_vigor"], f"{nome}.em_vigor"),
@@ -102,16 +138,35 @@ def pasta_curva(exp):
     return Path(exp["saida"]) / "curva"
 
 
+def pasta_grelha(exp, n_min, epocas):
+    """Pasta de um treino da grelha: N e épocas (`defeito` para a regra por defeito)."""
+    ep = "defeito" if epocas is None else f"{epocas:02d}"
+    return Path(exp["saida"]) / f"n_min_{n_min:02d}_ep_{ep}"
+
+
 def comandos(exp, fase, alpha=None, tau=None, n_jobs=-1, treino=None, validacao=None):
     """Os treinos de uma fase: lista de (nome, argumentos, épocas previstas), da mais demorada à menos.
 
     As épocas previstas só servem para ordenar; a regra por defeito conta como 12 (o máximo no E4-S4).
     Na fase `alpha` as épocas são as `em_vigor` do YAML (`args_epocas`).
+    Uma experiência em `grelha` só tem a fase `grelha`: o produto cartesiano de N × épocas, com
+    `--taus` a lista de τ do YAML (o τ não retreina, só muda as sugestões ao sugerir).
     `treino` e `validacao` são os parquet a usar; sem eles, cada script usa os de `data/processed/`.
     """
-    comum = ["--n-min", str(exp["n_min"]), "--n-jobs", str(n_jobs)]
+    comum = ["--n-jobs", str(n_jobs)]
     comum += [] if treino is None else ["--treino", str(treino)]
     comum += [] if validacao is None else ["--validacao", str(validacao)]
+    if exp.get("modo") == "grelha":
+        if fase != "grelha":
+            raise ValueError(f"experiência em grelha: a fase tem de ser 'grelha', não {fase!r}")
+        taus = [f"{t:g}" for t in exp["tau"]]
+        out = [(f"n_min_{n:02d}_ep_{'defeito' if k is None else f'{k:02d}'}",
+                [PY, "src/train_tfidf.py", "--n-min", str(n), "--alpha", f"{exp['alpha']:g}",
+                 "--taus", *taus, *args_epocas(k), "--sem-modelo", *comum,
+                 "--saida", str(pasta_grelha(exp, n, k))], 12 if k is None else k)
+               for n in exp["n_min"] for k in exp["epocas"]]
+        return sorted(out, key=lambda c: -c[2])
+    comum = ["--n-min", str(exp["n_min"]), *comum]
     if fase == "alpha":
         taus = [exp["tau"]["em_vigor"], *exp["tau"]["candidatos"]]
         epocas = exp["epocas"]["em_vigor"]
@@ -134,7 +189,7 @@ def comandos(exp, fase, alpha=None, tau=None, n_jobs=-1, treino=None, validacao=
                      "--epocas", str(exp["curva_epocas"]), *comum, "--saida", str(pasta_curva(exp))],
                     2 * exp["curva_epocas"]))
     else:
-        raise ValueError(f"fase desconhecida: {fase!r} (alpha ou epocas)")
+        raise ValueError(f"fase desconhecida: {fase!r} (alpha, epocas ou grelha)")
     return sorted(out, key=lambda c: -c[2])
 
 
@@ -151,7 +206,7 @@ def _correr(nome, args, log_dir):
 def main(argv=None):
     p = argparse.ArgumentParser(description="Corre os treinos de uma fase de um spike descrito num YAML.")
     p.add_argument("experiencia", help="o YAML da experiência (experiencias/*.yaml)")
-    p.add_argument("fase", choices=["alpha", "epocas"])
+    p.add_argument("fase", choices=["alpha", "epocas", "grelha"])
     p.add_argument("--alpha", type=float, help="fase epocas: o alpha escolhido")
     p.add_argument("--tau", type=float, help="fase epocas: o τ escolhido")
     p.add_argument("--paralelo", type=int, default=4, help="treinos ao mesmo tempo")

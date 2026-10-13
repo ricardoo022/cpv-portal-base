@@ -13,5 +13,6 @@ Correm com `notebooks/` como pasta de trabalho (acrescentam `../src` ao caminho 
 | [`04_tfidf.ipynb`](04_tfidf.ipynb) | Quanto acerta o TF-IDF na validação, comparado com a régua (E4-H1). Lê as sugestões gravadas pelo treino no pod (`metrics/e4_h1/`), o treino e a validação. | secção 13 |
 | [`05_tfidf_afinacao.ipynb`](05_tfidf_afinacao.ipynb) | Que `alpha` (regularização) e que τ (correção das etiquetas frequentes) usar no TF-IDF (E4-S4). Lê as sugestões dos treinos no pod (`metrics/e4_s4/`), o treino e a validação. | secção 14 |
 | [`06_tfidf_epocas.ipynb`](06_tfidf_epocas.ipynb) | Um `alpha` mais pequeno e quantas épocas treinar o TF-IDF (E4-S5), com a curva do top-5 época a época. Lê as opções de `experiencias/e4_s5.yaml`, as sugestões dos treinos no pod (`metrics/e4_s5/`), o treino e a validação. | secção 15 |
+| [`07_tfidf_grelha.ipynb`](07_tfidf_grelha.ipynb) | Que combinação de N, épocas e τ usar no TF-IDF (E4-S1), numa grelha. Confirma que a célula N = 10/24 épocas reproduz o E4-S5. Lê as opções de `experiencias/e4_s1.yaml`, as sugestões dos treinos no pod (`metrics/e4_s1/`), o treino e a validação. | secção 16 |
 
-Voltar a correr o 01: `make notebook`. O 03: `make regua`. O 04: `make tfidf` (cerca de 5 minutos, quase tudo no bootstrap). O 05: `make afinacao`. O 06: `make epocas`.
+Voltar a correr o 01: `make notebook`. O 03: `make regua`. O 04: `make tfidf` (cerca de 5 minutos, quase tudo no bootstrap). O 05: `make afinacao`. O 06: `make epocas`. O 07: `make grelha`.
