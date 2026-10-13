@@ -441,7 +441,7 @@ As duas fazem-se numa só ida ao pod.
 - **se o timebox de 1 dia acabar a meio**, o passo 1 (`alpha`) e o 2 (τ) têm prioridade; as épocas ficam escritas como por medir;
 - o custo em tempo de pod e em dólares (estimativa antes de correr: menos de 1 hora a 0,32 $/h, não medida).
 
-**Feito** a 12 de outubro de 2026 (PR por abrir; descrição em [`prs/pr_E4-S5.md`](prs/pr_E4-S5.md)). A tabela, as comparações e a curva estão na secção 15 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/06_tfidf_epocas.ipynb`](../notebooks/06_tfidf_epocas.ipynb); os ficheiros dos treinos no pod estão em `metrics/e4_s5/`.
+**Feito** no PR #17 (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S5.md`](prs/pr_E4-S5.md). A tabela, as comparações e a curva estão na secção 15 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/06_tfidf_epocas.ipynb`](../notebooks/06_tfidf_epocas.ipynb); os ficheiros dos treinos no pod estão em `metrics/e4_s5/`.
 
 - **As opções foram escritas antes de correr num ficheiro**, [`experiencias/e4_s5.yaml`](../experiencias/e4_s5.yaml), que o treino no pod ([`scripts/correr_experiencia.py`](../scripts/correr_experiencia.py)) e o notebook leem. Um teste escreve à mão a lista do backlog e falha se o YAML mudar.
 - **Repetível:** a regra por defeito, repetida, deu sugestões 100% iguais às do E4-S4, nos 4 τ.
