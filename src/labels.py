@@ -9,7 +9,7 @@ As contagens fazem-se só com o treino. Contar também com a validação seria f
 
 import pandas as pd
 
-DEFAULT_N_MIN = 10  # até a fase 4 escolher entre 5, 10 e 20
+DEFAULT_N_MIN = 10  # escolhido no E4-S1 (secção 16); testou-se 5, 10 e 20
 
 
 def to_level(codigo, digits):

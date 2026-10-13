@@ -2,6 +2,8 @@
 
 Um YAML por spike com as opções que se testam e a ordem em que se comparam. Entra no git **antes** de o treino correr, e não se muda depois de ver os resultados: o histórico do git mostra que a lista foi escolhida às cegas (na literatura, *pré-registo*). O treino no pod e o notebook que decide leem o mesmo ficheiro, por isso não podem usar listas diferentes.
 
+Cada YAML tem um `modo`: `fases` (por defeito; passos, com uma opção em vigor que passa de passo para passo, como o E4-S5) ou `grelha` (o produto cartesiano dos eixos, como o E4-S1).
+
 Os valores **em vigor** do modelo (os que ganharam) não ficam aqui: ficam no código (`ALPHA`, `TAU` e `EPOCAS` em `src/tfidf.py`). O YAML diz o que se experimenta; o código diz o que se usa.
 
 No YAML os números escrevem-se com ponto: `1.0e-7`, não `1e-7`. O PyYAML segue o YAML 1.1, em que `1e-7` é texto; o leitor (`scripts/correr_experiencia.py`, função `ler`) recusa-o com erro.
@@ -9,3 +11,4 @@ No YAML os números escrevem-se com ponto: `1.0e-7`, não `1e-7`. O PyYAML segue
 | Ficheiro | Spike | Quem o lê |
 |---|---|---|
 | [`e4_s5.yaml`](e4_s5.yaml) | E4-S5: `alpha` 0,00000001, τ (se o `alpha` mudar) e número fixo de épocas | [`scripts/correr_experiencia.py`](../scripts/correr_experiencia.py) (no pod) e [`notebooks/06_tfidf_epocas.ipynb`](../notebooks/06_tfidf_epocas.ipynb) |
+| [`e4_s1.yaml`](e4_s1.yaml) | E4-S1: grelha N × épocas × τ (modo `grelha`), com o `alpha` fixo | [`scripts/correr_experiencia.py`](../scripts/correr_experiencia.py) (no pod) e [`notebooks/07_tfidf_grelha.ipynb`](../notebooks/07_tfidf_grelha.ipynb) |

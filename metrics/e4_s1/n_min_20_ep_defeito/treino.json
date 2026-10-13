@@ -1,0 +1,55 @@
+{
+ "data": "2026-10-13T16:37:04",
+ "n_min": 20,
+ "min_df": 2,
+ "alpha": 1e-07,
+ "taus": [
+  0.0,
+  0.25,
+  0.5
+ ],
+ "ficheiros": {
+  "sugestoes_validacao.parquet": 0.0,
+  "sugestoes_validacao_tau0.25.parquet": 0.25,
+  "sugestoes_validacao_tau0.5.parquet": 0.5
+ },
+ "ficheiro_do_modelo_por_defeito": "sugestoes_validacao_tau0.25.parquet",
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "datas": [
+   "2022-01-01",
+   "2025-09-30"
+  ]
+ },
+ "validacao": {
+  "ficheiro": "validacao.parquet",
+  "datas": [
+   "2025-10-01",
+   "2025-10-31"
+  ],
+  "contratos": 23945
+ },
+ "exemplos_usados": 477867,
+ "exemplos_saidos": 517,
+ "etiquetas": 2193,
+ "vocabulario": 401786,
+ "epocas": null,
+ "tol": 0.001,
+ "max_iter": 1000,
+ "n_iter": [
+  12
+ ],
+ "convergiu": true,
+ "tempo_vetorizar_treinar_s": 377.18,
+ "tempo_sugerir_s": 30.16,
+ "pico_rss_mb": 7503,
+ "nucleos": 192,
+ "versoes": {
+  "python": "3.10.12",
+  "sklearn": "1.7.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "pandas": "2.3.3"
+ },
+ "coef_bytes": 3524466792
+}

@@ -1,0 +1,4 @@
+INICIO n_min_10_ep_06 16:44:06
+/root/projeto_CPV/.venv/bin/python src/train_tfidf.py --n-min 10 --alpha 1e-07 --taus 0 0.25 0.5 --epocas 6 --sem-modelo --n-jobs 8 --saida metrics/e4_s1/n_min_10_ep_06
+Gravado: (sem modelo) e metrics/e4_s1/n_min_10_ep_06
+FIM n_min_10_ep_06 16:51:53 codigo=0

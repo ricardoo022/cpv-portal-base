@@ -1,0 +1,27 @@
+# Spike E4-S1 (docs/backlog.md): que N, épocas e τ usar no TF-IDF.
+# As opções e a forma de decidir ficam escritas aqui ANTES de correr, e não mudam depois de ver os
+# resultados. O treino no pod (scripts/correr_experiencia.py) e a decisão
+# (notebooks/07_tfidf_grelha.ipynb) leem este ficheiro.
+#
+# É uma grelha (produto cartesiano), não passos: o N e as épocas interagem (o N muda o número de
+# etiquetas e de exemplos por etiqueta, e o número ótimo de épocas depende disso) e o τ também
+# (corrige a frequência das etiquetas, que muda com o N). O alpha fica fixo no valor do E4-S4/S5: o
+# seu efeito já foi medido, é grande e claro (o 0,00000001 perdeu), e reabri-lo multiplicaria a
+# grelha sem ganho provável.
+#
+# O τ NÃO retreina o modelo: só muda a ordem das sugestões na hora de sugerir. Por isso há um treino
+# por (N, épocas) — 18 no total — e cada um grava as sugestões dos três τ (ver o `--taus`).
+#
+# Os números escrevem-se com ponto (1.0e-7, não 1e-7): no YAML 1.1, que o PyYAML segue, "1e-7" é
+# lido como texto. O leitor recusa-o, para não passar despercebido.
+
+spike: E4-S1
+saida: metrics/e4_s1
+modo: grelha
+
+alpha: 1.0e-7          # fixo (do E4-S4/S5)
+
+# Eixos da grelha. `null` nas épocas é a regra de paragem por defeito do scikit-learn.
+n_min: [5, 10, 20]
+epocas: [null, 3, 6, 12, 18, 24]
+tau: [0.0, 0.25, 0.5]

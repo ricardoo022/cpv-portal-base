@@ -51,7 +51,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Script de preparação `src/prepare.py`, com verificações automáticas no fim.
 - [x] Testes unitários e de integração (`.venv/bin/pytest`), verificados com erros introduzidos de propósito.
 - [x] Regra para os códigos raros: sobem para a classe ou o grupo (`src/labels.py`, decisão 9 de [`qualidade_dados.md`](qualidade_dados.md)).
-- [ ] Escolher o N (5, 10 ou 20) com o TF-IDF na validação (fase 4).
+- [x] Escolher o N (5, 10 ou 20) com o TF-IDF na validação, numa grelha com as épocas e o τ (spike E4-S1): fica N = 10, o valor por defeito ([`qualidade_dados.md`](qualidade_dados.md), secção 16).
 
 ## 4. Modelar
 

@@ -1,7 +1,8 @@
-"""Testes unitários a scripts/correr_experiencia.py (spike E4-S5): ler o YAML e montar os comandos.
+"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5 e E4-S1): ler o YAML e montar os comandos.
 
-O 1.º teste escreve à mão as opções do `experiencias/e4_s5.yaml`, as do backlog: se alguém mudar
-a lista depois de ver resultados, este teste falha e a mudança tem de ficar explícita.
+Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (modo `fases`) e
+`experiencias/e4_s1.yaml` (modo `grelha`), as do backlog: se alguém mudar uma lista depois de ver
+resultados, o teste falha e a mudança tem de ficar explícita.
 """
 
 import sys
@@ -14,6 +15,7 @@ sys.path.insert(0, str(RAIZ / "scripts"))
 import correr_experiencia as ce  # noqa: E402
 
 E4_S5 = RAIZ / "experiencias" / "e4_s5.yaml"
+E4_S1 = RAIZ / "experiencias" / "e4_s1.yaml"
 
 BASE = """spike: X
 n_min: 10
@@ -138,3 +140,83 @@ def test_treino_e_validacao_passam_a_todos_os_comandos(fase, extra):
         assert args[args.index("--validacao") + 1] == "v.parquet"
     for _, args, _ in ce.comandos(exp, fase, **extra):
         assert "--treino" not in args and "--validacao" not in args
+
+
+# --- Grelha (spike E4-S1): o produto N × épocas, com o α fixo e um ficheiro de sugestões por τ ---
+
+BASE_GRELHA = """spike: X
+modo: grelha
+saida: metrics/x
+alpha: 1.0e-7
+n_min: [5, 10, 20]
+epocas: [null, 3, 6, 12, 18, 24]
+tau: [0.0, 0.25, 0.5]
+"""
+
+
+def test_o_yaml_do_e4_s1_tem_as_opcoes_do_backlog():
+    # As opções do E4-S1, escritas à mão a partir do backlog: se alguém as mudar depois de ver
+    # resultados, este teste falha e a mudança fica explícita.
+    exp = ce.ler(E4_S1)
+    assert exp["modo"] == "grelha"
+    assert exp["alpha"] == 1e-7
+    assert exp["n_min"] == [5, 10, 20]
+    assert exp["epocas"] == [None, 3, 6, 12, 18, 24]
+    assert exp["tau"] == [0.0, 0.25, 0.5]
+    assert exp["saida"] == "metrics/e4_s1"
+
+
+def test_fase_grelha_um_treino_por_n_e_epocas_com_os_taus():
+    exp = ce.ler(E4_S1)
+    lista = ce.comandos(exp, "grelha", n_jobs=8)
+    assert len(lista) == len(exp["n_min"]) * len(exp["epocas"])  # 18 treinos
+    nomes = [n for n, _, _ in lista]
+    # Da mais demorada à menos; a regra por defeito conta como 12 épocas.
+    assert nomes[:3] == ["n_min_05_ep_24", "n_min_10_ep_24", "n_min_20_ep_24"]
+    for nome, args, _ in lista:
+        assert args[1] == "src/train_tfidf.py"
+        assert args[args.index("--alpha") + 1] == "1e-07"
+        i = args.index("--taus")
+        assert args[i + 1:i + 4] == ["0", "0.25", "0.5"]
+        assert args[args.index("--n-jobs") + 1] == "8"
+        assert "--sem-modelo" in args
+        assert args[args.index("--saida") + 1] == f"metrics/e4_s1/{nome}"
+
+
+def test_fase_grelha_usa_a_regra_por_defeito_quando_as_epocas_sao_null():
+    exp = ce.ler(E4_S1)
+    args = {n: a for n, a, _ in ce.comandos(exp, "grelha")}["n_min_10_ep_defeito"]
+    assert "--regra-por-defeito" in args and "--epocas" not in args
+
+
+def test_fase_grelha_tambem_passa_treino_e_validacao():
+    exp = ce.ler(E4_S1)
+    for _, args, _ in ce.comandos(exp, "grelha", treino="t.parquet", validacao="v.parquet"):
+        assert args[args.index("--treino") + 1] == "t.parquet"
+        assert args[args.index("--validacao") + 1] == "v.parquet"
+    for _, args, _ in ce.comandos(exp, "grelha"):
+        assert "--treino" not in args and "--validacao" not in args
+
+
+def test_uma_grelha_so_corre_a_fase_grelha():
+    with pytest.raises(ValueError, match="grelha"):
+        ce.comandos(ce.ler(E4_S1), "alpha")
+
+
+def test_uma_experiencia_em_fases_recusa_a_fase_grelha():
+    with pytest.raises(ValueError, match="grelha"):
+        ce.comandos(ce.ler(E4_S5), "grelha")
+
+
+@pytest.mark.parametrize("velho, novo", [
+    ("n_min: [5, 10, 20]", "n_min: [5, 5, 20]"),               # N repetido
+    ("n_min: [5, 10, 20]", "n_min: []"),                       # lista vazia
+    ("n_min: [5, 10, 20]", "n_min: 10"),                       # escalar onde se espera lista
+    ("tau: [0.0, 0.25, 0.5]", "tau: [-0.25, 0.25]"),           # τ negativo
+    ("alpha: 1.0e-7", "alpha: [1.0e-7]"),                      # alpha tem de ser número, não lista
+    ("epocas: [null, 3, 6, 12, 18, 24]", "epocas: [0, 3]"),    # 0 épocas
+    ("tau: [0.0, 0.25, 0.5]", "tau: [0.0, 0.25, 0.5]\ncurva_epocas: 24"),  # chave a mais numa grelha
+])
+def test_yaml_de_grelha_invalido_da_erro(tmp_path, velho, novo):
+    with pytest.raises(ValueError):
+        ce.ler(escrever(tmp_path, BASE_GRELHA.replace(velho, novo)))
