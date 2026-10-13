@@ -1,0 +1,4 @@
+alpha_1e-07 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 0.5 1 --sem-modelo --n-min 10 --n-jobs 16 --saida metrics/e4_s5/alpha_1e-07
+alpha_1e-08 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-08 --taus 0 0.25 0.5 1 --sem-modelo --n-min 10 --n-jobs 16 --saida metrics/e4_s5/alpha_1e-08
+falharam: nenhum
+FIM

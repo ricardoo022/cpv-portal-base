@@ -13,6 +13,10 @@ de ordenar pela pontuação f(x), ordena-se por f(x) − τ · log(frequência d
 Com τ = 0 não muda nada; com τ > 0 as etiquetas frequentes perdem vantagem. O artigo usa as
 pontuações de um modelo softmax; aqui aplica-se às pontuações do um-contra-todos, uma adaptação.
 
+Épocas (spike E4-S5): por defeito, todas as etiquetas treinam `EPOCAS` épocas, sem paragem
+automática (`max_iter`, `tol=None`). Com `epocas=None` volta a regra de paragem do scikit-learn
+(a perda no treino não desce `tol` × n.º de exemplos em 5 épocas seguidas).
+
 Repetível: a semente é fixa (`SEED`) e os empates na pontuação resolvem-se pelo menor código, por
 isso o mesmo texto dá sempre as mesmas 5 sugestões pela mesma ordem, e dois treinos com os mesmos
 dados dão o mesmo modelo (o `SGDClassifier` tira uma semente por etiqueta antes de dividir o
@@ -38,16 +42,41 @@ SEED = 0
 # mais frequentes.
 ALPHA = 1e-7
 TAU = 0.25
+# Escolhida na validação no spike E4-S5 (notebooks/06_tfidf_epocas.ipynb): 24 épocas fixas batem
+# a regra de paragem por defeito do sklearn. Só foi medida com N = 10 e o treino desde 2022, por
+# isso os spikes que mudam o N ou a janela treinam com a regra por defeito (`epocas=None`). 24 é
+# o extremo da lista testada.
+EPOCAS = 24
 
 
-def train(texto, codigo, n_min=DEFAULT_N_MIN, min_df=2, n_jobs=-1, alpha=ALPHA, **sgd_params):
+def sgd_epochs(epocas):
+    """Parâmetros do `SGDClassifier` para o número de épocas pedido.
+
+    `None`: nenhum, fica a regra por defeito do scikit-learn (`tol=1e-3`, paragem automática).
+    Um inteiro k >= 1: exatamente k épocas para todas as etiquetas (`max_iter=k`, `tol=None`).
+    """
+    if epocas is None:
+        return {}
+    if isinstance(epocas, bool) or not isinstance(epocas, (int, np.integer)) or epocas < 1:
+        raise ValueError(f"epocas tem de ser um inteiro >= 1 (ou None, para a regra por defeito): {epocas!r}")
+    return {"max_iter": int(epocas), "tol": None}
+
+
+def train(texto, codigo, n_min=DEFAULT_N_MIN, min_df=2, n_jobs=-1, alpha=ALPHA, epocas=EPOCAS,
+          **sgd_params):
     """Treina o TF-IDF + classificador com o treino (`texto` e `codigo`, com o mesmo índice).
 
     A etiqueta de cada exemplo é `collapse_rare_codes(codigo, n_min)`; os exemplos que saem (NaN)
-    não entram no treino. `alpha` é a regularização; `sgd_params` vai para o `SGDClassifier`.
+    não entram no treino. `alpha` é a regularização; `epocas` é o número fixo de épocas (por
+    defeito `EPOCAS`; None para a regra de paragem do scikit-learn, `sgd_epochs`); `sgd_params` vai
+    para o `SGDClassifier`. Com `epocas` diferente de None, `sgd_params` não pode trazer `max_iter`
+    nem `tol` (seriam dois sítios a dizer o mesmo).
     Devolve um `Pipeline` com os passos "tfidf" e "clf". O modelo leva consigo o `log_prior_`
     das suas etiquetas (contado só com este treino), para a correção das etiquetas frequentes.
     """
+    if epocas is not None and {"max_iter", "tol"} & set(sgd_params):
+        raise ValueError("`epocas` e `max_iter`/`tol` dizem o mesmo: use só `epocas` (ou epocas=None)")
+    sgd_params = {**sgd_epochs(epocas), **sgd_params}
     if not texto.index.equals(codigo.index):
         raise ValueError("`texto` e `codigo` têm índices diferentes")
     if codigo.str.endswith("000000").any():

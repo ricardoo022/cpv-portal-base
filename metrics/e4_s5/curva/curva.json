@@ -1,0 +1,187 @@
+{
+ "data": "2026-10-12T11:55:35",
+ "alpha": 1e-07,
+ "tau": 0.25,
+ "n_min": 10,
+ "min_df": 2,
+ "epocas": 24,
+ "ficheiros": [
+  "sugestoes_epoca_01.parquet",
+  "sugestoes_epoca_02.parquet",
+  "sugestoes_epoca_03.parquet",
+  "sugestoes_epoca_04.parquet",
+  "sugestoes_epoca_05.parquet",
+  "sugestoes_epoca_06.parquet",
+  "sugestoes_epoca_07.parquet",
+  "sugestoes_epoca_08.parquet",
+  "sugestoes_epoca_09.parquet",
+  "sugestoes_epoca_10.parquet",
+  "sugestoes_epoca_11.parquet",
+  "sugestoes_epoca_12.parquet",
+  "sugestoes_epoca_13.parquet",
+  "sugestoes_epoca_14.parquet",
+  "sugestoes_epoca_15.parquet",
+  "sugestoes_epoca_16.parquet",
+  "sugestoes_epoca_17.parquet",
+  "sugestoes_epoca_18.parquet",
+  "sugestoes_epoca_19.parquet",
+  "sugestoes_epoca_20.parquet",
+  "sugestoes_epoca_21.parquet",
+  "sugestoes_epoca_22.parquet",
+  "sugestoes_epoca_23.parquet",
+  "sugestoes_epoca_24.parquet"
+ ],
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "datas": [
+   "2022-01-01",
+   "2025-09-30"
+  ],
+  "exemplos_usados": 478234,
+  "exemplos_saidos": 150
+ },
+ "validacao": {
+  "ficheiro": "validacao.parquet",
+  "datas": [
+   "2025-10-01",
+   "2025-10-31"
+  ],
+  "contratos": 23945
+ },
+ "etiquetas": 3000,
+ "vocabulario": 402084,
+ "t_final": 11477617.0,
+ "tempo_vetorizar_s": 7.06,
+ "tempos": [
+  {
+   "epoca": 1,
+   "treino_s": 74.42,
+   "sugestoes_s": 26.08
+  },
+  {
+   "epoca": 2,
+   "treino_s": 72.15,
+   "sugestoes_s": 19.68
+  },
+  {
+   "epoca": 3,
+   "treino_s": 70.58,
+   "sugestoes_s": 27.34
+  },
+  {
+   "epoca": 4,
+   "treino_s": 73.21,
+   "sugestoes_s": 19.64
+  },
+  {
+   "epoca": 5,
+   "treino_s": 72.66,
+   "sugestoes_s": 20.19
+  },
+  {
+   "epoca": 6,
+   "treino_s": 75.02,
+   "sugestoes_s": 19.94
+  },
+  {
+   "epoca": 7,
+   "treino_s": 77.08,
+   "sugestoes_s": 26.9
+  },
+  {
+   "epoca": 8,
+   "treino_s": 78.36,
+   "sugestoes_s": 25.92
+  },
+  {
+   "epoca": 9,
+   "treino_s": 72.14,
+   "sugestoes_s": 19.97
+  },
+  {
+   "epoca": 10,
+   "treino_s": 74.2,
+   "sugestoes_s": 25.41
+  },
+  {
+   "epoca": 11,
+   "treino_s": 77.03,
+   "sugestoes_s": 25.21
+  },
+  {
+   "epoca": 12,
+   "treino_s": 75.02,
+   "sugestoes_s": 19.93
+  },
+  {
+   "epoca": 13,
+   "treino_s": 69.35,
+   "sugestoes_s": 19.71
+  },
+  {
+   "epoca": 14,
+   "treino_s": 59.48,
+   "sugestoes_s": 19.78
+  },
+  {
+   "epoca": 15,
+   "treino_s": 62.03,
+   "sugestoes_s": 19.53
+  },
+  {
+   "epoca": 16,
+   "treino_s": 68.8,
+   "sugestoes_s": 19.44
+  },
+  {
+   "epoca": 17,
+   "treino_s": 57.35,
+   "sugestoes_s": 19.44
+  },
+  {
+   "epoca": 18,
+   "treino_s": 52.19,
+   "sugestoes_s": 19.72
+  },
+  {
+   "epoca": 19,
+   "treino_s": 52.65,
+   "sugestoes_s": 19.5
+  },
+  {
+   "epoca": 20,
+   "treino_s": 52.64,
+   "sugestoes_s": 19.44
+  },
+  {
+   "epoca": 21,
+   "treino_s": 51.84,
+   "sugestoes_s": 19.49
+  },
+  {
+   "epoca": 22,
+   "treino_s": 53.77,
+   "sugestoes_s": 19.56
+  },
+  {
+   "epoca": 23,
+   "treino_s": 52.7,
+   "sugestoes_s": 19.49
+  },
+  {
+   "epoca": 24,
+   "treino_s": 52.01,
+   "sugestoes_s": 19.73
+  }
+ ],
+ "pico_rss_mb": 10186,
+ "nucleos": 192,
+ "versoes": {
+  "python": "3.10.12",
+  "sklearn": "1.7.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "pandas": "2.3.3"
+ },
+ "nota": "partial_fit: mesma ordem dos exemplos em todas as épocas; aproximação de fit(max_iter=k, tol=None)"
+}

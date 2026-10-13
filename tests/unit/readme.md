@@ -1,6 +1,6 @@
 # tests/unit/ · testes unitários
 
-Um ficheiro de testes por ficheiro de [`src/`](../../src/).
+Testes a funções de [`src/`](../../src/) e [`scripts/`](../../scripts/).
 
 | Ficheiro | Testa | Atalho |
 |---|---|---|
@@ -10,3 +10,7 @@ Um ficheiro de testes por ficheiro de [`src/`](../../src/).
 | [`test_evaluation.py`](test_evaluation.py) | As notas: acerto no código, na classe e na divisão, top-1 e top-5, F1 macro, contratos só com divisão, medidas hierárquicas. | `make test-avaliacao` |
 | [`test_baselines.py`](test_baselines.py) | A régua: as 5 etiquetas mais frequentes, depois da regra dos códigos raros, empate pelo menor código; a variante que pesa cada exemplo pelo `n_contratos`. | `make test-avaliacao` |
 | [`test_comparison.py`](test_comparison.py) | O bootstrap emparelhado e a regra de escolha entre dois modelos. | `make test-avaliacao` |
+| [`test_tfidf.py`](test_tfidf.py) | Vetorizador TF-IDF, log-odds prior, modelo SGDClassifier, regularização (`alpha`), épocas fixas (`EPOCAS = 24`), e sugestões com correção τ. | `make test-tfidf` |
+| [`test_train_tfidf.py`](test_train_tfidf.py) | Nomes de ficheiros de sugestões por τ (`train_tfidf.py`), parâmetros `sgd_epochs` e validação prévia de argumentos. | `make test-tfidf` |
+| [`test_correr_experiencia.py`](test_correr_experiencia.py) | `scripts/correr_experiencia.py` (E4-S5): o YAML do E4-S5 tem as opções do backlog (escritas à mão no teste); números escritos como texto (`1e-7`), opções repetidas ou chaves erradas dão erro; os comandos de cada fase, do mais demorado ao menos. | `.venv/bin/pytest tests/unit/test_correr_experiencia.py` |
+

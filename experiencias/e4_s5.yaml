@@ -1,0 +1,31 @@
+# Spike E4-S5 (docs/backlog.md): épocas e um alpha mais pequeno no TF-IDF.
+# As opções e a ordem em que se comparam ficam escritas aqui ANTES de correr, e não mudam depois de
+# ver os resultados. O treino no pod (scripts/correr_experiencia.py) e a decisão
+# (notebooks/06_tfidf_epocas.ipynb) leem este ficheiro.
+#
+# Os números escrevem-se com ponto (1.0e-7, não 1e-7): no YAML 1.1, que o PyYAML segue, "1e-7" é
+# lido como texto. O leitor recusa-o, para não passar despercebido.
+
+spike: E4-S5
+n_min: 10
+saida: metrics/e4_s5
+
+# Passo 1, com τ = 0: o candidato compara-se com a opção em vigor (a do E4-S4).
+alpha:
+  em_vigor: 1.0e-7
+  candidatos: [1.0e-8]
+
+# Passo 2, só se o alpha mudar: volta a escolher-se o τ com a lista e a regra do E4-S4, a começar em
+# τ = 0. Se o alpha não mudar, o τ em vigor continua a ser o do E4-S4 (tfidf.TAU = 0.25).
+tau:
+  em_vigor: 0.0
+  candidatos: [0.25, 0.5, 1.0]
+
+# Passo 3, com o alpha e o τ em vigor. null = a regra por defeito do scikit-learn (cada etiqueta para
+# sozinha); os candidatos são um número fixo de épocas, igual para todas as etiquetas.
+epocas:
+  em_vigor: null
+  candidatos: [3, 6, 12, 18, 24]
+
+# Só se mostra (gráfico de 1 a N épocas); não entra na decisão.
+curva_epocas: 24

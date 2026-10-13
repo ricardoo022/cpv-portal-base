@@ -1,0 +1,29 @@
+INICIO curva 11:20:39
+/root/projeto_CPV/.venv/bin/python scripts/curva_epocas.py --alpha 1e-07 --tau 0.25 --epocas 24 --n-min 10 --n-jobs 8 --saida metrics/e4_s5/curva
+vetorizado em 7.1 s: 478234 exemplos, 3000 etiquetas, 402084 termos; validação 23945 contratos
+época 1/24: treino 74.4 s, sugestões 26.1 s, pico RSS 10186 MB
+época 2/24: treino 72.2 s, sugestões 19.7 s, pico RSS 10186 MB
+época 3/24: treino 70.6 s, sugestões 27.3 s, pico RSS 10186 MB
+época 4/24: treino 73.2 s, sugestões 19.6 s, pico RSS 10186 MB
+época 5/24: treino 72.7 s, sugestões 20.2 s, pico RSS 10186 MB
+época 6/24: treino 75.0 s, sugestões 19.9 s, pico RSS 10186 MB
+época 7/24: treino 77.1 s, sugestões 26.9 s, pico RSS 10186 MB
+época 8/24: treino 78.4 s, sugestões 25.9 s, pico RSS 10186 MB
+época 9/24: treino 72.1 s, sugestões 20.0 s, pico RSS 10186 MB
+época 10/24: treino 74.2 s, sugestões 25.4 s, pico RSS 10186 MB
+época 11/24: treino 77.0 s, sugestões 25.2 s, pico RSS 10186 MB
+época 12/24: treino 75.0 s, sugestões 19.9 s, pico RSS 10186 MB
+época 13/24: treino 69.4 s, sugestões 19.7 s, pico RSS 10186 MB
+época 14/24: treino 59.5 s, sugestões 19.8 s, pico RSS 10186 MB
+época 15/24: treino 62.0 s, sugestões 19.5 s, pico RSS 10186 MB
+época 16/24: treino 68.8 s, sugestões 19.4 s, pico RSS 10186 MB
+época 17/24: treino 57.4 s, sugestões 19.4 s, pico RSS 10186 MB
+época 18/24: treino 52.2 s, sugestões 19.7 s, pico RSS 10186 MB
+época 19/24: treino 52.6 s, sugestões 19.5 s, pico RSS 10186 MB
+época 20/24: treino 52.6 s, sugestões 19.4 s, pico RSS 10186 MB
+época 21/24: treino 51.8 s, sugestões 19.5 s, pico RSS 10186 MB
+época 22/24: treino 53.8 s, sugestões 19.6 s, pico RSS 10186 MB
+época 23/24: treino 52.7 s, sugestões 19.5 s, pico RSS 10186 MB
+época 24/24: treino 52.0 s, sugestões 19.7 s, pico RSS 10186 MB
+Gravado: metrics/e4_s5/curva
+FIM curva 11:55:35 codigo=0

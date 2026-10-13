@@ -1,0 +1,12 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (create-pod, get-pod, delete-pod, list-pods) e do cgroup do pod, a 12 de outubro de 2026.",
+ "pods": [
+  {"id": "aoznozf3qt598s", "nome": "cpv-e4-s5", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-12T11:12:10", "apagado_utc": "cerca de 11:56:30",
+   "treinos": "fase alpha 11:15:05-11:19:40 (2 ao mesmo tempo, n_jobs 16); fase epocas 11:20:39-11:55:35 (4 ao mesmo tempo, n_jobs 8); logs pod_*.log",
+   "memory_peak_cgroup_bytes": 36006379520}
+ ],
+ "tipo": "cpu3g (General Purpose)", "processadores": 32, "memoria_gb": 128, "disco_gb": 30,
+ "imagem": "runpod/base:1.0.2-ubuntu2204", "preco_por_hora_usd": 1.28,
+ "tempo_total_aproximado_min": 44, "custo_aproximado_usd": 0.95
+}

@@ -346,6 +346,60 @@ Como ler:
 - **Custo:** os 4 treinos levaram 6 a 8 minutos a vetorizar e treinar, com 6 a 12 épocas (`treino.json`, célula 3 do notebook); com a sugestão, cada um levou 7 a 9 minutos (`metrics/e4_s4/pod_treino*.log`). Com a preparação dos pods, cerca de 40 minutos de pod, perto de 0,21 $ (`metrics/e4_s4/pod_info.json`, escrito à mão a partir das leituras da Runpod).
 - **Ainda não medido com o modelo novo:** as sugestões para as 3 descrições escritas à mão (secção 13) são do modelo do E4-H1. Os treinos deste spike não gravaram o modelo (`--sem-modelo`), por isso o comando de sugestões ainda não correu com o `alpha` e o τ novos.
 
+### 15. Épocas e um `alpha` mais pequeno no TF-IDF (E4-S5)
+
+De [`notebooks/06_tfidf_epocas.ipynb`](../notebooks/06_tfidf_epocas.ipynb), que lê as sugestões gravadas pelos treinos no pod (`metrics/e4_s5/`). **Substitui os números da secção 14**: o modelo por defeito passa a ser o escolhido aqui.
+
+**Porquê:** duas coisas ficaram por medir no E4-S4. O `alpha` 0,0000001 ganhou mas era o extremo da lista testada. E o treino parava sempre pela regra por defeito do scikit-learn: cada um dos ~3 000 classificadores "sim/não" para quando a perda (o erro) **no treino** não desce pelo menos 0,001 × o número de exemplos em 5 épocas seguidas (*paragem automática*). Uma **época** é uma passagem completa por todos os exemplos de treino. Nunca se tinha medido se outro número de épocas dava melhores sugestões na **validação**.
+
+**Como:** as opções e a ordem das comparações foram escritas antes de correr em [`experiencias/e4_s5.yaml`](../experiencias/e4_s5.yaml), que o treino no pod e o notebook leem. Três passos, cada candidato contra a opção em vigor com a regra do E4-T1: (1) `alpha` 0,00000001 contra 0,0000001, com τ = 0; (2) o τ, só se o `alpha` mudasse; (3) um número fixo de épocas, igual para todas as etiquetas e sem paragem automática (3, 6, 12, 18 e 24), contra a regra por defeito.
+
+**Repetível:** o treino com `alpha` = 0,0000001 e a regra por defeito deu sugestões 100% iguais às do E4-S4, nos 4 τ (célula 7 do notebook). Os números da secção 14 confirmam-se.
+
+Resultados na validação (outubro de 2025), N = 10, todos os contratos salvo onde diz "novo":
+
+| `alpha` | τ | Épocas | Top-5 código | Top-5 classe | Top-5 código (novo) | Top-5 classe (novo) | Top-1 código | F1 macro código | 1.ª sugestão na régua |
+|---|---|---|---|---|---|---|---|---|---|
+| 0,0000001 (E4-S4) | 0 | regra por defeito | 76,9% | 82,2% | 73,4% | 79,9% | 57,0% | 0,2417 | 30,7% |
+| 0,0000001 (E4-S4) | 0,25 | regra por defeito | 76,9% | 82,9% | 73,5% | 80,8% | 57,0% | 0,2565 | 28,7% |
+| 0,00000001 | 0 | regra por defeito | 69,4% | 75,8% | 64,9% | 72,7% | 53,1% | 0,2221 | 30,4% |
+| 0,00000001 | 0,25 | regra por defeito | 69,4% | 76,2% | 64,8% | 73,2% | 53,0% | 0,2224 | 28,8% |
+| 0,0000001 | 0,25 | 3 | 74,5% | 81,8% | 70,8% | 79,6% | 55,4% | 0,2446 | 28,0% |
+| 0,0000001 | 0,25 | 6 | 76,8% | 82,7% | 73,3% | 80,5% | 56,5% | 0,2532 | 28,6% |
+| 0,0000001 | 0,25 | 12 | 77,5% | 83,1% | 74,2% | 81,0% | 57,2% | 0,2552 | 28,6% |
+| 0,0000001 | 0,25 | 18 | 77,5% | 83,1% | 74,1% | 81,0% | 57,6% | 0,2552 | 29,0% |
+| **0,0000001** | **0,25** | **24** | **78,3%** | **84,1%** | **75,1%** | **82,2%** | **57,7%** | **0,2568** | **28,9%** |
+| régua | - | - | 26,3% | 15,6% | 23,7% | 14,8% | 13,7% | 0,0001 | 100,0% |
+
+O notebook mostra também o `alpha` 0,00000001 com τ = 0,5 e 1 (mais baixos ainda).
+
+**Escolha, com a regra escrita antes de correr:**
+
+| Comparação | Top-5 código | Top-5 classe | Fica |
+|---|---|---|---|
+| `alpha` 0,0000001 → 0,00000001 (τ = 0) | −7,47 pontos (candidato melhor em 0% das amostras) | −6,41 (0%) | 0,0000001 |
+| τ | não se volta a escolher: o `alpha` não mudou | | 0,25 |
+| regra por defeito → 3 épocas | −2,48 (0%) | −1,12 (0%) | regra por defeito |
+| regra por defeito → 6 épocas | −0,11 (18%: não conta) | −0,21 (5%: não conta) | regra por defeito |
+| regra por defeito → 12 épocas | +0,58 (100%) | +0,19 (94%: não conta) | 12 épocas |
+| 12 → 18 épocas | −0,05 (29%) | +0,02 (59%) | 12 épocas |
+| 12 → 24 épocas | +0,82 (100%) | +0,98 (100%) | **24 épocas** |
+
+Escolhido: **`alpha` = 0,0000001, τ = 0,25 e 24 épocas fixas** (decisão 7 do E4, no `backlog.md`). Na avaliação completa: top-1 na divisão 81,1% e top-5 93,7%; no texto novo, top-1 na divisão 78,3%. Continua a bater a régua nos quatro casos do E4-H1, com o bootstrap (última célula do notebook).
+
+**A curva época a época** (gráfico do notebook, só para ver; não entra na decisão): `scripts/curva_epocas.py` treinou uma época de cada vez e gravou as sugestões depois de cada uma. O top-5 no código completo sobe depressa até à época 6 (65,1% na 1.ª, 76,9% na 6.ª), devagar até à 15.ª (77,7%), e fica entre 77,7% e 77,8% da 15.ª à 24.ª. É uma **aproximação**: nesta curva todas as épocas veem os exemplos pela mesma ordem, e num treino normal a ordem muda de época para época (o script explica porquê). Na época 1 as duas maneiras dão o mesmo modelo (há um teste a isso).
+
+Como ler:
+- **O `alpha` mais pequeno piora muito**, e não é por falta de épocas: com a regra por defeito, o 0,00000001 treinou até 30 épocas (contra 12 do 0,0000001). A busca pelo `alpha` fica fechada **dentro da lista testada**: o 0,0000001 deixou de ser o extremo que ganhou, porque o valor seguinte perde. Mas, como dizia a nota da revisão no backlog, o `alpha` também muda o tamanho do passo (`learning_rate="optimal"`) e o momento em que a paragem automática chega, por isso a comparação mistura os três efeitos. A conclusão é "0,00000001, treinado assim, é pior", não "regularização a menos é pior".
+- **A paragem automática chegava cedo demais, mas pouco.** Treinar todas as etiquetas mais tempo ganha +0,58 pontos (12 épocas) e +1,41 (24 épocas) no código completo sobre a regra por defeito, e +1,2 na classe com 24. É menos do que a mudança do `alpha` no E4-S4 (+33,7). A suspeita da revisão era que as etiquetas raras paravam cedo demais. O F1 macro quase não muda (0,2565 → 0,2568), o que sugere que o ganho **não** vem sobretudo das etiquetas raras. É uma leitura, não uma medição: nenhuma célula mede o ganho por frequência da etiqueta.
+- **Limitação 1: 24 é o extremo da lista.** O mesmo problema do `alpha` no E4-S4: não se sabe se 30 ou 36 épocas seriam melhores. Pela regra escrita antes de correr, não se acrescentaram valores neste spike. A curva aproximada está quase plana da época 15 à 24, o que sugere que o ganho para lá de 24 seria pequeno, mas a curva não é o treino normal.
+- **Limitação 2: o salto das 18 para as 24 épocas pode ser, em parte, sorte do treino.** Os treinos normais dão 77,5% com 12 e com 18 épocas, e 78,3% com 24, enquanto a curva sobe de forma suave e nunca passa de 77,8%. O bootstrap só mede a variação por causa da **amostra de contratos da validação**, com cada modelo fixo; não mede a variação que vem de **treinar** com outra ordem dos exemplos (outra semente). Saber quanto vale essa variação pedia treinar o mesmo modelo com várias sementes, o que não estava no plano. A diferença de 12 para 24 conta no bootstrap (100% das amostras), e a regra escrita aplica-se como está; esta limitação diz que a margem real pode ser menor do que +0,82 pontos.
+- **Só vale para N = 10 e o treino desde 2022.** Um número fixo de épocas não se adapta a mais ou menos dados, ao contrário da regra por defeito. O E4-S1 (N) e o E4-S2 (janela) treinam todas as opções com a regra por defeito (`--regra-por-defeito`), e as épocas voltam a medir-se no fim, com o N e a janela escolhidos.
+- **Custo de treinar.** Com 24 épocas fixas, cada etiqueta treina sempre 24 épocas; com a regra por defeito, a maior parte parava antes (o máximo foi 12). Neste pod, com 4 treinos ao mesmo tempo e 8 processadores cada, o treino de 24 épocas levou 1 581 s a vetorizar e treinar, e o de 12, 821 s (`treino.json`, célula 3 do notebook). O tempo cresce quase em linha com as épocas. Os tempos da regra por defeito (224 s) foram medidos com 2 treinos ao mesmo tempo e 16 processadores, por isso não se comparam diretamente com estes.
+- **Otimista, mas pouco:** o `alpha`, o τ e as épocas foram escolhidos na validação; o teste continua fechado.
+- **Custo do spike:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 44 minutos: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`, escrito à mão a partir das leituras da Runpod). O pico de memória do pod inteiro foi 36,0 GB, com 4 treinos ao mesmo tempo. Mais do que a estimativa do backlog (menos de 0,32 $), porque a curva e os 5 números de épocas somam cerca de 90 épocas de treino; o pod maior custa o mesmo por época e acaba 4 vezes mais depressa.
+- **Ainda não medido com o modelo novo:** o comando de sugestões (secção 13) continua sem ter corrido com o modelo escolhido. Os treinos deste spike também não gravaram o modelo.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):

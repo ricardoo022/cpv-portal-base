@@ -1,0 +1,4 @@
+INICIO epocas_03 11:41:40
+/root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 3 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_03
+Gravado: (sem modelo) e metrics/e4_s5/epocas_03
+FIM epocas_03 11:45:33 codigo=0
