@@ -1,7 +1,8 @@
-"""Testes unitários a scripts/correr_experiencia.py (spike E4-S5): ler o YAML e montar os comandos.
+"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5 e E4-S1): ler o YAML e montar os comandos.
 
-O 1.º teste escreve à mão as opções do `experiencias/e4_s5.yaml`, as do backlog: se alguém mudar
-a lista depois de ver resultados, este teste falha e a mudança tem de ficar explícita.
+Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (modo `fases`) e
+`experiencias/e4_s1.yaml` (modo `grelha`), as do backlog: se alguém mudar uma lista depois de ver
+resultados, o teste falha e a mudança tem de ficar explícita.
 """
 
 import sys
