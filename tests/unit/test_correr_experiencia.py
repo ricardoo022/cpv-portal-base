@@ -1,8 +1,9 @@
-"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5 e E4-S1): ler o YAML e montar os comandos.
+"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5, E4-S1 e E4-S3): ler o YAML e montar os comandos.
 
-Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (modo `fases`) e
-`experiencias/e4_s1.yaml` (modo `grelha`), as do backlog: se alguém mudar uma lista depois de ver
-resultados, o teste falha e a mudança tem de ficar explícita.
+Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (modo `fases`),
+`experiencias/e4_s1.yaml` (modo `grelha`) e `experiencias/e4_s3.yaml` (modo `entidade`), as do
+backlog: se alguém mudar uma lista depois de ver resultados, o teste falha e a mudança tem de ficar
+explícita.
 """
 
 import sys
@@ -16,6 +17,7 @@ import correr_experiencia as ce  # noqa: E402
 
 E4_S5 = RAIZ / "experiencias" / "e4_s5.yaml"
 E4_S1 = RAIZ / "experiencias" / "e4_s1.yaml"
+E4_S3 = RAIZ / "experiencias" / "e4_s3.yaml"
 
 BASE = """spike: X
 n_min: 10
@@ -220,3 +222,64 @@ def test_uma_experiencia_em_fases_recusa_a_fase_grelha():
 def test_yaml_de_grelha_invalido_da_erro(tmp_path, velho, novo):
     with pytest.raises(ValueError):
         ce.ler(escrever(tmp_path, BASE_GRELHA.replace(velho, novo)))
+
+
+# --- Spike E4-S3: a experiência da entidade (modo `entidade`) ---
+
+BASE_ENTIDADE = """spike: X
+saida: metrics/x
+modo: entidade
+n_min: 10
+alpha: 1.0e-7
+epocas: 24
+tau: [0.25]
+com_entidade: {sem_entidade: a, com_entidade: b}
+grupos: [todos, entidades_no_treino, entidades_novas]
+"""
+
+
+def test_o_yaml_do_e4_s3_tem_as_opcoes_do_backlog():
+    # As opções do E4-S3, escritas à mão a partir do backlog e do YAML pré-registado: se alguém as
+    # mudar depois de ver resultados, este teste falha e a mudança tem de ficar explícita.
+    exp = ce.ler(E4_S3)
+    assert exp["modo"] == "entidade"
+    assert exp["n_min"] == 10
+    assert exp["alpha"] == 1e-7
+    assert exp["epocas"] == 24
+    assert exp["tau"] == [0.25]
+    assert exp["saida"] == "metrics/e4_s3"
+    assert exp["com_entidade"] == {"sem_entidade": "metrics/e4_s1/n_min_10_ep_24",
+                                   "com_entidade": "metrics/e4_s3/com_entidade"}
+    assert exp["grupos"] == ["todos", "entidades_no_treino", "entidades_novas"]
+
+
+def test_a_experiencia_da_entidade_nao_corre_pelo_script():
+    # É um só comando (src/train_tfidf.py --com-entidade): o script de experiências não a corre
+    with pytest.raises(ValueError, match="com-entidade"):
+        ce.comandos(ce.ler(E4_S3), "alpha")
+
+
+@pytest.mark.parametrize("velho, novo", [
+    ("tau: [0.25]", "tau: [-0.25]"),                          # τ negativo
+    ("tau: [0.25]", "tau: [0.25, 0.25]"),                     # τ repetido
+    ("tau: [0.25]", "tau: []"),                               # lista vazia
+    ("alpha: 1.0e-7", "alpha: 1e-7"),                         # texto em vez de número
+    ("alpha: 1.0e-7", "alpha: 0.0"),                          # alpha tem de ser > 0
+    ("epocas: 24", "epocas: 0"),                              # 0 épocas
+    ("epocas: 24", "epocas: 2.5"),                            # épocas não inteiras
+    ("n_min: 10", "n_min: 0"),                                # n_min inválido
+    ("com_entidade: {sem_entidade: a, com_entidade: b}", "com_entidade: {sem_entidade: a}"),  # só uma opção
+    ("grupos: [todos, entidades_no_treino, entidades_novas]", "grupos: []"),                  # sem grupos
+    ("grupos: [todos, entidades_no_treino, entidades_novas]", "grupos: [todos, todos]"),      # repetidos
+    ("grupos: [todos, entidades_no_treino, entidades_novas]",
+     "grupos: [todos, entidades_no_treino, entidades_novas]\nextra: 1"),                      # chave a mais
+])
+def test_yaml_da_entidade_invalido_da_erro(tmp_path, velho, novo):
+    with pytest.raises(ValueError):
+        ce.ler(escrever(tmp_path, BASE_ENTIDADE.replace(velho, novo)))
+
+
+def test_yaml_da_entidade_sem_modo_continua_a_ser_fases(tmp_path):
+    # Sem `modo`, o leitor assume `fases` (comportamento antigo): este YAML passa a faltar chaves
+    with pytest.raises(ValueError, match="curva_epocas"):
+        ce.ler(escrever(tmp_path, BASE_ENTIDADE.replace("modo: entidade\n", "")))

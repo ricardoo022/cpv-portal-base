@@ -432,6 +432,35 @@ Como ler:
 - **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, a 1,28 $/h, ligado cerca de 80 minutos (15:36–16:56 UTC; os 18 treinos correram das 15:41 às 16:54), com 4 treinos ao mesmo tempo: cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`, escrito à mão a partir das leituras da Runpod). O N = 5 é o mais pesado (3 848 etiquetas): o treino de 24 épocas levou 2 474 s, contra 1 873 s a N = 10 e 1 287 s a N = 20 (`treino.json`). O pico de memória do pod inteiro foi 29,4 GB de 128.
 - **Otimista, mas pouco:** o N, as épocas e o τ foram escolhidos na validação; o teste continua fechado.
 
+### 17. A entidade compradora no texto do TF-IDF (E4-S3)
+
+De [`notebooks/08_entidade.ipynb`](../notebooks/08_entidade.ipynb), que lê as sugestões sem entidade (o treino N = 10/24 épocas do E4-S1, `metrics/e4_s1/n_min_10_ep_24/`) e com entidade (o treino deste spike, `metrics/e4_s3/com_entidade/`).
+
+**Porquê:** a `adjudicante` (quem compra) já se conhece antes de escolher o CPV, por isso pode entrar no texto de entrada (decisão 7). Pode ajudar (um hospital e uma câmara compram coisas diferentes), mas o modelo pode aprender os hábitos de cada entidade, incluindo os códigos genéricos que ela costuma usar.
+
+**Como:** a entidade junta-se ao início do texto, no formato `entidade | texto`, no treino e na validação (`src/train_tfidf.py --com-entidade`). O resto do treino é igual ao modelo em vigor (N = 10, `alpha` = 0,0000001, 24 épocas, τ = 0,25), para a entidade ser a única diferença. As opções, os três grupos e a regra de escolha foram escritos antes de correr em [`experiencias/e4_s3.yaml`](../experiencias/e4_s3.yaml). Uma entidade da validação "está no treino" se a sua `adjudicante`, com os espaços limpos, aparece no `treino.parquet`.
+
+Resultados na validação (outubro de 2025, 23 945 contratos). A última coluna é a parte das 1.as sugestões ao nível do grupo ou acima (códigos genéricos como `45200000`):
+
+| Grupo | Contratos | Top-5 código (sem → com) | Top-5 classe (sem → com) | Top-1 código (sem → com) | 1.ª sugestão ≤ grupo (sem → com) |
+|---|---|---|---|---|---|
+| todos | 23 945 | 78,35% → 80,76% | 84,11% → 85,48% | 57,66% → 62,51% | 30,57% → 33,13% |
+| entidades no treino | 23 438 | 78,43% → 80,82% | 84,07% → 85,44% | 57,89% → 62,76% | 30,72% → 33,35% |
+| entidades novas | 507 | 71,43% → 75,45% | 86,93% → 89,20% | 37,05% → 40,63% | 23,87% → 22,68% |
+
+**Escolha, com a regra escrita antes de correr:**
+- **Passo 1 (regra do E4-T1, em todos):** ganha o "com entidade": top-5 no código completo +2,41 pontos e na classe +1,37, as duas com uma diferença que conta no bootstrap.
+- **Guarda 1 (não piorar o top-5 no código completo nas entidades novas):** cumpre-se. Até melhora (+4,02 pontos; o "com entidade" vence em 98% das amostras do bootstrap).
+- **Guarda 2 (não aumentar a parte das 1.as sugestões genéricas, em todos):** **falha.** Sobe de 30,57% para 33,13%, e o "com entidade" tem a parte maior em 100% das amostras do bootstrap.
+
+Escolhido: **sem entidade** (decisão 7). O texto de entrada continua o da decisão 5. Como o modelo em vigor não muda, a régua (secção 12) e os resultados do E4-H1 não se recalculam.
+
+Como ler:
+- **A entidade acerta mais, mas apoia-se mais em códigos genéricos.** Nas entidades conhecidas, a parte de 1.as sugestões genéricas sobe; nas entidades novas desce. É o que se esperaria se o modelo copiasse o hábito de cada entidade (por exemplo, "esta câmara regista sempre `45200000`").
+- **Parte do ganho pode vir desse hábito.** Se a entidade regista um código genérico e o contrato da validação também o tem, sugeri-lo conta como acerto. Com estes números não se separa o ganho real do ganho por copiar códigos genéricos. Uma pergunta mais fina (por exemplo, o top-5 só nos contratos com código específico) teria de ser um spike novo, escrito antes de correr; não se fez.
+- **A guarda 2 decide sozinha.** Sem ela, a entidade entrava. Ficou escrita antes de ver os números, por isso a decisão mantém-se.
+- **Custo:** um pod `cpu3m` de 8 processadores e 64 GB, a 0,44 $/h (o `cpu3g` de 0,32 $/h não tinha stock), ligado cerca de 44 minutos: cerca de 0,32 $ (`metrics/e4_s3/pod_info.json`, escrito à mão a partir das leituras da Runpod). O treino levou 1 958 s; pico de memória do processo 10,9 GB (`treino.json`).
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
@@ -451,7 +480,7 @@ Como ler:
 6. Textos repetidos:
    - **No treino:** um só exemplo por texto (o texto de entrada completo da decisão 5), com o código mais comum desse texto. Acaba com as repetições (o modelo deixa de ver "medicamentos" 1 870 vezes) e com as contradições (cada texto tem uma só resposta). Perde 2,2% dos contratos de treino (14 348 no treino final), muitas vezes ruído.
    - **Na validação e no teste:** manter todos os contratos, para o resultado refletir a realidade. Medir também à parte só os contratos com texto que nunca apareceu no treino, para ver se o modelo aprendeu ou só decorou.
-7. A `adjudicante` entra como experiência: treinar com e sem ela e comparar. Pode ajudar (um hospital e uma câmara compram coisas diferentes), mas o modelo pode aprender os hábitos de cada entidade, incluindo os erros, e falhar com entidades que não viu no treino.
+7. A `adjudicante` **não entra** no texto de entrada (fechada no E4-S3, 13 de outubro de 2026, secção 17). Testou-se treinar com e sem ela: com ela, o top-5 no código completo sobe de 78,35% para 80,76%, mas a parte das 1.as sugestões ao nível do grupo ou acima também sobe, de 30,57% para 33,13%, com uma diferença que conta no bootstrap. A regra escrita antes de correr não deixava a entidade entrar nesse caso: o modelo aprende os hábitos de cada entidade, incluindo os códigos genéricos.
 8. Códigos genéricos (secção 9):
    - **No treino:** tirar só os contratos com código ao nível da divisão (17,6% em 2025; 18,8% no treino final) e manter todos os outros. O código ao nível da divisão quase nunca ajuda; os do grupo para baixo muitas vezes são escolhas legítimas. **É uma suposição de produto, não medida:** assume-se que um código de divisão não é uma sugestão útil para o técnico, mesmo quando foi a escolha registada. Custo: o modelo nunca sugere divisões, por isso não pode dar a resposta registada nos contratos que só têm códigos de divisão.
    - **Na avaliação:** cada contrato avalia-se em três medidas. No código completo, uma sugestão só acerta se for igual ao código: se a etiqueta é `33600000` (grupo), só `33600000` acerta, e `33651100` acerta na divisão mas não no código completo. (Mudado a 10 de outubro de 2026. Antes acertava qualquer sugestão começada por `336`, mas isso dava acerto total a uma sugestão mais específica do que o código escolhido, o que a literatura de classificação hierárquica conta como erro, Kosmopoulos et al., 2015. O meio acerto mede-se à parte, com as medidas hierárquicas da E4-T1.) Os contratos que só têm códigos de divisão não contam no código completo (o modelo não os pode acertar, ver acima): avaliam-se na divisão, e a avaliação mostra-os numa linha à parte (`so_divisao`), com quantos são e quantas vezes o modelo acerta a divisão. O acerto na classe (4 dígitos) só se mede nos cerca de 56% de contratos com etiqueta da classe para baixo, e isto tem de ficar dito no relatório final.

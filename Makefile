@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao epocas grelha
+.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao epocas grelha entidade
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -63,3 +63,6 @@ epocas: ## Volta a correr o notebook das épocas e do alpha mais pequeno do TF-I
 
 grelha: ## Volta a correr o notebook da grelha N × épocas × τ do TF-IDF (precisa de metrics/e4_s1/ e de "make preparar")
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 07_tfidf_grelha.ipynb
+
+entidade: ## Volta a correr o notebook da entidade compradora no TF-IDF (precisa de metrics/e4_s1/, metrics/e4_s3/ e de "make preparar")
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 08_entidade.ipynb

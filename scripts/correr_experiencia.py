@@ -4,8 +4,11 @@ O YAML diz que opções se testam e por que ordem se comparam, escrito antes de 
 só lança os treinos (`src/train_tfidf.py` e `scripts/curva_epocas.py`); a decisão faz-se no
 portátil, num notebook, que lê o mesmo YAML com `ler`.
 
-Dois modos, conforme o YAML:
+Três modos, conforme o YAML:
 
+- **entidade** (`modo: entidade`; spike E4-S3): uma só variante do texto de entrada (com ou sem a
+  `adjudicante`) e a forma de comparar. Não se corre por este script: é um único comando
+  (`src/train_tfidf.py --com-entidade`) e a decisão lê o YAML com `ler`, como os outros.
 - **fases** (por defeito; spike E4-S5), com duas fases, porque a 2.ª depende da decisão da 1.ª:
   - `alpha`: um treino por `alpha` (o em vigor e os candidatos), com as épocas em vigor no YAML e
     um ficheiro de sugestões por τ (o em vigor e os candidatos), para o passo 2 não pedir outro treino.
@@ -41,7 +44,10 @@ RAIZ = Path(__file__).resolve().parents[1]
 PY = sys.executable
 OBRIGATORIAS_FASES = {"spike", "saida", "n_min", "alpha", "tau", "epocas", "curva_epocas"}
 OBRIGATORIAS_GRELHA = {"spike", "saida", "n_min", "alpha", "tau", "epocas"}
-MODOS = ("fases", "grelha")
+OBRIGATORIAS_ENTIDADE = {"spike", "saida", "n_min", "alpha", "epocas", "tau", "com_entidade", "grupos"}
+MODOS = ("fases", "grelha", "entidade")
+OBRIGATORIAS = {"fases": OBRIGATORIAS_FASES, "grelha": OBRIGATORIAS_GRELHA,
+                "entidade": OBRIGATORIAS_ENTIDADE}
 
 
 def _numero(valor, onde):
@@ -67,13 +73,15 @@ def _lista(valor, onde):
 
 
 def ler(path):
-    """Lê e valida o YAML de uma experiência (modo `fases` ou `grelha`).
+    """Lê e valida o YAML de uma experiência (modo `fases`, `grelha` ou `entidade`).
 
     `fases` (por defeito, ver `e4_s5.yaml`): dois passos, cada eixo testado na forma
     {"em_vigor": valor, "candidatos": [...]}, com `curva_epocas` obrigatório.
     `grelha` (ver `e4_s1.yaml`): cada eixo é uma lista de valores e testa-se o produto cartesiano;
     `alpha` é um número fixo (não uma lista) e `curva_epocas` não existe. O `modo` é opcional e,
     sem ele, é `fases`.
+    `entidade` (ver `e4_s3.yaml`): uma só variante do texto, com o `n_min`, o `alpha`, as `epocas` e
+    os `tau` fixos, o mapa `com_entidade` (nome -> pasta de cada opção) e os `grupos` da comparação.
     """
     with open(path, encoding="utf-8") as f:
         exp = yaml.safe_load(f)
@@ -82,12 +90,35 @@ def ler(path):
     modo = exp.get("modo", "fases")
     if modo not in MODOS:
         raise ValueError(f"{path}: `modo` tem de ser um de {MODOS}, não {modo!r}")
-    obrigatorias = OBRIGATORIAS_FASES if modo == "fases" else OBRIGATORIAS_GRELHA
+    obrigatorias = OBRIGATORIAS[modo]
     faltam = obrigatorias - set(exp)
     a_mais = set(exp) - (obrigatorias | {"modo"})
     if faltam or a_mais:
         raise ValueError(f"{path}: chaves em falta {sorted(faltam)}, a mais {sorted(a_mais)}")
     out = {"spike": str(exp["spike"]), "saida": str(exp["saida"]), "modo": modo}
+    if modo == "entidade":
+        out["n_min"] = _inteiro_positivo(exp["n_min"], "n_min")
+        out["alpha"] = _numero(exp["alpha"], "alpha")
+        if out["alpha"] <= 0:
+            raise ValueError("alpha tem de ser > 0")
+        ep = exp["epocas"]
+        out["epocas"] = None if ep is None else _inteiro_positivo(ep, "epocas")
+        out["tau"] = [_numero(v, "tau") for v in _lista(exp["tau"], "tau")]
+        if any(t < 0 for t in out["tau"]):
+            raise ValueError("τ tem de ser >= 0")
+        opcoes = exp["com_entidade"]
+        if not isinstance(opcoes, dict) or len(opcoes) < 2:
+            raise ValueError(f"com_entidade: mapa de duas opções (nome -> pasta): {opcoes!r}")
+        out["com_entidade"] = {}
+        for nome, pasta in opcoes.items():
+            if not isinstance(nome, str) or not nome or not isinstance(pasta, str) or not pasta:
+                raise ValueError(f"com_entidade: nome e pasta têm de ser texto não vazio: {nome!r}: {pasta!r}")
+            out["com_entidade"][nome] = pasta
+        grupos = _lista(exp["grupos"], "grupos")
+        if not all(isinstance(g, str) and g for g in grupos):
+            raise ValueError(f"grupos: nomes de grupo (texto não vazio): {grupos!r}")
+        out["grupos"] = grupos
+        return out
     if modo == "grelha":
         out["alpha"] = _numero(exp["alpha"], "alpha")
         if out["alpha"] <= 0:
@@ -153,6 +184,9 @@ def comandos(exp, fase, alpha=None, tau=None, n_jobs=-1, treino=None, validacao=
     `--taus` a lista de τ do YAML (o τ não retreina, só muda as sugestões ao sugerir).
     `treino` e `validacao` são os parquet a usar; sem eles, cada script usa os de `data/processed/`.
     """
+    if exp.get("modo") == "entidade":
+        raise ValueError("a experiência da entidade treina-se com um só comando "
+                         "(src/train_tfidf.py --com-entidade); este script não a corre")
     comum = ["--n-jobs", str(n_jobs)]
     comum += [] if treino is None else ["--treino", str(treino)]
     comum += [] if validacao is None else ["--validacao", str(validacao)]
