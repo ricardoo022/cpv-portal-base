@@ -20,6 +20,9 @@ número. Com `--regra-por-defeito`, cada classificador um-contra-todos para pela
 scikit-learn (a perda no treino não desce `tol` × n.º de exemplos em 5 épocas seguidas): é o que
 usam os spikes que mudam o N ou a janela do treino, onde as 24 épocas não foram medidas.
 
+Entidade (spike E4-S3): `--com-entidade` junta a `adjudicante` ao início do texto de entrada, no
+treino e na validação (`with_entity`). Por defeito o texto é o da decisão 5, sem a entidade.
+
 Corre no pod da Runpod (docs/maquina_runpod.md), não no portátil: o treino completo pede cerca
 de 6 GB e o portátil tem 5,8 GB partilhados com o editor (E4-S0).
 
@@ -84,8 +87,21 @@ def suggestions_file(tau):
     return SUGESTOES if tau == 0 else f"sugestoes_validacao_tau{tau:g}.parquet"
 
 
+def with_entity(texto, adjudicante, sep=" | "):
+    """Junta a entidade (`adjudicante`) ao início do texto de entrada: `entidade | texto`.
+
+    Spike E4-S3: testa se a entidade compradora ajuda o modelo (decisão 7). A `adjudicante` é uma
+    coluna `category`; converte-se para texto e limpa-se como o `build_text` do prepare.py (só os
+    espaços). O `sep` é o mesmo que separa as partes do texto na decisão 5. Se a entidade estiver
+    vazia (ou em falta), fica só o texto. O índice mantém-se, para `tfidf.train` o poder alinhar
+    com o `codigo`.
+    """
+    ent = adjudicante.astype("object").fillna("").str.split().str.join(" ")
+    return texto.where(ent == "", ent + sep + texto)
+
+
 def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min_df=2,
-        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU), epocas=tfidf.EPOCAS, n_jobs=-1):
+        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU), epocas=tfidf.EPOCAS, n_jobs=-1, com_entidade=False):
     """Treina, grava o modelo (se `model_path`), as sugestões da validação e o resumo.
 
     `alpha` é a regularização do `SGDClassifier`; `taus` são os τ da correção das etiquetas
@@ -94,6 +110,9 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     (por defeito `tfidf.EPOCAS`, escolhido no E4-S5), ou None para a regra de paragem por defeito
     do scikit-learn (`tfidf.sgd_epochs`).
     `n_jobs`: núcleos do classificador; não muda o modelo, só o tempo (e a memória).
+    `com_entidade`: junta a `adjudicante` ao início do texto (`with_entity`), no treino e na
+    validação (spike E4-S3). Por defeito False: o texto é o da decisão 5, sem a entidade. Tem de
+    ser igual no treino e na validação, senão o modelo treinava com uma entrada e sugeria com outra.
 
     Devolve o modelo treinado (um Pipeline do sklearn).
     """
@@ -106,20 +125,22 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Treino: só as colunas precisas
-    treino = pd.read_parquet(train_path, columns=["data", "texto", "codigo"])
+    treino = pd.read_parquet(train_path, columns=["data", "texto", "codigo", "adjudicante"]
+                             if com_entidade else ["data", "texto", "codigo"])
     datas_treino = _date_range(treino["data"])
     etiqueta = collapse_rare_codes(treino["codigo"], n_min)  # só para contar; o train refaz-o
     n_usados, n_saidos = int(etiqueta.notna().sum()), int(etiqueta.isna().sum())
     del etiqueta
+    texto_treino = with_entity(treino["texto"], treino["adjudicante"]) if com_entidade else treino["texto"]
 
     with warnings.catch_warnings(record=True) as avisos:
         warnings.simplefilter("always", ConvergenceWarning)
         t0 = time.perf_counter()
-        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha,
+        model = tfidf.train(texto_treino, treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha,
                             n_jobs=n_jobs, epocas=epocas)
         t_treinar = time.perf_counter() - t0
     convergiu = not any(issubclass(w.category, ConvergenceWarning) for w in avisos)
-    del treino  # o texto do treino já não é preciso; liberta memória antes da validação
+    del treino, texto_treino  # o texto do treino já não é preciso; liberta memória antes da validação
 
     # 2. Modelo
     if model_path is not None:
@@ -128,10 +149,12 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
         joblib.dump(model, model_path)
 
     # 3. Sugestões para a validação, pela ordem do ficheiro
-    val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto"])
+    val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto", "adjudicante"]
+                          if com_entidade else ["idcontrato", "data", "texto"])
     datas_val = _date_range(val["data"])
+    texto_val = with_entity(val["texto"], val["adjudicante"]) if com_entidade else val["texto"]
     t0 = time.perf_counter()
-    por_tau = tfidf.suggest_many(model, val["texto"], taus)
+    por_tau = tfidf.suggest_many(model, texto_val, taus)
     t_sugerir = time.perf_counter() - t0
     ids = val["idcontrato"].astype(str).to_numpy()
     for tau, sugestoes in por_tau.items():
@@ -146,6 +169,7 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
         "min_df": min_df,
         "alpha": clf.alpha,
         "taus": list(taus),
+        "com_entidade": bool(com_entidade),  # spike E4-S3: texto com a adjudicante junta?
         # Que τ tem cada ficheiro de sugestões, e qual é o do modelo por defeito (`tfidf.TAU`).
         # O nome principal é o de τ = 0, por isso quem avalia o modelo escolhido lê este campo.
         "ficheiros": {suggestions_file(t): t for t in taus},
@@ -193,10 +217,12 @@ def main():
     epocas.add_argument("--regra-por-defeito", action="store_true",
                         help="em vez de épocas fixas, a regra de paragem do scikit-learn (tol=1e-3)")
     p.add_argument("--n-jobs", type=int, default=-1, help="núcleos do classificador (-1: todos)")
+    p.add_argument("--com-entidade", action="store_true",
+                   help="junta a adjudicante ao início do texto, no treino e na validação (spike E4-S3)")
     a = p.parse_args()
     modelo = None if a.sem_modelo else (a.modelo or str(RAIZ / "models" / f"tfidf_n{a.n_min}.joblib"))
     run(a.treino, a.validacao, a.saida, model_path=modelo, n_min=a.n_min, alpha=a.alpha, taus=a.taus,
-        epocas=None if a.regra_por_defeito else a.epocas, n_jobs=a.n_jobs)
+        epocas=None if a.regra_por_defeito else a.epocas, n_jobs=a.n_jobs, com_entidade=a.com_entidade)
     print("Gravado:", modelo or "(sem modelo)", "e", a.saida)
 
 

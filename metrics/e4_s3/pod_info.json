@@ -1,0 +1,13 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (list-cpu-types, create-pod, get-pod, delete-pod, list-pods) e do treino.json do treino, a 13 de outubro de 2026. Não há pico do cgroup no fim: a última leitura (durante o treino) foi 6804 MB e o pod foi apagado antes de o ler outra vez; o pico de memória do processo, esse, ficou no treino.json.",
+ "pods": [
+  {"id": "u44ig3d0gey29e", "nome": "cpv-e4-s3", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-13T19:52:09", "apagado_utc": "2026-10-13T20:36:14",
+   "treinos": "um só treino com entidade (--com-entidade), 20:01:02-20:34:05 UTC; log pod_ensaio.log",
+   "memory_peak_rss_mb_treino_json": 10871}
+ ],
+ "tipo": "cpu3m (Memory-Optimized)", "processadores": 8, "memoria_gb": 64, "disco_gb": 20,
+ "imagem": "runpod/base:1.0.2-ubuntu2204", "preco_por_hora_usd": 0.44,
+ "tempo_total_aproximado_min": 44, "custo_aproximado_usd": 0.32,
+ "nota_do_tipo": "O cpu3g (General Purpose) a 8 processadores, 0,32 $/h, não tinha stock em EU-CZ-1 nem EUR-IS-1 (create-pod devolveu 400). O cpu3m (Memory-Optimized) a 8 processadores, 0,44 $/h, colocou em EU-RO-1. Tem 64 GB em vez dos 32 GB; o pico de memória do processo foi 10,9 GB (treino.json), por isso o cpu3g teria chegado."
+}

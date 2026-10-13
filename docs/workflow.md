@@ -52,6 +52,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Testes unitários e de integração (`.venv/bin/pytest`), verificados com erros introduzidos de propósito.
 - [x] Regra para os códigos raros: sobem para a classe ou o grupo (`src/labels.py`, decisão 9 de [`qualidade_dados.md`](qualidade_dados.md)).
 - [x] Escolher o N (5, 10 ou 20) com o TF-IDF na validação, numa grelha com as épocas e o τ (spike E4-S1): fica N = 10, o valor por defeito ([`qualidade_dados.md`](qualidade_dados.md), secção 16).
+- [x] Testar a entidade compradora (`adjudicante`) no texto de entrada com o TF-IDF (spike E4-S3): não entra. Acerta mais, mas aumenta as 1.as sugestões genéricas, e a regra escrita antes de correr proibia isso ([`qualidade_dados.md`](qualidade_dados.md), secção 17, decisão 7).
 
 ## 4. Modelar
 

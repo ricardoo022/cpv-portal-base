@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5 e E4-S1 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1 e E4-S3 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -510,6 +510,8 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 - a decisão 7 fechada no `qualidade_dados.md`;
 - se a entidade entrar, a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se.
 
+**Feito** (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S3.md`](prs/pr_E4-S3.md). A entidade **não entra**: ganha no top-5 (80,76% contra 78,35% no código completo) e não piora nas entidades novas, mas aumenta a parte das 1.as sugestões ao nível do grupo ou acima (33,13% contra 30,57%), e a regra escrita antes de correr proibia isso. A tabela dos três grupos está no [`notebooks/08_entidade.ipynb`](../notebooks/08_entidade.ipynb) e na secção 17 do [`qualidade_dados.md`](qualidade_dados.md); a decisão 7 está fechada. Como o modelo em vigor não muda, a régua e o E4-H1 não se recalculam.
+
 ### E4-T4 · Tarefa: escolher a data de início do treino na preparação (P)
 
 **Porque é precisa:** hoje o treino começa sempre em janeiro de 2022. O E4-S2 precisa de preparar treinos com outras datas de início.
@@ -565,7 +567,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5 e o E4-S1 estão feitos. Seguem-se o E4-S3 (a entidade, que usa o N = 10 do E4-S1) e o E4-T4 (a data de início na preparação, que desbloqueia o E4-S2); o E4-T5 não depende de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1 e o E4-S3 estão feitos (a entidade não entra). Segue-se o E4-T4 (a data de início na preparação, que desbloqueia o E4-S2); o E4-T5 não depende de mais nada.
 - O E4-S1 testa o N, as épocas e o τ numa só grelha, porque interagem (ver o E4-S1). O E4-S2 continua a treinar com a regra por defeito das épocas: a janela muda a quantidade de dados e um número fixo de épocas não se adapta (as épocas voltam a medir-se no fim, para o N e a janela escolhidos).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.

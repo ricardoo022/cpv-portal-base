@@ -1,0 +1,44 @@
+# Spike E4-S3 (docs/backlog.md): a entidade compradora (`adjudicante`) ajuda o modelo?
+# As opções e a forma de decidir ficam escritas aqui ANTES de correr, e não mudam depois de ver os
+# resultados. A decisão (notebooks/08_entidade.ipynb) lê este ficheiro.
+#
+# NÃO é uma grelha de hiperparâmetros (como o E4-S1/E4-S5): é uma única variante do texto de
+# entrada — juntar a `adjudicante` ao início do texto (`with_entity` em src/train_tfidf.py). Por
+# isso não usa o scripts/correr_experiencia.py; o treino no pod é um só comando
+# (src/train_tfidf.py --com-entidade ...), com a configuração abaixo.
+#
+# O "sem entidade" NÃO se volta a treinar: é exatamente o modelo do E4-S1 (N = 10, 24 épocas,
+# τ = 0,25), já treinado e provado reproduzível (deu sugestões 100% iguais às do E4-S5).
+# Reusá-lo poupa um treino e mantém a comparação limpa: as duas opções leem os mesmos
+# treino.parquet/validacao.parquet e só diferem na entidade.
+#
+# Os números escrevem-se com ponto (1.0e-7, não 1e-7): no YAML 1.1, que o PyYAML segue, "1e-7" é
+# lido como texto.
+
+spike: E4-S3
+saida: metrics/e4_s3
+modo: entidade
+
+# A única coisa que muda entre as duas opções: o texto leva a `adjudicante` junta ao início?
+com_entidade:
+  sem_entidade: metrics/e4_s1/n_min_10_ep_24   # já treinado no E4-S1 (a opção por defeito)
+  com_entidade: metrics/e4_s3/com_entidade     # o treino novo deste spike
+
+# A configuração do treino "com entidade": a mesma do modelo em vigor (N, α, épocas e τ do
+# E4-S1/S5), para a entidade ser a única diferença. τ = 0,25 é o decidido no E4-S4; a decisão usa
+# só esse, por isso grava-se um só ficheiro (sugestoes_validacao_tau0.25.parquet).
+n_min: 10
+alpha: 1.0e-7
+epocas: 24
+tau: [0.25]
+
+# Os três grupos da validação em que se compara (a entidade de um contrato "está no treino" se a
+# sua `adjudicante` limpa aparecer nas `adjudicante` do treino.parquet):
+grupos: [todos, entidades_no_treino, entidades_novas]
+
+# Regra de escolha (escrita antes de correr, a do backlog):
+# 1. a regra de comparação do E4-T1 em "todos", com "sem entidade" por defeito (é mais simples);
+# 2. a entidade só entra se, além de ganhar no passo 1, as duas guardas se cumprirem:
+#    - não piorar o top-5 no código completo nos contratos de entidades novas;
+#    - não aumentar a parte das 1.ªs sugestões ao nível do grupo ou acima (nível <= 3), em "todos".
+# Em ambas, "piorar"/"aumentar" = uma diferença que conta no bootstrap emparelhado (95%).

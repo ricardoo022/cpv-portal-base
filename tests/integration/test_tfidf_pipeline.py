@@ -132,7 +132,7 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
     with open(treinado["saida"] / tt.RESUMO, encoding="utf-8") as f:
         resumo = json.load(f)
     assert set(resumo) == {
-        "data", "n_min", "min_df", "alpha", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
+        "data", "n_min", "min_df", "alpha", "taus", "com_entidade", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
         "etiquetas", "vocabulario", "epocas", "tol", "max_iter", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
         "tempo_sugerir_s", "pico_rss_mb", "nucleos", "versoes", "coef_bytes"}
     tr = treinado["treino_df"]
@@ -482,3 +482,69 @@ def test_treino_minusculo_com_epocas_fixas_acerta_todos_os_textos_no_top_1(tmp_p
     top1 = tt.tfidf.suggest(model, treino_df["texto"], tau=0.0).str[0]
     errados = top1[top1 != treino_df["codigo"]]
     assert errados.empty, f"top-1 errado em {len(errados)} de {len(treino_df)} textos: {errados.to_dict()}"
+
+
+# --- Spike E4-S3: a entidade compradora (`--com-entidade`) ---
+
+def test_com_entidade_junta_a_adjudicante_no_treino_e_nas_sugestoes(treinado, tmp_path, monkeypatch):
+    # A entidade tem de entrar dos dois lados pelo mesmo caminho: treinar com uma entrada e sugerir
+    # com outra faria o modelo pontuar texto que nunca viu.
+    textos = {}
+    treina_orig, sugere_orig = tt.tfidf.train, tt.tfidf.suggest_many
+
+    def treina(texto, codigo, **kw):
+        textos["treino"] = list(texto)
+        return treina_orig(texto, codigo, **kw)
+
+    def sugere(model, valores, taus, **kw):
+        textos["validacao"] = list(valores)
+        return sugere_orig(model, valores, taus, **kw)
+
+    monkeypatch.setattr(tt.tfidf, "train", treina)
+    monkeypatch.setattr(tt.tfidf, "suggest_many", sugere)
+    tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=N_MIN, min_df=1,
+           com_entidade=True, n_jobs=1)
+    tr, val = treinado["treino_df"], treinado["val_df"]
+    assert textos["treino"] == tt.with_entity(tr["texto"], tr["adjudicante"]).tolist()
+    assert textos["validacao"] == tt.with_entity(val["texto"], val["adjudicante"]).tolist()
+    # Pré-condições: a entidade está mesmo junta, e não é vazia nos dois conjuntos
+    assert textos["treino"] != tr["texto"].tolist()
+    assert textos["validacao"] != val["texto"].tolist()
+
+
+def test_com_entidade_entra_no_vocabulario_e_no_resumo_e_por_defeito_nao(treinado, tmp_path):
+    assert _resumo(treinado["saida"])["com_entidade"] is False  # o treino por defeito (decisão 5)
+    assert "entidade" not in treinado["model"].named_steps["tfidf"].vocabulary_
+    saida = tmp_path / "saida"
+    model = tt.run(treinado["treino"], treinado["validacao"], saida, n_min=N_MIN, min_df=1,
+                   com_entidade=True, n_jobs=1)
+    vocab = model.named_steps["tfidf"].vocabulary_
+    # "entidade" e o nº só vêm da adjudicante ("500000000 - Entidade"), que nenhum texto traz
+    assert "entidade" in vocab and "500000000" in vocab
+    resumo = _resumo(saida)
+    assert resumo["com_entidade"] is True
+    assert resumo["validacao"]["contratos"] == len(VALIDACAO)
+
+
+def test_com_entidade_sem_a_coluna_adjudicante_da_erro_e_nao_grava_nada(treinado, tmp_path):
+    # O texto com a entidade precisa da coluna; o erro tem de vir antes de haver sugestões gravadas
+    for nome in ("treino", "validacao"):
+        pd.read_parquet(treinado[nome]).drop(columns=["adjudicante"]).to_parquet(
+            tmp_path / f"{nome}.parquet", index=False)
+    with pytest.raises(Exception, match="adjudicante"):
+        tt.run(tmp_path / "treino.parquet", tmp_path / "validacao.parquet", tmp_path / "saida",
+               n_min=N_MIN, min_df=1, com_entidade=True, n_jobs=1)
+    assert not (tmp_path / "saida" / tt.SUGESTOES).exists()
+
+
+def test_por_defeito_a_coluna_adjudicante_nao_e_precisa(treinado, tmp_path):
+    # O texto da decisão 5 não usa a entidade: tem de treinar com ficheiros sem a coluna
+    for nome in ("treino", "validacao"):
+        pd.read_parquet(treinado[nome]).drop(columns=["adjudicante"]).to_parquet(
+            tmp_path / f"{nome}.parquet", index=False)
+    saida = tmp_path / "saida"
+    model = tt.run(tmp_path / "treino.parquet", tmp_path / "validacao.parquet", saida,
+                   n_min=N_MIN, min_df=1, n_jobs=1)
+    assert "entidade" not in model.named_steps["tfidf"].vocabulary_
+    assert _resumo(saida)["com_entidade"] is False
+    assert len(pd.read_parquet(saida / tt.SUGESTOES)) == len(VALIDACAO)
