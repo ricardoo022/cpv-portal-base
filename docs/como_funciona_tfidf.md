@@ -52,7 +52,7 @@ No modelo de brincar, o vocabulário (as palavras que o modelo conhece) só tem 
 
 O TF-IDF **não sabe nada de códigos CPV**. Só descreve o texto.
 
-No código é a peça `"tfidf"` (`TfidfVectorizer`) em `src/tfidf.py:57`.
+No código é a peça `"tfidf"` (`TfidfVectorizer`) em `src/tfidf.py:93`.
 
 ---
 
@@ -87,7 +87,7 @@ Pesos do modelo de brincar, já treinado (a secção 6 mostra de onde vêm):
 
 (As palavras que valem 0 no texto não contam na conta, porque 0 × peso = 0. Por isso não pus os pesos delas.)
 
-No código é a peça `"clf"` (`SGDClassifier`) em `src/tfidf.py:58`. Os pesos estão no atributo `coef_`.
+No código é a peça `"clf"` (`SGDClassifier`) em `src/tfidf.py:94`. Os pesos estão no atributo `coef_`.
 
 ---
 
@@ -103,7 +103,7 @@ No código é a peça `"clf"` (`SGDClassifier`) em `src/tfidf.py:58`. Os pesos e
 
 (O modelo real soma ainda um número fixo por classificador, o **intercepto**. Fica de fora para as contas serem curtas.)
 
-No código: `model.decision_function(...)`, `src/tfidf.py:108`.
+No código: `model.decision_function(...)`, `src/tfidf.py:151`.
 
 ### Conta 2: a sigmoide põe a pontuação entre 0 e 1
 
@@ -128,7 +128,7 @@ Ordenam-se os códigos do número maior para o menor e ficam os primeiros 5 (aqu
 
 O modelo **dá sempre 5 sugestões**, mesmo que todos os classificadores digam "não": nesse caso sugere os 5 que disseram "não" com menos força. Nunca responde "não sei".
 
-No código: `top_k`, `src/tfidf.py:66`. Em caso de empate, ganha o menor código.
+No código: `top_k`, `src/tfidf.py:103`. Em caso de empate, ganha o menor código.
 
 ---
 
@@ -196,7 +196,7 @@ Passar uma vez por todos os exemplos chama-se uma **época**. O treino faz vári
 - **`log_loss`**: a medida de erro que o treino tenta baixar. Com ela, o classificador é uma **regressão logística** (pesos + soma + sigmoide).
 - **O TF-IDF também aprende no treino**: é dos textos de treino que tira o vocabulário e a importância de cada palavra. Por isso a validação e o teste nunca entram no treino.
 
-No código, o treino todo é uma linha: `model.fit(...)`, `src/tfidf.py:60`. Primeiro o TF-IDF aprende o vocabulário e transforma os textos em números; depois o classificador corrige os pesos.
+No código, o treino todo é uma linha: `model.fit(...)`, `src/tfidf.py:96`. Primeiro o TF-IDF aprende o vocabulário e transforma os textos em números; depois o classificador corrige os pesos.
 
 ---
 
@@ -212,15 +212,15 @@ No código, o treino todo é uma linha: `model.fit(...)`, `src/tfidf.py:60`. Pri
 | épocas | 1 | **6** (`n_iter`) |
 | pesos | 4 × 3 = 12 | 402 084 × 3 000 ≈ 1 200 milhões, ocupam **4 825 008 000 bytes** (`coef_bytes`), cerca de 4,8 GB |
 
-Antes do treino, os códigos com menos de 10 exemplos são trocados por um código mais geral (a classe ou o grupo), porque o modelo aprende mal com tão poucos exemplos. É o `collapse_rare_codes` (`src/labels.py`), chamado em `src/tfidf.py:50`.
+Antes do treino, os códigos com menos de 10 exemplos são trocados por um código mais geral (a classe ou o grupo), porque o modelo aprende mal com tão poucos exemplos. É o `collapse_rare_codes` (`src/labels.py`), chamado em `src/tfidf.py:85`.
 
 ---
 
 ## 8. Onde vive o modelo
 
-1. O `src/train_tfidf.py` corre **no pod da Runpod**. O treino é a linha 106 (`tfidf.train(...)`).
-2. O modelo treinado, com todos os pesos, é gravado em `models/tfidf_n10.joblib` no disco do pod (linha 116, `joblib.dump`).
-3. Ainda no pod, o modelo sugere 5 códigos para cada contrato da validação. O resultado vai para `metrics/e4_h1/sugestoes_validacao.parquet` (linhas 121-127).
+1. O `src/train_tfidf.py` corre **no pod da Runpod**. O treino é a linha 118 (`tfidf.train(...)`).
+2. O modelo treinado, com todos os pesos, é gravado em `models/tfidf_n10.joblib` no disco do pod (linha 128, `joblib.dump`).
+3. Ainda no pod, o modelo sugere 5 códigos para cada contrato da validação. O resultado vai para `metrics/e4_h1/sugestoes_validacao.parquet` (linhas 134-139).
 4. Para o portátil só vêm os resultados (`sugestoes_validacao.parquet`, `treino.json`, `sugestoes_exemplos.txt`). O modelo (4,8 GB) não cabe na memória do portátil.
 5. No portátil, o `notebooks/04_tfidf.ipynb` compara as sugestões com os códigos certos e com a régua.
 
@@ -247,7 +247,7 @@ flowchart TD
         B2["5.4 TF-IDF aprende o vocabulário<br/>palavras e pares em 2 ou mais contratos: 402 084"]
         B3["5.5 TF-IDF transforma cada texto<br/>em 402 084 números"]
         B4["5.6 classificador: 3 000 listas de pesos, todas a 0"]
-        B5["5.7 FASE 1, treinar: model.fit, 12 épocas<br/>conta → compara com o certo → corrige os pesos<br/>+ alpha puxa os pesos para 0"]
+        B5["5.7 FASE 1, treinar: model.fit, 24 épocas<br/>conta → compara com o certo → corrige os pesos<br/>+ alpha puxa os pesos para 0"]
         B6["5.8 frequência de cada etiqueta, para o τ"]
         B7[("5.9 models/tfidf_n10.joblib<br/>4,8 GB, fica no pod")]
         B8["5.10 FASE 2, sugerir: decision_function<br/>texto → 3 000 pontuações<br/>− τ · log frequência → 5 maiores"]
@@ -257,7 +257,7 @@ flowchart TD
     end
 
     subgraph C["C. Avaliar (portátil)"]
-        C1["7. notebooks/05_tfidf_afinacao.ipynb<br/>5 sugestões vs. código certo<br/>top-5 no código completo: 76,9%"]
+        C1["7. notebooks/06_tfidf_epocas.ipynb<br/>5 sugestões vs. código certo<br/>top-5 no código completo: 78,3%"]
     end
 
     TR -- "4. copiar" --> B1
@@ -267,7 +267,7 @@ flowchart TD
     TE -. nunca entra .-x B1
 ```
 
-O treino propriamente dito vai do 5.3 ao 5.9 (as secções 3 e 6 explicam o 5.4 a 5.7, e a secção 5 o 5.10): o que vem antes prepara os dados e o que vem depois usa e avalia o modelo. O modelo do E4-H1 (`alpha` = 0,0001, secção 7) parou ao fim de 6 épocas; com o `alpha` do E4-S4, mais fraco, o treino faz 12 antes de parar.
+O treino propriamente dito vai do 5.3 ao 5.9 (as secções 3 e 6 explicam o 5.4 a 5.7, e a secção 5 o 5.10): o que vem antes prepara os dados e o que vem depois usa e avalia o modelo. O modelo do E4-H1 (`alpha` = 0,0001, secção 7) parou ao fim de 6 épocas; com o `alpha` do E4-S4, mais fraco, o treino fazia 12 antes de parar. Desde o E4-S5 não para sozinho: cada um dos 3 000 classificadores treina sempre 24 épocas (`EPOCAS` em `src/tfidf.py`), que deu melhores sugestões na validação do que deixar o scikit-learn parar quando o erro no treino deixa de descer (secção 15 do `qualidade_dados.md`).
 
 Na palavra "pipeline" há dois sentidos: o `Pipeline` do scikit-learn são as duas peças do modelo (TF-IDF + classificador); "o pipeline" no `CLAUDE.md` é este caminho todo, dos dados à avaliação.
 
@@ -275,7 +275,7 @@ Na palavra "pipeline" há dois sentidos: o `Pipeline` do scikit-learn são as du
 
 ## 9. A "probabilidade" em `sugestoes_exemplos.txt`
 
-O `src/suggest.py` escreve ao lado de cada sugestão um número que chama "probabilidade". Sai de `model.predict_proba(...)` (`src/suggest.py:34`), que faz isto:
+O `src/suggest.py` escreve ao lado de cada sugestão um número que chama "probabilidade". Sai de `model.predict_proba(...)` (`src/suggest.py:36`), que faz isto:
 
 1. calcula o número entre 0 e 1 de **cada** classificador (secção 5, conta 2);
 2. divide cada um pela **soma de todos**, para que somem 1.

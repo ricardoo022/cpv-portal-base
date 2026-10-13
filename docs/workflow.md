@@ -63,7 +63,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Medir o custo de um treino do TF-IDF numa máquina alugada (spike E4-S0): com o treino completo, 8 a 10 minutos e 6 a 7 GB de memória num pod da Runpod com 32 GB, a 0,32 $/h. Guia da máquina em [`maquina_runpod.md`](maquina_runpod.md).
 - [x] Baseline: TF-IDF com regressão logística (treinada com o `SGDClassifier(loss="log_loss")`, decisão 5 do E4), num pod da Runpod com 32 GB de memória (história E4-H1). Na validação, top-5 de 43,2% no código completo e 37,9% na classe, contra 26,3% e 15,6% da régua ([`qualidade_dados.md`](qualidade_dados.md), secção 13).
 - [x] Afinar o TF-IDF (spike E4-S4): `alpha` = 0,0000001 e correção das etiquetas frequentes com τ = 0,25. Na validação, top-5 de 76,9% no código completo e 82,9% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 14).
-- [ ] Afinar as épocas do TF-IDF e testar um `alpha` mais pequeno (spike E4-S5): medir a validação época a época, em vez de parar só pelo erro no treino.
+- [x] Afinar as épocas do TF-IDF e testar um `alpha` mais pequeno (spike E4-S5): o `alpha` 0,00000001 perde; ganham 24 épocas fixas. Na validação, top-5 de 78,3% no código completo e 84,1% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 15).
 - [ ] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação.
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.

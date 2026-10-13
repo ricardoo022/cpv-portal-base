@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4 e E4-T3 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3 e E4-S5 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -404,7 +404,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - [x] Os testes correm no CI em menos de 1 minuto, sem dados reais.
 - [x] Cada teste falha quando se estraga de propósito o que ele guarda.
 
-### E4-S5 · Spike: épocas e um `alpha` mais pequeno no TF-IDF (timebox: 1 dia)
+### E4-S5 · Spike: épocas e um `alpha` mais pequeno no TF-IDF (timebox: 1 dia, feito)
 
 **Porque é precisa:** o TF-IDF vai ser a régua do BERTimbau e do Albertina. Ficaram duas coisas por medir que podem mudar o seu resultado:
 
@@ -441,11 +441,22 @@ As duas fazem-se numa só ida ao pod.
 - **se o timebox de 1 dia acabar a meio**, o passo 1 (`alpha`) e o 2 (τ) têm prioridade; as épocas ficam escritas como por medir;
 - o custo em tempo de pod e em dólares (estimativa antes de correr: menos de 1 hora a 0,32 $/h, não medida).
 
+**Feito** no PR #17 (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S5.md`](prs/pr_E4-S5.md). A tabela, as comparações e a curva estão na secção 15 do [`qualidade_dados.md`](qualidade_dados.md), calculadas com o [`notebooks/06_tfidf_epocas.ipynb`](../notebooks/06_tfidf_epocas.ipynb); os ficheiros dos treinos no pod estão em `metrics/e4_s5/`.
+
+- **As opções foram escritas antes de correr num ficheiro**, [`experiencias/e4_s5.yaml`](../experiencias/e4_s5.yaml), que o treino no pod ([`scripts/correr_experiencia.py`](../scripts/correr_experiencia.py)) e o notebook leem. Um teste escreve à mão a lista do backlog e falha se o YAML mudar.
+- **Repetível:** a regra por defeito, repetida, deu sugestões 100% iguais às do E4-S4, nos 4 τ.
+- **Passo 1:** o `alpha` 0,00000001 perde (−7,5 pontos no top-5 do código completo, −6,4 na classe); fica o 0,0000001, que deixa de estar no extremo da lista. **Passo 2** não se fez (o `alpha` não mudou); o τ fica 0,25.
+- **Passo 3:** ganharam **24 épocas fixas** (regra por defeito → 12 → 24). Na validação, top-5 de 78,3% no código completo e 84,1% na classe (E4-S4: 76,9% e 82,9%); 75,1% e 82,2% no texto novo. Continua a bater a régua nos quatro casos.
+- **Duas limitações escritas na secção 15:** 24 é o extremo da lista (não se acrescentaram valores, como a regra dizia); e o bootstrap não mede a variação entre treinos com outra semente, por isso parte do ganho de 18 para 24 épocas pode ser sorte do treino.
+- **O valor por defeito do treino muda:** `EPOCAS = 24` em `src/tfidf.py`, ao lado do `ALPHA` e do `TAU`. Para treinar com a regra por defeito do scikit-learn, como o E4-S1 e o E4-S2 vão fazer, usa-se `--regra-por-defeito` (ou `epocas=None`).
+- **A curva época a época** (aproximação, só para ver) fica quase plana da época 15 à 24.
+- **Custo:** um pod `cpu3g` de 32 processadores, 4 treinos ao mesmo tempo, cerca de 44 minutos a 1,28 $/h: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`).
+
 ### E4-S1 · Spike: que N usar nos códigos raros? (timebox: 1 dia)
 
 **Pergunta:** com N = 5, 10 ou 20 (decisão 9), qual dá melhor resultado na validação?
 
-**Depende de:** E4-H1 e E4-S5 (usa o `alpha` e o τ escolhidos, e a regra por defeito das épocas).
+**Depende de:** E4-H1 e E4-S5 (usa o `alpha` e o τ escolhidos, e a regra por defeito das épocas: `--regra-por-defeito`).
 
 **Regra de escolha:** a regra de comparação do E4-T1, escrita antes de se verem os resultados, para os resultados não a influenciarem. A opção por defeito, em caso de empate, é N = 10.
 
@@ -535,7 +546,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4 e o E4-T3 estão feitos. Segue-se o E4-S5, depois o E4-S1 (com o `alpha` e o τ do E4-S5); o E4-T5 e o E4-T4 não dependem de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3 e o E4-S5 estão feitos. Segue-se o E4-S1 (com o `alpha` e o τ do E4-S5 e a regra por defeito das épocas); o E4-T5 e o E4-T4 não dependem de mais nada.
 - O E4-S1 e o E4-S2 treinam com a regra por defeito das épocas, mesmo que o E4-S5 escolha um número fixo (ver o E4-S5).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
@@ -548,6 +559,8 @@ E4-T4 ────────────────────────�
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
 5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade e ficou confirmada no E4-H1, porque bateu a régua na validação (secção 13 do `qualidade_dados.md`). Ver o E4-S0.
 6. **Regularização e correção das etiquetas frequentes do TF-IDF** (11 de outubro de 2026, spike E4-S4): `alpha` = 0,0000001 (em vez do valor por defeito do scikit-learn, 0,0001) e τ = 0,25. Escolhidos na validação com a regra do E4-T1, escrita antes de correr. O `alpha` 0,0000001 foi acrescentado à lista depois de ver os resultados, porque o 0,000001 ganhou e era o extremo da lista. O 0,0000001 voltou a ganhar e continua no extremo; o 0,00000001 não foi testado (limitação escrita na secção 14 do `qualidade_dados.md`).
+
+7. **Épocas do TF-IDF** (12 de outubro de 2026, spike E4-S5): 24 épocas fixas, iguais para todas as etiquetas, sem a paragem automática do scikit-learn (`EPOCAS = 24` em `src/tfidf.py`). O `alpha` e o τ da decisão 6 mantêm-se: o `alpha` 0,00000001 perdeu. Escolhidos na validação com a regra do E4-T1 e a lista escrita antes de correr (`experiencias/e4_s5.yaml`). Só vale para N = 10 e o treino desde 2022: o E4-S1 e o E4-S2 comparam as suas opções com a regra por defeito, e as épocas voltam a medir-se no fim. 24 é o extremo da lista testada (limitação escrita na secção 15 do `qualidade_dados.md`).
 
 ### Decisões pendentes do E4
 

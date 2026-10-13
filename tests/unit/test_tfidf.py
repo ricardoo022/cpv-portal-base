@@ -266,6 +266,37 @@ def test_train_usa_o_alpha_escolhido_por_defeito(modelo):
     assert tfidf.train(texto, codigo, n_min=N, min_df=1, alpha=1e-3).named_steps["clf"].alpha == 1e-3
 
 
+def test_train_usa_as_epocas_escolhidas_por_defeito(modelo):
+    # E4-S5: 24 épocas fixas para todas as etiquetas, sem paragem automática
+    assert tfidf.EPOCAS == 24
+    clf = modelo.named_steps["clf"]
+    assert clf.n_iter_ == tfidf.EPOCAS and clf.max_iter == tfidf.EPOCAS and clf.tol is None
+
+
+def test_train_sem_epocas_volta_a_regra_de_paragem_do_sklearn():
+    # epocas=None: a regra de antes do E4-S5, que os spikes que mudam o N ou a janela usam
+    texto, codigo = treino()
+    clf = tfidf.train(texto, codigo, n_min=N, min_df=1, epocas=None).named_steps["clf"]
+    assert clf.tol == 1e-3 and clf.max_iter == 1000
+    assert clf.n_iter_ < tfidf.EPOCAS  # pré-condição: aqui a regra para antes das 24 épocas
+
+
+@pytest.mark.parametrize("extra", [{"max_iter": 5}, {"tol": None}, {"max_iter": 5, "tol": None}])
+def test_train_com_epocas_e_max_iter_ou_tol_da_erro(extra):
+    # Dois sítios a dizer quantas épocas: um deles seria ignorado em silêncio
+    texto, codigo = treino()
+    with pytest.raises(ValueError, match="epocas"):
+        tfidf.train(texto, codigo, n_min=N, min_df=1, **extra)
+    with pytest.raises(ValueError, match="epocas"):
+        tfidf.train(texto, codigo, n_min=N, min_df=1, epocas=3, **extra)
+
+
+def test_train_sem_epocas_aceita_max_iter_e_tol():
+    texto, codigo = treino()
+    clf = tfidf.train(texto, codigo, n_min=N, min_df=1, epocas=None, max_iter=2, tol=None).named_steps["clf"]
+    assert clf.n_iter_ == 2
+
+
 def test_prior_com_tamanho_errado_da_erro(modelo):
     with pytest.raises(ValueError, match="uma entrada por etiqueta"):
         tfidf.suggest(modelo, ["estrada"], tau=0.5, prior=np.zeros(2))

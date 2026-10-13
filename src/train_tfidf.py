@@ -12,15 +12,23 @@ Lê só o treino e a validação, por caminhos explícitos; recusa um ficheiro c
    Com vários τ (`--taus`, spike E4-S4), grava também um ficheiro por τ diferente de 0
    (`sugestoes_validacao_tau0.5.parquet`, ...), com a correção das etiquetas frequentes;
 4. grava `treino.json` com o que é preciso para repetir e comparar o treino (datas, N, tamanho
-   do vocabulário, tempos, memória, versões).
+   do vocabulário, épocas, tempos, memória, versões).
+
+Épocas (spike E4-S5): por defeito, todas as etiquetas treinam exatamente `tfidf.EPOCAS` épocas
+(24, escolhidas no E4-S5), sem paragem automática (`max_iter`, `tol=None`); `--epocas K` muda o
+número. Com `--regra-por-defeito`, cada classificador um-contra-todos para pela regra do
+scikit-learn (a perda no treino não desce `tol` × n.º de exemplos em 5 épocas seguidas): é o que
+usam os spikes que mudam o N ou a janela do treino, onde as 24 épocas não foram medidas.
 
 Corre no pod da Runpod (docs/maquina_runpod.md), não no portátil: o treino completo pede cerca
 de 6 GB e o portátil tem 5,8 GB partilhados com o editor (E4-S0).
 
 Exemplo (da raiz do projeto):
     .venv/bin/python src/train_tfidf.py --n-min 10
-    .venv/bin/python src/train_tfidf.py --alpha 1e-5 --taus 0 0.25 0.5 1 --sem-modelo \
-        --saida metrics/e4_s4/alpha_1e-5
+    .venv/bin/python src/train_tfidf.py --alpha 1e-5 --taus 0 0.25 0.5 1 --regra-por-defeito \
+        --sem-modelo --saida metrics/e4_s4/alpha_1e-5
+    .venv/bin/python src/train_tfidf.py --epocas 12 --sem-modelo --n-jobs 8 \
+        --saida metrics/e4_s5/epocas_12
 """
 
 import argparse
@@ -77,12 +85,15 @@ def suggestions_file(tau):
 
 
 def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min_df=2,
-        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU)):
+        alpha=tfidf.ALPHA, taus=(0.0, tfidf.TAU), epocas=tfidf.EPOCAS, n_jobs=-1):
     """Treina, grava o modelo (se `model_path`), as sugestões da validação e o resumo.
 
     `alpha` é a regularização do `SGDClassifier`; `taus` são os τ da correção das etiquetas
     frequentes, um ficheiro de sugestões por τ. Por defeito, os valores escolhidos no E4-S4, e
-    também τ = 0 (sem correção), para comparar.
+    também τ = 0 (sem correção), para comparar. `epocas`: k épocas fixas para todas as etiquetas
+    (por defeito `tfidf.EPOCAS`, escolhido no E4-S5), ou None para a regra de paragem por defeito
+    do scikit-learn (`tfidf.sgd_epochs`).
+    `n_jobs`: núcleos do classificador; não muda o modelo, só o tempo (e a memória).
 
     Devolve o modelo treinado (um Pipeline do sklearn).
     """
@@ -90,6 +101,7 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
 
     check_not_test(train_path)
     check_not_test(val_path)
+    tfidf.sgd_epochs(epocas)  # épocas inválidas dão erro aqui, antes de ler os ficheiros
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -103,7 +115,8 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     with warnings.catch_warnings(record=True) as avisos:
         warnings.simplefilter("always", ConvergenceWarning)
         t0 = time.perf_counter()
-        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha)
+        model = tfidf.train(treino["texto"], treino["codigo"], n_min=n_min, min_df=min_df, alpha=alpha,
+                            n_jobs=n_jobs, epocas=epocas)
         t_treinar = time.perf_counter() - t0
     convergiu = not any(issubclass(w.category, ConvergenceWarning) for w in avisos)
     del treino  # o texto do treino já não é preciso; liberta memória antes da validação
@@ -143,6 +156,10 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
         "exemplos_saidos": n_saidos,
         "etiquetas": int(len(clf.classes_)),
         "vocabulario": int(len(vec.vocabulary_)),
+        # Épocas pedidas (None: regra por defeito) e o que o classificador usou de facto
+        "epocas": None if epocas is None else int(epocas),
+        "tol": clf.tol,
+        "max_iter": clf.max_iter,
         "n_iter": np.atleast_1d(clf.n_iter_).tolist(),
         "convergiu": convergiu,
         "tempo_vetorizar_treinar_s": round(t_treinar, 2),
@@ -169,9 +186,17 @@ def main():
     p.add_argument("--alpha", type=float, default=tfidf.ALPHA, help="regularização (por defeito a do E4-S4)")
     p.add_argument("--taus", type=float, nargs="+", default=[0.0, tfidf.TAU],
                    help="τ da correção das etiquetas frequentes; um ficheiro de sugestões por τ")
+    epocas = p.add_mutually_exclusive_group()
+    epocas.add_argument("--epocas", type=int, default=tfidf.EPOCAS,
+                        help="épocas fixas para todas as etiquetas, sem paragem automática "
+                             f"(por defeito {tfidf.EPOCAS}, as do E4-S5)")
+    epocas.add_argument("--regra-por-defeito", action="store_true",
+                        help="em vez de épocas fixas, a regra de paragem do scikit-learn (tol=1e-3)")
+    p.add_argument("--n-jobs", type=int, default=-1, help="núcleos do classificador (-1: todos)")
     a = p.parse_args()
     modelo = None if a.sem_modelo else (a.modelo or str(RAIZ / "models" / f"tfidf_n{a.n_min}.joblib"))
-    run(a.treino, a.validacao, a.saida, model_path=modelo, n_min=a.n_min, alpha=a.alpha, taus=a.taus)
+    run(a.treino, a.validacao, a.saida, model_path=modelo, n_min=a.n_min, alpha=a.alpha, taus=a.taus,
+        epocas=None if a.regra_por_defeito else a.epocas, n_jobs=a.n_jobs)
     print("Gravado:", modelo or "(sem modelo)", "e", a.saida)
 
 

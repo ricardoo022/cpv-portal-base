@@ -1,0 +1,8 @@
+curva : /root/projeto_CPV/.venv/bin/python scripts/curva_epocas.py --alpha 1e-07 --tau 0.25 --epocas 24 --n-min 10 --n-jobs 8 --saida metrics/e4_s5/curva
+epocas_24 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 24 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_24
+epocas_18 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 18 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_18
+epocas_12 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 12 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_12
+epocas_06 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 6 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_06
+epocas_03 : /root/projeto_CPV/.venv/bin/python src/train_tfidf.py --alpha 1e-07 --taus 0 0.25 --epocas 3 --sem-modelo --n-min 10 --n-jobs 8 --saida metrics/e4_s5/epocas_03
+falharam: nenhum
+FIM

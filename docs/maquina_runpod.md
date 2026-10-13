@@ -35,6 +35,8 @@ O pod do ensaio:
 
 Outros tipos só com CPU, se for preciso mais memória: `cpu3m` (Memory-Optimized, 8 GB por processador, 0,055 $ por processador por hora; 8 processadores dão 64 GB por 0,44 $/h).
 
+**Vários treinos de uma vez** (E4-S5, 12 de outubro de 2026): o mesmo `cpu3g` com 32 processadores dá 128 GB por 1,28 $/h (0,04 $ por processador por hora, lido no catálogo e no campo `cost` do pod). O preço por processador é o mesmo, por isso 4 treinos de 8 processadores ao mesmo tempo custam o mesmo que 4 treinos seguidos num pod de 8, e acabam 4 vezes mais depressa. O `scripts/correr_experiencia.py` lança-os (`--paralelo 4 --n-jobs 8`), com um log por treino. Com 4 treinos ao mesmo tempo, o pico de memória do pod foi 36,0 GB (`metrics/e4_s5/pod_info.json`). Cada treino recebeu um `n_jobs` explícito, para os 4 dividirem os 32 processadores; não se mediu o que faria o `n_jobs=-1` com vários treinos ao mesmo tempo. Em EU-RO-1, o SSH direto respondeu à primeira.
+
 No E4-H1 (11 de outubro de 2026), um pod em EU-SE-1 recebeu IP e porta de SSH direto, mas a porta nunca respondeu (ligação esgotada, *timeout*, durante 4 minutos), enquanto o portátil chegava a outros servidores. Apagou-se e criou-se outro em US-NC-1, que funcionou. Se o SSH direto não responder 2 a 3 minutos depois de aparecer, o mais barato é apagar o pod e criá-lo noutro centro de dados.
 
 Depois de criado, o pod aparece como `RUNNING` logo, mas o **SSH direto** (`ssh.direct`, com IP e porta públicos) só aparece cerca de 1 minuto depois. Até lá só há o SSH por intermediário (`@ssh.runpod.io`), que **não serve**: não deixa correr comandos sem terminal interativo nem copiar ficheiros. O IP e a porta mudam sempre que o pod é recriado ou reiniciado.

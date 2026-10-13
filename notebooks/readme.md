@@ -12,5 +12,6 @@ Correm com `notebooks/` como pasta de trabalho (acrescentam `../src` ao caminho 
 | [`03_regua.ipynb`](03_regua.ipynb) | Quanto acerta a régua "códigos mais comuns" na validação (E4-T2). Lê o treino e a validação, por isso precisa de `make preparar` antes. | secção 12 |
 | [`04_tfidf.ipynb`](04_tfidf.ipynb) | Quanto acerta o TF-IDF na validação, comparado com a régua (E4-H1). Lê as sugestões gravadas pelo treino no pod (`metrics/e4_h1/`), o treino e a validação. | secção 13 |
 | [`05_tfidf_afinacao.ipynb`](05_tfidf_afinacao.ipynb) | Que `alpha` (regularização) e que τ (correção das etiquetas frequentes) usar no TF-IDF (E4-S4). Lê as sugestões dos treinos no pod (`metrics/e4_s4/`), o treino e a validação. | secção 14 |
+| [`06_tfidf_epocas.ipynb`](06_tfidf_epocas.ipynb) | Um `alpha` mais pequeno e quantas épocas treinar o TF-IDF (E4-S5), com a curva do top-5 época a época. Lê as opções de `experiencias/e4_s5.yaml`, as sugestões dos treinos no pod (`metrics/e4_s5/`), o treino e a validação. | secção 15 |
 
-Voltar a correr o 01: `make notebook`. O 03: `make regua`. O 04: `make tfidf` (cerca de 5 minutos, quase tudo no bootstrap). O 05: `make afinacao`.
+Voltar a correr o 01: `make notebook`. O 03: `make regua`. O 04: `make tfidf` (cerca de 5 minutos, quase tudo no bootstrap). O 05: `make afinacao`. O 06: `make epocas`.

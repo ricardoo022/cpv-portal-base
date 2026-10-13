@@ -133,7 +133,7 @@ def test_treino_json_tem_as_chaves_esperadas(treinado):
         resumo = json.load(f)
     assert set(resumo) == {
         "data", "n_min", "min_df", "alpha", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino", "validacao", "exemplos_usados", "exemplos_saidos",
-        "etiquetas", "vocabulario", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
+        "etiquetas", "vocabulario", "epocas", "tol", "max_iter", "n_iter", "convergiu", "tempo_vetorizar_treinar_s",
         "tempo_sugerir_s", "pico_rss_mb", "nucleos", "versoes", "coef_bytes"}
     tr = treinado["treino_df"]
     assert resumo["n_min"] == N_MIN and resumo["min_df"] == 1
@@ -340,5 +340,145 @@ def test_treino_minusculo_pelo_pipeline_acerta_todos_os_textos_no_top_1(tmp_path
     assert (treino_df["codigos"] != treino_df["codigo"]).all()
     # τ = 0: ordem só pela pontuação; com τ > 0 a correção das etiquetas frequentes mexia na ordem
     top1 = tt.tfidf.suggest(joblib.load(modelo), treino_df["texto"], tau=0.0).str[0]
+    errados = top1[top1 != treino_df["codigo"]]
+    assert errados.empty, f"top-1 errado em {len(errados)} de {len(treino_df)} textos: {errados.to_dict()}"
+
+
+# --- Spike E4-S5: número fixo de épocas, sem paragem automática ---
+
+def _resumo(pasta):
+    with open(Path(pasta) / tt.RESUMO, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_treino_por_defeito_grava_as_epocas_escolhidas_no_e4_s5(treinado):
+    # Sem `epocas`, o treino usa as épocas fixas escolhidas no E4-S5, sem paragem automática
+    resumo = _resumo(treinado["saida"])
+    assert resumo["epocas"] == tt.tfidf.EPOCAS
+    assert resumo["tol"] is None
+    assert resumo["max_iter"] == tt.tfidf.EPOCAS
+    assert resumo["n_iter"] == [tt.tfidf.EPOCAS]
+    clf = treinado["model"].named_steps["clf"]
+    assert clf.tol is None and clf.max_iter == clf.n_iter_ == tt.tfidf.EPOCAS
+
+
+def test_epocas_none_grava_a_regra_de_paragem_do_sklearn(treinado, tmp_path):
+    # epocas=None: o treino de antes do E4-S5, tol = 1e-3 e paragem automática
+    model = tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=N_MIN, min_df=1,
+                   epocas=None, n_jobs=1)
+    resumo = _resumo(tmp_path)
+    assert resumo["epocas"] is None
+    assert resumo["tol"] == 0.001
+    assert resumo["max_iter"] == 1000
+    clf = model.named_steps["clf"]
+    assert clf.tol == 1e-3 and clf.max_iter == 1000
+
+
+@pytest.mark.parametrize("epocas", [3, 12])
+def test_epocas_fixas_treinam_exatamente_essas_epocas(treinado, tmp_path, epocas):
+    model = tt.run(treinado["treino"], treinado["validacao"], tmp_path, n_min=N_MIN, min_df=1,
+                   epocas=epocas, n_jobs=1)
+    resumo = _resumo(tmp_path)
+    assert resumo["epocas"] == epocas
+    assert resumo["tol"] is None  # sem paragem automática
+    assert resumo["max_iter"] == epocas
+    # O n_iter do sklearn é o máximo das etiquetas; com tol = None todas correm as k épocas
+    assert resumo["n_iter"] == [epocas]
+    assert resumo["convergiu"] is True  # sem tol, o sklearn não avisa de falta de convergência
+    clf = model.named_steps["clf"]
+    assert clf.tol is None and clf.max_iter == epocas and clf.n_iter_ == epocas
+    # As épocas fixas não mexem no resto: o alpha continua o do E4-S4
+    assert clf.alpha == resumo["alpha"] == tt.tfidf.ALPHA
+
+
+def test_comando_de_treino_com_epocas_e_n_jobs(treinado, tmp_path):
+    saida = tmp_path / "saida"
+    subprocess.run([sys.executable, str(Path(tt.__file__)), "--treino", str(treinado["treino"]),
+                    "--validacao", str(treinado["validacao"]), "--n-min", "5", "--saida", str(saida),
+                    "--sem-modelo", "--epocas", "4", "--n-jobs", "2"],
+                   capture_output=True, text=True, check=True)
+    resumo = _resumo(saida)
+    assert resumo["epocas"] == 4 and resumo["tol"] is None and resumo["max_iter"] == 4
+    assert resumo["n_iter"] == [4]
+    assert (saida / tt.SUGESTOES).exists()
+
+
+@pytest.mark.parametrize("args, esperado", [
+    ([], {"epocas": tt.tfidf.EPOCAS, "n_jobs": -1}),
+    (["--epocas", "12", "--n-jobs", "8"], {"epocas": 12, "n_jobs": 8}),
+    (["--regra-por-defeito"], {"epocas": None, "n_jobs": -1}),
+])
+def test_comando_de_treino_passa_epocas_e_n_jobs_ao_run(monkeypatch, tmp_path, args, esperado):
+    # O n_jobs não fica no treino.json: verifica-se o que o comando entrega ao `run`
+    recebido = {}
+    monkeypatch.setattr(tt, "run", lambda *a, **kw: recebido.update(kw))
+    monkeypatch.setattr(sys, "argv", ["train_tfidf.py", "--sem-modelo", "--saida", str(tmp_path), *args])
+    tt.main()
+    assert {k: recebido[k] for k in esperado} == esperado
+
+
+@pytest.mark.parametrize("args, epocas, tol", [
+    ([], tt.tfidf.EPOCAS, None),               # sem --epocas: as do E4-S5
+    (["--regra-por-defeito"], None, 0.001),    # a regra de paragem do sklearn
+])
+def test_comando_de_treino_grava_as_epocas_por_defeito_ou_a_regra_do_sklearn(treinado, tmp_path,
+                                                                             args, epocas, tol):
+    saida = tmp_path / "saida"
+    subprocess.run([sys.executable, str(Path(tt.__file__)), "--treino", str(treinado["treino"]),
+                    "--validacao", str(treinado["validacao"]), "--n-min", "5", "--saida", str(saida),
+                    "--sem-modelo", "--n-jobs", "1", *args],
+                   capture_output=True, text=True, check=True)
+    resumo = _resumo(saida)
+    assert resumo["epocas"] == epocas and resumo["tol"] == tol
+    if epocas is None:
+        assert resumo["max_iter"] == 1000
+    else:
+        assert resumo["max_iter"] == epocas and resumo["n_iter"] == [epocas]
+
+
+def test_comando_de_treino_com_epocas_e_regra_por_defeito_juntos_da_erro(tmp_path):
+    # Dizem coisas contrárias: o argparse recusa antes de ler qualquer ficheiro. O treino e a
+    # validação apontam para ficheiros que não existem: se o argparse aceitasse, o comando falhava
+    # na leitura, em vez de treinar com os dados reais de data/processed/ (que não cabem no portátil).
+    r = subprocess.run([sys.executable, str(Path(tt.__file__)), "--saida", str(tmp_path / "saida"),
+                        "--treino", str(tmp_path / "treino.parquet"),
+                        "--validacao", str(tmp_path / "validacao.parquet"),
+                        "--sem-modelo", "--epocas", "3", "--regra-por-defeito"],
+                       capture_output=True, text=True)
+    assert r.returncode == 2
+    assert "not allowed with argument" in r.stderr
+    assert not (tmp_path / "saida").exists()
+
+
+def test_n_jobs_nao_muda_o_modelo_com_epocas_fixas(treinado, tmp_path):
+    # No pod correm vários treinos ao mesmo tempo, cada um com menos núcleos: o modelo é o mesmo
+    m1 = tt.run(treinado["treino"], treinado["validacao"], tmp_path / "a", n_min=N_MIN, min_df=1,
+                epocas=5, n_jobs=1)
+    m2 = tt.run(treinado["treino"], treinado["validacao"], tmp_path / "b", n_min=N_MIN, min_df=1,
+                epocas=5, n_jobs=2)
+    np.testing.assert_array_equal(m1.named_steps["clf"].coef_, m2.named_steps["clf"].coef_)
+    # e o n_jobs pedido chega mesmo ao classificador
+    assert (m1.named_steps["clf"].n_jobs, m2.named_steps["clf"].n_jobs) == (1, 2)
+
+
+@pytest.mark.parametrize("epocas", [3, 24])
+def test_treino_minusculo_com_epocas_fixas_acerta_todos_os_textos_no_top_1(tmp_path, run_pipeline,
+                                                                           temas_decorar, epocas):
+    # O mesmo espírito do teste do E4-T3 acima, mas pelo caminho das épocas fixas: textos bem
+    # distintos, N = 1 e a regularização fraca do modelo; o top-1 de cada texto do treino tem de
+    # ser a sua etiqueta. Guarda a ligação textos-etiquetas e o alpha neste caminho, não o número
+    # de épocas certo (passa com qualquer k).
+    treino = [(2024, f"d-{c}-{i}", datetime(2024, 3, 1), t, None, None, f"{c}-0 - Tema")
+              for c, textos in temas_decorar.items() for i, t in enumerate(textos)]
+    outros = [(2025, "v-1", datetime(2025, 10, 2), "Papel e canetas", None, None, "30192000-0 - Papel"),
+              (2025, "t-1", datetime(2025, 11, 5), "Papel novo", None, None, "30192000-0 - Papel")]
+    run_pipeline(tmp_path, treino + outros)
+    out = tmp_path / "out"
+    model = tt.run(out / "treino.parquet", out / "validacao.parquet", tmp_path / "metrics",
+                   n_min=1, min_df=1, epocas=epocas, n_jobs=1)
+    treino_df = pd.read_parquet(out / "treino.parquet")
+    assert len(treino_df) == len(treino)  # pré-condição: a preparação não juntou textos
+    assert model.named_steps["clf"].n_iter_ == epocas
+    top1 = tt.tfidf.suggest(model, treino_df["texto"], tau=0.0).str[0]
     errados = top1[top1 != treino_df["codigo"]]
     assert errados.empty, f"top-1 errado em {len(errados)} de {len(treino_df)} textos: {errados.to_dict()}"
