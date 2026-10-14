@@ -66,6 +66,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Afinar o TF-IDF (spike E4-S4): `alpha` = 0,0000001 e correção das etiquetas frequentes com τ = 0,25. Na validação, top-5 de 76,9% no código completo e 82,9% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 14).
 - [x] Afinar as épocas do TF-IDF e testar um `alpha` mais pequeno (spike E4-S5): o `alpha` 0,00000001 perde; ganham 24 épocas fixas. Na validação, top-5 de 78,3% no código completo e 84,1% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 15).
 - [x] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação. Fica desde 2022 (E4-S2 e E4-S6, secções 18 e 19 do `qualidade_dados.md`).
+- [x] Medir o comprimento dos textos em *tokens* com o tokenizador de cada modelo (E5-T1): 256 *tokens* para o BERTimbau e para o Albertina ([`qualidade_dados.md`](qualidade_dados.md), secção 20).
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
 - [ ] Uma grelha de hiperparâmetros para cada um (taxa de aprendizagem × N × épocas × τ, 9 treinos por modelo), registados em MLflow (E5-S1 no [`backlog.md`](backlog.md)).
 - [ ] Escolher o melhor de cada pela validação.
