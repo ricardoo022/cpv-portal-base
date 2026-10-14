@@ -22,7 +22,7 @@ make test-unit | test-integracao | test-preparacao | test-avaliacao | test-tfidf
 .venv/bin/pytest tests/unit/test_prepare.py::test_build_train_empate_fica_o_menor_codigo   # one test
 .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/01_exploracao.ipynb  # run from repo root
 make portao PASTA=metrics/tfidf | historico | mlflow   # quality gate on a training run's suggestions; MLflow UI on localhost:5000
-make notebook | regua | tfidf | afinacao | epocas | grelha | entidade | janela | janela-24   # re-run notebooks 01, 03-10 (need data/processed/ and the frozen metrics/)
+make notebook | regua | tfidf | afinacao | epocas | grelha | entidade | janela | janela-24 | tokens   # re-run notebooks 01, 03-11 (need data/processed/ and the frozen metrics/)
 ```
 
 `pyproject.toml` puts `src/` on the pytest path, so tests `import prepare` etc. directly. Tests marked `data` (`tests/integration/test_*_dados_reais.py`) read the real `data/processed/` files and skip when they are absent (as in CI); they never read `teste.parquet`.

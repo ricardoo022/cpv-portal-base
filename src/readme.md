@@ -17,6 +17,7 @@ data/raw/*.xlsx → convert_to_parquet.py → prepare.py → treino / validaçã
 | [`evaluation.py`](evaluation.py) | Dá nota às 5 sugestões de um modelo: top-1, top-5 e F1 macro no código completo, na classe e na divisão, e as medidas hierárquicas. | é importado |
 | [`baselines.py`](baselines.py) | Régua "códigos mais comuns": sugere sempre as 5 etiquetas mais frequentes do treino, sem ler o texto. É o mínimo que qualquer modelo tem de bater. | é importado |
 | [`comparison.py`](comparison.py) | Decide entre dois modelos: bootstrap emparelhado e a regra de escolha do E4. | é importado |
+| [`bert_models.py`](bert_models.py) | Os dois modelos do E5: o nome no Hugging Face, a revisão fixa e o comprimento máximo em *tokens* escolhido no notebook 11 (E5-T1). O treino lê-os daqui. | é importado |
 | [`model_gate.py`](model_gate.py) | Portão de qualidade (E4-T5): avalia na validação as sugestões de um treino e só o aceita como campeão (`metrics/validacao.json`) se nenhum top-5 descer face ao campeão anterior. Regista cada avaliação no MLflow (`mlflow.db`). | `make portao PASTA=...`, `make mlflow` |
 
 Testes destes ficheiros: [`tests/`](../tests/).
