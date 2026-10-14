@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3, E4-T4, E4-S2 e E4-S6 feitos) |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em escrita (os treinos em GPU só começam depois do E4-S2) |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | por começar |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -30,6 +30,9 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - **Tunar (fine-tuning):** pegar num modelo que já sabe português e continuar a treiná-lo com os nossos contratos, para uma tarefa específica (aqui, escolher o CPV).
 - **Token:** o pedaço de texto que o BERT lê. As palavras raras partem-se em vários pedaços: "nitrilo" pode dar `nit` + `##rilo`. Cada modelo tem o seu vocabulário, por isso o mesmo texto pode dar números de *tokens* diferentes.
 - **Comprimento máximo:** o número de *tokens* que o modelo lê de cada texto; o resto é cortado. O BERTimbau e o Albertina leem no máximo 512. Quanto maior, mais tempo de GPU custa cada treino.
+- **Taxa de aprendizagem:** o tamanho do passo com que os pesos do modelo mudam em cada lote. Grande demais, o modelo tunado perde o que já sabia; pequena demais, aprende pouco.
+- **Semente aleatória:** o número que fixa as escolhas "à sorte" de um treino (a ordem dos exemplos, os pesos iniciais). Com a mesma semente, o mesmo treino dá o mesmo resultado.
+- **MLflow:** um caderno de registo dos treinos. Guarda os parâmetros e as métricas de cada treino e mostra-os lado a lado numa página no browser.
 
 **Porque há poucas user stories nos E1 a E3:** quase todo esse trabalho é sobre dados e testes, que nenhum técnico vê. Por isso são tarefas técnicas e spikes, não histórias. Chamar história a tudo é um erro comum: esconde que o utilizador ainda não recebeu nada. A primeira capacidade para o técnico é a história E4-H1.
 
@@ -599,13 +602,20 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 
 **Depende de:** E4-H1. Os valores guardados atualizam-se depois do E4-S1 e do E4-S2.
 
+**Mudado a 14 de outubro de 2026:** a referência do portão deixou de ser a régua e passou a ser **o melhor modelo até agora** (o campeão), porque a régua já está batida por muito. É o padrão campeão / desafiante do guia de MLOps da Google e do passo *Evaluator* do TFX: um modelo novo só é aceite se não ficar abaixo do que já está em uso. A comparação e o registo usam o MLflow (decisão 8 do E4).
+
 **Critérios de aceitação:**
 
-- [ ] As métricas da validação do TF-IDF e da régua ficam guardadas no git, num ficheiro pequeno. Cada bloco de métricas diz de que conjunto vem e o período de datas. As métricas do TF-IDF são as do modelo por defeito (`alpha` e τ da decisão 6): o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o `sugestoes_validacao.parquet`, que é o de τ = 0.
-- [ ] O CI falha se o top-5 guardado do TF-IDF não for maior do que o da régua, no código completo e na classe.
-- [ ] O CI falha se algum bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025).
-- [ ] O treino e a avaliação carregam os conjuntos sempre da mesma maneira, que recusa o teste sem uma autorização explícita. Um teste no CI confirma a recusa.
-- [ ] Cada verificação falha quando se estraga de propósito o que ela guarda.
+- [x] As métricas da validação do campeão ficam guardadas no git, num ficheiro pequeno (`metrics/validacao.json`), com o conjunto e o período de datas. São as do modelo por defeito: o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o de τ = 0.
+- [x] O portão (`src/model_gate.py`, `make portao`) avalia um treino novo na validação e recusa-o se **qualquer** top-5 descer face ao campeão, no código completo ou na classe, em todos os contratos ou só nos de texto novo. Recusado, o ficheiro do campeão não muda; aceite (igual ou acima), passa a campeão.
+- [x] Cada avaliação do portão fica registada como um run no MLflow (parâmetros, métricas, custo do treino e se foi aceite ou recusada), num ficheiro local (`mlflow.db`, fora do git), que se vê com `make mlflow`.
+- [x] Todos os treinos já guardados em `metrics/` (E4-H1 a E4-S6, 96 ficheiros de sugestões), a régua e a curva por época do E4-S5 ficam registados no MLflow, numa experiência à parte (`historico_e4`, `make historico`), com todas as métricas da avaliação comum e o custo de cada treino. Não passam pelo portão.
+- [x] O CI falha se o `metrics/validacao.json` do ramo tiver algum top-5 abaixo do do `main`.
+- [x] O CI falha se o bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025).
+- [x] O treino e o portão recusam o `teste.parquet` com a mesma função (`check_not_test`). Um teste no CI confirma a recusa. Os notebooks dos spikes já fechados não mudam.
+- [x] Cada verificação falha quando se estraga de propósito o que ela guarda (12 mutações no portão e uma na comparação com o `main`, todas apanhadas).
+
+**Resultado:** o primeiro campeão é o TF-IDF do E4-S1 (N = 10, 24 épocas, τ = 0,25, treino desde 2022, `metrics/e4_s1/n_min_10_ep_24/`), com top-5 de 78,35% no código completo e 84,11% na classe em todos os contratos, e 75,14% e 82,18% no texto novo, os mesmos números da secção 16 do `qualidade_dados.md`. Com os dados reais, o mesmo treino outra vez passa (empate) sem mudar o ficheiro, e o de 12 épocas é recusado nas quatro métricas.
 
 ### Ordem e dependências do E4
 
@@ -617,7 +627,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> E4-S6 (fica desde 2022)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1, o E4-S3 (a entidade não entra), o E4-T4 (a data de início na preparação), o E4-S2 e o E4-S6 (a janela fica desde 2022) estão feitos. Segue-se o E4-T5, que não depende de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1, o E4-S3 (a entidade não entra), o E4-T4 (a data de início na preparação), o E4-S2, o E4-S6 (a janela fica desde 2022) e o E4-T5 (o portão de qualidade) estão feitos. O E4 está fechado.
 - O E4-S1 testa o N, as épocas e o τ numa só grelha, porque interagem (ver o E4-S1). O E4-S2 continua a treinar com a regra por defeito das épocas: a janela muda a quantidade de dados e um número fixo de épocas não se adapta (as épocas voltam a medir-se no fim, para o N e a janela escolhidos).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.
@@ -633,43 +643,46 @@ E4-T4 ────────────────────────�
 
 7. **Épocas do TF-IDF** (12 de outubro de 2026, spike E4-S5): 24 épocas fixas, iguais para todas as etiquetas, sem a paragem automática do scikit-learn (`EPOCAS = 24` em `src/tfidf.py`). O `alpha` e o τ da decisão 6 mantêm-se: o `alpha` 0,00000001 perdeu. Escolhidos na validação com a regra do E4-T1 e a lista escrita antes de correr (`experiencias/e4_s5.yaml`). Só vale para N = 10 e o treino desde 2022. O E4-S2 continua a comparar as suas opções com a regra por defeito, e as épocas voltam a medir-se no fim, para o N e a janela escolhidos. O E4-S1 reabre as épocas dentro de uma grelha N × épocas × τ, porque o número ótimo de épocas depende do N (mudado a 13 de outubro de 2026 — ver o E4-S1). 24 é o extremo da lista testada (limitação escrita na secção 15 do `qualidade_dados.md`).
 
+8. **Portão de qualidade** (14 de outubro de 2026, E4-T5): a referência é o campeão (o melhor modelo até agora), não a régua, e qualquer descida num top-5 do portão recusa o modelo novo. O MLflow faz a comparação (`validate_evaluation_results`) e regista cada avaliação num ficheiro local no portátil (`mlflow.db`), sem servidor na web. O CI não tem os dados: compara o `metrics/validacao.json` do ramo com o do `main`.
+
 ### Decisões pendentes do E4
 
 Nenhuma.
 
 ---
 
-## E5 · Sugestões de CPV com o BERTimbau e o Albertina (em escrita)
+## E5 · Sugestões de CPV com o BERTimbau e o Albertina (por começar)
 
-**Estado:** em discussão (14 de outubro de 2026). Só está escrito o que já foi decidido; os itens que faltam acrescentam-se à medida que se decidem as perguntas no fim desta secção.
+**Objetivo:** saber, com números da validação, se tunar o BERTimbau base e o Albertina PT-PT 100M dá ao técnico de contratação sugestões de CPV melhores do que o TF-IDF, e pôr o comando de sugestões a usar o modelo que ganhar.
 
-**Objetivo:** saber, com números da validação, se tunar o BERTimbau base e o Albertina PT-PT 100M dá ao técnico de contratação sugestões de CPV melhores do que o TF-IDF, e deixar escrito que modelo segue para a fase 5.
+**Persona:** o técnico de contratação, como no E4. Continua sem interface: as sugestões entregam-se por um comando, que corre no pod.
 
-**Persona:** o técnico de contratação, como no E4. Continua sem interface: as sugestões entregam-se por um comando.
-
-**Régua:** o TF-IDF do E4, com a configuração em vigor quando o E4 fechar (hoje, na validação, top-5 de 78,3% no código completo e 84,1% na classe, secção 15 do [`qualidade_dados.md`](qualidade_dados.md)).
+**Régua:** o TF-IDF do E4, com a configuração em vigor: janela desde 2022, N = 10, 24 épocas e τ = 0,25 (E4-S1, E4-S2 e E4-S6). Na validação tem top-5 de 78,3% no código completo e 84,1% na classe (secção 15 do [`qualidade_dados.md`](qualidade_dados.md)).
 
 **Medida de sucesso** (tudo na validação, outubro de 2025):
 
 1. Os dois sinais de erro (abaixo) estão verificados para o BERTimbau e para o Albertina.
-2. O melhor treino de cada um está comparado com o TF-IDF pela regra do E4-T1 (top-5 no código completo decide, top-5 na classe é a guarda, bootstrap emparelhado), em todos os contratos e só nos contratos com texto novo.
-3. Está escrito no [`qualidade_dados.md`](qualidade_dados.md) que modelo segue para a fase 5. Um modelo tunado só segue se bater o TF-IDF; em empate fica o TF-IDF, que é mais barato de treinar e de usar. "Nenhum bate o TF-IDF" também é um resultado que fecha o épico: no estudo italiano do [`readme.md`](../readme.md), o BERT tunado ficou abaixo do SVM com TF-IDF.
+2. O vencedor de cada modelo está comparado com o TF-IDF pela regra da E5-T6: só ganha se as 3 sementes baterem o TF-IDF pela regra do E4-T1 (top-5 no código completo decide, top-5 na classe é a guarda, bootstrap emparelhado). Decide o resultado em todos os contratos da validação, como no E4-S1; o resultado só nos contratos com texto novo mostra-se ao lado, como informação.
+3. Está escrito no [`qualidade_dados.md`](qualidade_dados.md) que modelo segue para a fase 5, e o comando de sugestões usa esse modelo. Um modelo tunado só segue se bater o TF-IDF; em empate fica o TF-IDF, que é mais barato de treinar e de usar. "Nenhum bate o TF-IDF" também é um resultado que fecha o épico: no estudo italiano do [`readme.md`](../readme.md), o BERT tunado ficou abaixo do SVM com TF-IDF.
+4. O CI falha se o treino do BERT deixar de conseguir decorar poucos exemplos. Se o modelo em uso for um modelo tunado, falha também se a comparação guardada deixar de dizer que ele ganha ao TF-IDF; se o TF-IDF ficar em uso, mantém-se o portão do E4-T5.
+5. O gasto total em GPU do épico fica abaixo do teto de gastos (decisão pendente 1, fixada antes do treino completo do E5-T4). Ordem de grandeza, não medida: cerca de 24 treinos completos (2 primeiros treinos, 18 da grelha e 4 de sementes), cada um de E épocas, vezes o custo de uma época medido no E5-T4.
 
 **Sinais de erro, escritos antes de treinar:**
 
-1. **Decorar poucos exemplos:** treinado só com cerca de 100 contratos, o modelo acerta em quase todos eles. Se não acertar, há um erro no código de treino (por exemplo, etiquetas desalinhadas dos textos).
-2. **Bater a régua "códigos mais comuns"** (top-5 de 26,3% no código completo, secção 12 do [`qualidade_dados.md`](qualidade_dados.md)): até sem ler o texto se chega lá.
+1. **Decorar poucos exemplos:** antes do treino completo, treinado só com 100 contratos do treino, sorteados com uma semente fixa, com o mesmo número de etiquetas do treino completo (cerca de 3 000, para testar a ligação real) e até 30 épocas, o modelo acerta no top-1 em pelo menos 95 deles. A taxa de aprendizagem deste sinal pode ser mais alta do que a do primeiro treino, para não dar um falso alarme por aprender devagar; fica escrita no YAML antes de correr. Se não acertar, há um erro no código de treino (por exemplo, etiquetas desalinhadas dos textos).
+2. **Bater a régua "códigos mais comuns":** top-5 no código completo acima de 26,3% na validação (secção 12 do [`qualidade_dados.md`](qualidade_dados.md)). Até sem ler o texto se chega lá.
 
-Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro. Se passar os dois e não bater o TF-IDF, procura-se o erro só durante um spike de 1 dia (por exemplo, a curva de treino e os textos cortados pelo comprimento máximo). Se não aparecer nada, a conclusão escrita é "não vale a pena", e o TF-IDF segue para a fase 5.
+Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro durante no máximo 1 dia, e o resultado escreve-se no [`qualidade_dados.md`](qualidade_dados.md) (o erro encontrado e corrigido, ou "não encontrado", e nesse caso decide-se com o utilizador se o modelo sai do épico). Se passar os dois e nenhum modelo bater o TF-IDF, procura-se o erro só durante o spike E5-S2. Se não aparecer nada, a conclusão escrita é "não vale a pena", e o TF-IDF segue para a fase 5.
 
 **Fora do âmbito deste épico:**
 
 - medir no teste e fazer a análise de erros (fase 5);
 - comparar com o modelo multilingue já tunado com concursos europeus (fase 5, no [`workflow.md`](workflow.md));
 - outros modelos (AMALIA e Qwen ficaram de fora no E1-S2) e um modelo por divisão;
+- voltar a testar a janela de treino ou a entidade compradora (decididas no E4);
 - interface gráfica e API.
 
-**Ordem:** nenhum treino em GPU começa antes de o E4-S2 fechar, porque a janela de treino muda os dados com que o BERT treina, e repetir os treinos em GPU é a parte cara. Os itens que não dependem da janela (como o E5-T1) podem avançar já.
+**Tamanho:** no máximo 16 dias de trabalho (3 itens M de 3 dias, 4 itens P de 1 dia, o E5-S1 com 2 dias e o E5-S2 com 1 dia, se for preciso). O tempo de GPU à espera não conta, mas fica dentro do teto de gastos (decisão pendente 1). Se for preciso cortar, a grelha do E5-S1 é a primeira a encolher (menos valores de N), e isso fica escrito como limitação.
 
 ### E5-T1 · Tarefa: medir o comprimento dos textos em *tokens* (P)
 
@@ -677,7 +690,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro. Se 
 
 **Depende de:** nada (usa o `treino.parquet` atual e só os tokenizadores, sem GPU; corre no portátil).
 
-**Desbloqueia:** o treino do BERTimbau e do Albertina, e a estimativa do custo de cada treino.
+**Desbloqueia:** o E5-T4 e o E5-T5 (o primeiro treino de cada modelo), e com eles a estimativa do custo de cada treino.
 
 **Regra de escolha, escrita antes de medir:** para cada modelo, o comprimento máximo é o menor de 128, 256 e 512 *tokens* em que pelo menos 99% dos textos de treino cabem inteiros. Se nem 512 chegar aos 99%, fica 512, e diz-se que percentagem de textos é cortada.
 
@@ -688,19 +701,189 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro. Se 
 - [ ] O comprimento escolhido para cada modelo, pela regra acima, está escrito numa secção nova do [`qualidade_dados.md`](qualidade_dados.md), com os números vindos do notebook.
 - [ ] Os nomes exatos dos dois modelos (os do Hugging Face) estão escritos e são os mesmos que o treino vai usar.
 
+### E5-T2 · Tarefa: código de treino do BERT, testado no CI (M)
+
+**Porque é precisa:** um erro no código de treino (textos e etiquetas desalinhados, a tradução de número para código partida) pode correr horas na GPU sem dar erro nenhum e só produzir um modelo mau. Nesse caso não se sabe se o BERT é mau ou se o código está errado. Este item escreve o código de treino e de sugestões do BERT e os testes que apanham esses erros em segundos, sem GPU, e continuam a apanhá-los quando o código mudar. É o equivalente do E4-H1 (o código) e do E4-T3 (os testes) para o BERT, sem ainda treinar com os dados reais. É o item mais carregado do épico; se passar de 3 dias, divide-se em dois (o treino com os testes; as pontuações por época e os modelos gravados).
+
+**Depende de:** E4-T5 (a forma comum de carregar os conjuntos, que recusa o teste).
+
+**Desbloqueia:** o E5-T4 (nenhum treino em GPU arranca sem estes testes a passar).
+
+**Critérios de aceitação:**
+
+- [ ] Com um modelo minúsculo de pesos aleatórios (poucas camadas, sem descarregar o modelo verdadeiro) e 5 contratos inventados com temas bem distintos, o treino acerta no top-1 em todos os 5.
+- [ ] As sugestões são sempre 5, só contêm etiquetas que existem no treino, e nunca um código ao nível da divisão.
+- [ ] Dois treinos no processador com a mesma semente aleatória dão exatamente as mesmas sugestões.
+- [ ] O treino carrega os conjuntos pela mesma via do E4-T5, e por isso recusa o teste sem autorização explícita.
+- [ ] No fim de cada época, para cada contrato da validação, o treino grava as pontuações de todas as etiquetas, para se aplicar qualquer τ depois sem treinar outra vez. Ficam no pod (cerca de 0,3 GB por época e por treino), fora do git; para o portátil vêm só as sugestões e as métricas. O treino também grava as sugestões com τ = 0 e τ = 0,25 no mesmo formato das do TF-IDF. A avaliação do E4-T1 lê-as sem mudanças.
+- [ ] O treino grava o modelo no fim de cada época (*checkpoint*), para se poder usar o da época escolhida no E5-S1.
+- [ ] As versões do `torch`, do `transformers` e das bibliotecas novas ficam fixas. O CI instala o `torch` só para processador e o pod a versão para GPU, a partir de listas de requisitos separadas, e o CI completo continua abaixo de 5 minutos.
+- [ ] No pod, antes de treinar, uma verificação confirma que o `torch` vê a GPU.
+- [ ] Cada teste falha quando se estraga de propósito o que ele guarda.
+- [ ] Fica escrito no teste que ele guarda a ligação entre textos, etiquetas e sugestões, não a qualidade do modelo (como no E4-T3).
+
+### E5-T3 · Tarefa: registar cada treino no MLflow (P)
+
+**Porque é precisa:** o E5-S1 tem 18 treinos, cada um com uma curva por época. Comparar isso à mão, em pastas e notebooks, como no E4, é lento e dá erros. O MLflow é um caderno de registo dos treinos: cada treino fica gravado com os parâmetros e as métricas, e uma página no browser mostra-os lado a lado.
+
+**Depende de:** E5-T2 (o código de treino que regista).
+
+**Desbloqueia:** o E5-T4, o E5-T5 e o E5-S1.
+
+**Decisão já tomada:** o MLflow grava num ficheiro no pod (`mlflow.db`, o mesmo formato do portão do E4-T5), que se copia para o portátil com os resultados; não há servidor sempre ligado. Não regista os modelos treinados (são grandes). Não substitui o `metrics/`: os números dos `docs/` e o portão do CI continuam a ler os ficheiros pequenos guardados no git.
+
+**Critérios de aceitação:**
+
+- [ ] Cada treino do BERT fica registado com: os hiperparâmetros, o top-5 no código completo e na classe na validação no fim de cada época, o YAML da experiência, o commit do git e a impressão digital (SHA-256) dos ficheiros de treino e de validação.
+- [ ] Depois de copiar a pasta do pod, a página do MLflow abre no portátil e mostra todos os treinos de uma experiência numa só tabela.
+- [ ] Um teste no CI confirma que um treino minúsculo deixa um registo com todos os campos acima.
+- [x] A versão do MLflow fica fixa no `requirements.txt` (feito no E4-T5).
+- [ ] A página mostra, para cada treino, a curva do top-5 por época.
+
+### E5-T4 · Tarefa: primeiro treino do BERTimbau (M)
+
+**Porque é precisa:** é o primeiro treino a sério de um modelo tunado. Mostra se o código funciona com os dados reais (os dois sinais de erro), quanto custa um treino, e dá a opção em vigor com que a grelha do E5-S1 compara.
+
+**Depende de:** E5-T1 (o comprimento máximo), E5-T2 (o código e os testes) e E5-T3 (o registo). Antes do treino completo, a decisão pendente 1 (teto de gastos) tem de estar fechada.
+
+**Desbloqueia:** o E5-T5 e o E5-S1.
+
+**Critérios de aceitação:**
+
+- [ ] **Antes do treino completo:** um treino curto, de alguns minutos, mede o tempo por lote e a memória da GPU. Daí sai o tempo e o custo em dólares de uma época completa, ao preço por hora lido na Runpod no dia. Esses números são mostrados e aprovados antes de lançar o treino completo, e servem depois para calcular o custo da grelha do E5-S1.
+- [ ] O treino usa a janela de 2022, N = 10, o comprimento máximo do E5-T1, e a taxa de aprendizagem, as épocas e os restantes hiperparâmetros recomendados no artigo do BERTimbau. Se o artigo não der essa receita, usa-se a do artigo original do BERT (Devlin et al., 2019), e diz-se. Os valores ficam num YAML escrito antes de correr, com a fonte de cada um.
+- [ ] **Sinal de erro 1, antes do treino completo:** decora 100 contratos, nas condições escritas no épico, e a taxa usada fica registada.
+- [ ] **Sinal de erro 2:** o treino completo tem top-5 no código completo acima de 26,3% na validação.
+- [ ] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos deste modelo, nenhum ao nível da divisão.
+- [ ] Os ficheiros de treino e de validação no pod têm a mesma impressão digital (SHA-256) que no portátil, e nenhum caminho aponta para o teste.
+- [ ] O tempo, a memória da GPU e o custo do treino ficam num ficheiro em `metrics/`, e o pod é terminado logo a seguir a copiar os resultados.
+
+### E5-T5 · Tarefa: primeiro treino do Albertina (M)
+
+**Porque é precisa:** o mesmo que o E5-T4, para o segundo modelo. O código é o mesmo; mudam o modelo, o tokenizador, o comprimento máximo e os hiperparâmetros recomendados. Fica M porque repete o ensaio de custo, os dois sinais de erro e o treino completo.
+
+**Depende de:** E5-T4 (um erro apanhado no primeiro modelo não se paga duas vezes).
+
+**Desbloqueia:** o E5-S1.
+
+**Critérios de aceitação:** os mesmos do E5-T4, para o Albertina, com os valores recomendados no artigo do Albertina (ou, na falta deles, os do artigo original do BERT, dito como tal) e o comprimento máximo que o E5-T1 escolheu para ele.
+
+### E5-S1 · Spike: que combinação de taxa de aprendizagem, épocas, N e τ? (timebox: 2 dias de trabalho; GPU até ao teto de gastos)
+
+**Pergunta:** para o BERTimbau e para o Albertina, que combinação de taxa de aprendizagem, número de épocas, N dos códigos raros e τ das etiquetas frequentes dá o melhor top-5 na validação?
+
+**Porquê estes quatro:**
+
+- **Taxa de aprendizagem** (o tamanho do passo com que os pesos mudam em cada lote): é o hiperparâmetro que mais muda o resultado de um modelo tunado. Grande demais, o modelo perde o português que já sabia; pequena demais, aprende pouco.
+- **Épocas:** há cerca de 3 000 etiquetas, muitas com 10 a 20 exemplos, e no TF-IDF as etiquetas raras precisaram de muitas épocas (E4-S5).
+- **N dos códigos raros** (5, 10 ou 20): decide que etiquetas existem. No E4-S1, o N e as épocas interagiam, por isso o N = 10 do TF-IDF não se herda sem testar.
+- **τ das etiquetas frequentes:** o 0,25 foi afinado para o TF-IDF. A correção vem de Menon et al. (2021), feita para classes desequilibradas, e não foi testada com o BERT neste problema.
+
+**Grelha completa:** testam-se todas as combinações, porque os hiperparâmetros podem interagir. Cada par (taxa, N) é um treino na GPU, com um número máximo de épocas E igual ao número de épocas do primeiro treino do modelo (E5-T4 ou E5-T5), para a configuração desse treino estar dentro da grelha. Antes de criar o YAML, a lista completa (taxas, N, E e τ) e o número de combinações escrevem-se neste item; com mais combinações, o viés de seleção é maior do que no E4-S1. O τ não pede treinos extra: aplica-se às pontuações gravadas (E5-T2).
+
+**O que quer dizer "épocas" aqui:** cada treino corre até E épocas, e mede-se a validação no fim de cada uma. Mas, com a taxa de aprendizagem a descer ao longo do treino (o habitual no BERT), o modelo na época k de um treino de E épocas **não** é igual a um treino de só k épocas. Por isso, "k épocas" quer dizer **o modelo gravado no fim da época k de um treino de E épocas**, e é esse modelo gravado que se usa daí em diante. Quem quiser repetir o resultado repete o treino de E épocas e usa a época k.
+
+**Custo:** 3 taxas × 3 N dão 9 treinos por modelo, 18 ao todo. O custo calcula-se com o custo por época medido no E5-T4 e no E5-T5, vezes E. Se passar o teto de gastos, encolhe-se a grelha (primeiro menos valores de N), e isso fica escrito como limitação.
+
+**Depende de:** E5-T4 e E5-T5 (o primeiro treino de cada modelo passou os dois sinais de erro e deu o custo de uma época) e E5-T3 (cada treino fica registado). A janela de treino é a de 2022 (E4-S2 e E4-S6).
+
+**Antes de correr** (as verificações do E4-S2):
+
+- [ ] Os valores a testar (taxas de aprendizagem, E, N e τ, incluindo τ = 0, sem correção) estão em `experiencias/e5_s1.yaml`, e cada valor diz de onde vem: a recomendação do artigo do BERT, do BERTimbau ou do Albertina, ou o estudo italiano do [`readme.md`](../readme.md). Um teste falha se o YAML for diferente da lista deste item, depois de ela estar escrita.
+- [ ] Os restantes hiperparâmetros (tamanho do lote, aquecimento, decaimento dos pesos, a forma como a taxa desce) ficam nos valores do primeiro treino de cada modelo (E5-T4 e E5-T5), iguais em todos os treinos desse modelo, e estão escritos no mesmo YAML.
+- [ ] O YAML entra no git antes de se criar o pod.
+- [ ] A lista exata dos comandos de treino (caminhos e parâmetros) é mostrada e aprovada antes de os lançar, e nenhum caminho aponta para o teste.
+- [ ] A impressão digital (SHA-256) de cada ficheiro de treino e de validação é igual no portátil e no pod.
+- [ ] O custo calculado da grelha cabe no teto de gastos.
+
+**Depois de correr (controlo):** a grelha inclui a configuração do primeiro treino de cada modelo (com o mesmo E), por isso esse treino repete-se. Em GPU, a mesma semente pode não dar resultados exatamente iguais, e o bootstrap não mede isso. O controlo passa se o top-5 no código completo da repetição ficar a menos de uma tolerância do E5-T4 (ou do E5-T5), escrita no YAML antes de correr. Se não passar, não se tira nenhuma conclusão sobre a grelha antes de a diferença estar explicada, dentro do timebox.
+
+**Regra de escolha, escrita antes de correr** (a mesma do E4-S1): cada combinação (taxa, N, época, τ) é uma opção. O vencedor é a combinação com o melhor top-5 no código completo, desde que não perca o top-5 na classe (métrica de guarda, por bootstrap) e desde que bata a opção em vigor, pela regra de comparação do E4-T1. A opção em vigor é a última época do primeiro treino do modelo (E5-T4 ou E5-T5), com τ = 0,25. Em caso de empate fica a opção em vigor. Com dezenas de combinações, alguma ganharia só por sorte, por isso o número do vencedor fica otimista (viés de seleção): escreve-se como limitação e confirma-se no teste, na fase 5. Se o vencedor estiver num extremo da lista (a taxa ou o τ mais alto ou mais baixo, o N = 5 ou 20, ou a última época), escreve-se como limitação, como no E4-S4. Um valor acrescentado depois de ver os resultados diz-se como tal.
+
+**Sementes:** o resultado de um modelo tunado varia com a semente aleatória, e o bootstrap não mede isso. O vencedor de cada modelo volta a treinar-se com mais 2 sementes (3 ao todo, 4 treinos extra no total), e as 3 seguem para a E5-T6.
+
+**Resultado:**
+
+- uma tabela por modelo, com o top-5 no código completo e na classe de cada combinação, e o custo em horas de GPU e em dólares;
+- a taxa, as épocas, o N e o τ escolhidos para cada modelo, escritos no [`qualidade_dados.md`](qualidade_dados.md);
+- a variação entre as 3 sementes do vencedor de cada modelo.
+
+### E5-T6 · Tarefa: comparação final com o TF-IDF (P)
+
+**Porque é precisa:** decide, com uma regra escrita antes, se algum modelo tunado bate o TF-IDF. É daqui que saem o E5-S2 (se nenhum bater) e a E5-H1 (se algum bater).
+
+**Depende de:** E5-S1 (os vencedores de cada modelo, com 3 sementes cada).
+
+**Regra, escrita antes de correr:** um modelo tunado só bate o TF-IDF se **as 3 sementes** do seu vencedor o baterem pela regra do E4-T1, em todos os contratos da validação. Se só algumas baterem, é empate, e fica o TF-IDF. Se os dois modelos tunados baterem o TF-IDF, comparam-se entre si pela mesma regra; em empate, fica o desempate da decisão pendente 2, fechada antes do E5-S1.
+
+**Critérios de aceitação:**
+
+- [ ] Uma tabela na validação com a régua "códigos mais comuns", o TF-IDF e o vencedor de cada modelo tunado: top-1 e top-5 no código completo, na classe e na divisão, e F1 macro, em todos os contratos e só nos de texto novo. Para os modelos tunados mostra-se a média e o mínimo e o máximo das 3 sementes.
+- [ ] O resultado da regra, para cada modelo tunado contra o TF-IDF (quem ganha no código completo e se a classe perde com diferença que conta), fica escrito no [`qualidade_dados.md`](qualidade_dados.md) e guardado no ficheiro do portão de qualidade (E4-T5), com o conjunto e o período.
+- [ ] Está escrito que modelo segue para a fase 5, e porquê.
+
+### E5-S2 · Spike: há um erro escondido no treino? (timebox: 1 dia; só se nenhum modelo bater o TF-IDF)
+
+**Pergunta:** os dois modelos passaram os sinais de erro, mas nenhum bate o TF-IDF. É erro no código ou o BERT não vale a pena aqui?
+
+**Depende de:** E5-T6. Só corre se a E5-T6 concluir que nenhum modelo tunado bate o TF-IDF.
+
+**O que se olha, escrito antes:**
+
+- a curva de treino por época (no MLflow): se ainda estava a subir na última época;
+- os contratos da validação cujo texto foi cortado pelo comprimento máximo: se o modelo falha mais neles;
+- 50 contratos em que o TF-IDF acerta no top-5 e o BERT não: se há um padrão que indique um erro (por exemplo, códigos trocados).
+
+**Resultado:** uma de duas conclusões escritas no [`qualidade_dados.md`](qualidade_dados.md):
+
+- **"encontrado um erro":** corrige-se e voltam a correr só os treinos afetados, uma única vez, dentro do teto de gastos. Depois disso repete-se a E5-T6, sem novo E5-S2;
+- **"não vale a pena":** o TF-IDF segue para a fase 5, e a E5-H1 cancela-se.
+
+Passado o timebox sem erro encontrado, a conclusão é "não vale a pena".
+
+### E5-H1 · História: sugestões do modelo tunado (P; só se um modelo tunado ganhar)
+
+**Como** técnico de contratação, **quero** que as 5 sugestões de CPV venham do modelo tunado que bateu o TF-IDF, **para** ter mais vezes o código certo entre as 5 opções.
+
+**Nota:** só existe se a E5-T6 disser que um modelo tunado bate o TF-IDF; se não, cancela-se e a capacidade do E4-H1 fica como está. Fica como história pela mesma razão da E4-H1 (decisão 4 do E4): entrega a capacidade sem interface, por um comando, e o técnico só a recebe quando houver interface.
+
+**Depende de:** E5-T6 e E4-T5 (o portão de qualidade).
+
+**Critérios de aceitação:**
+
+- [ ] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos do modelo vencedor, da semente original da grelha (não das sementes extra), nenhum ao nível da divisão.
+- [ ] As sugestões desse comando, na validação, dão o mesmo top-5 que a E5-T6 escreveu para essa semente.
+- [ ] O CI falha se o resultado guardado na E5-T6 deixar de dizer que o modelo em uso ganha ao TF-IDF no código completo sem perder na classe. O teste falha quando se estraga de propósito o resultado guardado.
+
+### Ordem e dependências do E5
+
+```
+E4-T5 ──> E5-T2 ──> E5-T3 ──┐
+E5-T1 ───────────────────────┴──> E5-T4 (BERTimbau) ──> E5-T5 (Albertina) ──> E5-S1 ──> E5-T6 ──┬──> [nenhum ganha] E5-S2 ──> (fim, ou E5-T6 outra vez)
+                                                                                                 └──> [um ganha] E5-H1
+```
+
+- O E5-T1 não depende de nada nem de GPU, e pode avançar já. O E5-T2 espera pelo E4-T5, porque usa a mesma forma de carregar os conjuntos, e o E5-T3 espera pelo E5-T2, porque regista os treinos desse código.
+- O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
+- O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.
+- O E5-S2 volta à E5-T6 no máximo uma vez.
+
 ### Decisões tomadas para o E5 (14 de outubro de 2026)
 
-1. **Quando começa:** o épico escreve-se já, mas os treinos em GPU só arrancam depois do E4-S2.
-2. **Régua e fim do épico:** a régua é o TF-IDF. Os dois sinais de erro separam "está mal" de "não vale a pena"; se os sinais passam e o TF-IDF não é batido, há um spike de 1 dia para procurar o erro, e depois a conclusão fica escrita.
+1. **Quando começa:** os treinos em GPU só arrancam depois de a janela de treino estar fechada. Fechou-se: fica desde 2022 (E4-S2 e E4-S6).
+2. **Régua e fim do épico:** a régua é o TF-IDF. Os dois sinais de erro separam "está mal" de "não vale a pena"; se os sinais passam e o TF-IDF não é batido, há um spike de 1 dia (E5-S2) para procurar o erro, e depois a conclusão fica escrita.
 3. **Comprimento máximo:** mede-se em *tokens* antes de treinar (E5-T1), com a regra dos 99%.
+4. **Hiperparâmetros:** afinam-se a taxa de aprendizagem e as épocas (E5-S1). Os valores a testar escolhem-se mais tarde, cada um com a fonte de onde vem, e escrevem-se antes de correr.
+5. **N e τ:** não se herdam do TF-IDF. Testam-se no E5-S1, numa grelha completa com a taxa e as épocas (todas as combinações).
+6. **Testes no CI:** o código do BERT tem os seus próprios testes (E5-T2), com um modelo minúsculo; o portão do E4-T5 passa a incluir o modelo tunado (E5-T6 e E5-H1).
+7. **MLflow:** entra neste épico (E5-T3), como caderno de registo dos treinos; o `metrics/` continua a ser o registo oficial.
 
-### Perguntas ainda por discutir
+### Decisões pendentes do E5
 
-4. Custo: quanto custa uma época de cada modelo numa GPU alugada (um spike como o E4-S0)?
-5. Hiperparâmetros: quais, e quantos treinos de cada modelo (o [`workflow.md`](workflow.md) fala em 2 ou 3). Ler antes o artigo italiano para ver como treinaram o BERT.
-6. O que passa do TF-IDF: o N = 10 dos códigos raros, a correção τ das etiquetas frequentes e o pré-registo em YAML.
-7. Testes no CI sem GPU (por exemplo, um BERT minúsculo que decora 5 exemplos).
-8. MLflow: entra neste épico ou fica de fora?
+1. **Teto de gastos em GPU** para o épico todo. Tem de estar fechado antes do treino completo do E5-T4.
+2. **Desempate entre o BERTimbau e o Albertina**, se os dois baterem o TF-IDF e empatarem entre si. Tem de estar fechado antes do E5-S1. Proposta: fica o que demora menos a treinar por época (medido no E5-T4 e no E5-T5).
+3. **Os valores da grelha** (taxas, N e τ; o E é o do primeiro treino): escrevem-se no E5-S1, com a fonte de cada um e o número de combinações, antes de criar o YAML.
+4. **Portão para os modelos tunados.** O portão do E4-T5 recusa qualquer descida, porque o TF-IDF dá sempre os mesmos números. O treino em GPU pode variar entre sementes, e a E5-T6 decide com 3 sementes e o bootstrap. Tem de ficar escrito, antes da E5-T6, como o portão compara um modelo tunado com o campeão (qualquer descida, ou a regra da E5-T6).
 
 ---
 

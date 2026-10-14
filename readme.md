@@ -150,7 +150,7 @@ cpv-portal-base/
   src/              pipeline: conversão, preparação, treino e avaliação
   tests/            testes unitários e de integração (pytest)
   scripts/          download_data.py, ensaio_treino.py (o ensaio de custo do E4-S0)
-  metrics/          resultados guardados no git (e4_s0/: tempo e memória dos treinos de ensaio)
+  metrics/          resultados guardados no git (e4_*/: um por spike; validacao.json: o campeão do portão de qualidade)
   docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada) e prs/ (a descrição de cada PR)
   requirements.txt  versões exatas das bibliotecas
 ```

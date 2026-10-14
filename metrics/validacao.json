@@ -1,0 +1,16 @@
+{
+ "modelo": "tfidf",
+ "conjunto": "validacao",
+ "periodo": [
+  "2025-10-01",
+  "2025-10-31"
+ ],
+ "contratos": 23945,
+ "sugestoes": "metrics/e4_s1/n_min_10_ep_24/sugestoes_validacao_tau0.25.parquet",
+ "metricas": {
+  "top5_codigo_todos": 0.7834823671254898,
+  "top5_classe_todos": 0.8411048622481668,
+  "top5_codigo_texto_novo": 0.7514035617265319,
+  "top5_classe_texto_novo": 0.8218078434651727
+ }
+}
