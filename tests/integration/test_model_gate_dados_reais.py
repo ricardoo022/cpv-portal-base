@@ -12,18 +12,16 @@ import pytest
 import model_gate as mg
 from train_tfidf import VALIDACAO
 
-campeao = json.loads(mg.CAMPEAO.read_text(encoding="utf-8"))
-SUGESTOES = mg.RAIZ / campeao["sugestoes"]
-
-dados = pytest.mark.skipif(not VALIDACAO.exists() or not SUGESTOES.exists(),
-                           reason="dados preparados ausentes (correr make preparar)")
+dados = pytest.mark.skipif(not VALIDACAO.exists(), reason="dados preparados ausentes (correr make preparar)")
 
 
 @pytest.mark.data
 @dados
 def test_metricas_do_campeao_sao_as_da_validacao_atual():
-    block, _ = mg.evaluate_run(SUGESTOES.parent)
+    campeao = json.loads(mg.CAMPEAO.read_text(encoding="utf-8"))
+    block, _ = mg.evaluate_run((mg.RAIZ / campeao["sugestoes"]).parent)
     assert block["sugestoes"] == campeao["sugestoes"]
     assert block["periodo"] == campeao["periodo"]
     assert block["contratos"] == campeao["contratos"]
+    assert block["contratos_sha256"] == campeao["contratos_sha256"]
     assert block["metricas"] == campeao["metricas"]

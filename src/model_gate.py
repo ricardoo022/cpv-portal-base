@@ -25,6 +25,7 @@ Exemplo (da raiz do projeto):
 """
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -35,7 +36,7 @@ from mlflow.models.evaluation.validation import ModelValidationFailedException
 
 import evaluation as ev
 from cpv_data import TEST_START, VAL_START
-from train_tfidf import RESUMO, VALIDACAO, check_dates, check_not_test
+from train_tfidf import PROIBIDO, RESUMO, VALIDACAO, check_dates, check_not_test
 
 RAIZ = Path(__file__).resolve().parents[1]
 CAMPEAO = RAIZ / "metrics" / "validacao.json"
@@ -60,6 +61,8 @@ def check_block(block):
     """Erro se o bloco não vier da validação (outubro de 2025) ou lhe faltar alguma métrica."""
     if block.get("conjunto") != CONJUNTO:
         raise GateError(f"as métricas vêm de {block.get('conjunto')!r}, não da validação")
+    if not block.get("periodo") or len(block["periodo"]) != 2:
+        raise GateError(f"o bloco não diz o período: {block.get('periodo')!r}")
     inicio, fim = (pd.Timestamp(d) for d in block["periodo"])
     if inicio < VAL_START or fim >= TEST_START:
         raise GateError(f"período {block['periodo']} fora da validação "
@@ -69,13 +72,34 @@ def check_block(block):
         raise GateError(f"métricas em falta: {sorted(em_falta)}")
 
 
+def contracts_fingerprint(ids):
+    """Impressão digital (SHA-256) dos `idcontrato` da validação, pela ordem do ficheiro."""
+    return hashlib.sha256("\n".join(map(str, ids)).encode("utf-8")).hexdigest()
+
+
+def check_training_dates(resumo, origem):
+    """Erro se o treino avaliado não acabou antes da validação, ou leu o ficheiro de teste.
+
+    O `train_tfidf.py` já o recusa, mas o portão é por onde passam todos os modelos (também os
+    do E5), por isso confirma pelo `treino.json`: um treino com contratos de outubro teria
+    métricas inflacionadas e ficaria campeão.
+    """
+    treino, val = resumo.get("treino", {}), resumo.get("validacao", {})
+    if PROIBIDO in (treino.get("ficheiro"), val.get("ficheiro")):
+        raise GateError(f"{origem}: o treino ou a validação foi o ficheiro de teste")
+    datas = treino.get("datas")
+    if not datas or pd.Timestamp(datas[1]) >= VAL_START:
+        raise GateError(f"{origem}: o treino vai até {datas and datas[1]}, não acaba antes da "
+                        f"validação ({VAL_START.date()})")
+
+
 def check_same_validation(block, campeao):
     """Erro se o novo e o campeão não foram avaliados na mesma validação (contratos e período).
 
     Se a preparação mudar, a validação pode mudar de contratos, e os números deixam de se
     comparar: é preciso avaliar outra vez o campeão (`run` sobre a pasta dele, sem campeão).
     """
-    for chave in ("contratos", "periodo"):
+    for chave in ("contratos", "periodo", "contratos_sha256"):
         if block[chave] != campeao[chave]:
             raise GateError(f"{chave} diferente do campeão ({block[chave]} contra {campeao[chave]}): "
                             "a validação mudou; avaliar outra vez o campeão antes de comparar")
@@ -108,6 +132,7 @@ def evaluate_run(pasta, val_path=VALIDACAO):
     nome = resumo.get("ficheiro_do_modelo_por_defeito")
     if nome is None:
         raise GateError(f"{pasta / RESUMO} não indica o ficheiro do modelo por defeito")
+    check_training_dates(resumo, pasta / RESUMO)
 
     val = pd.read_parquet(val_path, columns=["idcontrato", "data", "codigos", "visto_no_treino"])
     sug = pd.read_parquet(pasta / nome, columns=["idcontrato", "sugestoes"])
@@ -120,6 +145,7 @@ def evaluate_run(pasta, val_path=VALIDACAO):
         "conjunto": CONJUNTO,
         "periodo": [str(val["data"].min().date()), str(val["data"].max().date())],
         "contratos": len(val),
+        "contratos_sha256": contracts_fingerprint(val["idcontrato"]),
         "sugestoes": _relative(pasta / nome),
         "metricas": gate_metrics(report),
     }
@@ -149,8 +175,11 @@ def run(pasta, val_path=VALIDACAO, campeao_path=CAMPEAO, tracking_uri=TRACKING, 
     """Avalia o treino da `pasta`, regista-o no MLflow e compara-o com o campeão.
 
     Se não houver campeão (`campeao_path` não existe), o novo passa a campeão. Se alguma métrica
-    descer, levanta `ModelValidationFailedException` e não toca no `campeao_path`.
-    Devolve o bloco gravado.
+    descer, levanta `ModelValidationFailedException` e não toca no `campeao_path`. Num empate
+    (todas iguais) o novo é aceite mas o campeão fica: o ficheiro continua a apontar para o
+    registo fixo do campeão, e não para a pasta do novo (por exemplo `metrics/tfidf`, que o
+    próximo treino reescreve). Só passa a campeão se alguma métrica subir.
+    Devolve o bloco do campeão depois da avaliação e o resultado ("aceite" ou "empate").
     """
     block, resumo = evaluate_run(pasta, val_path)
     check_block(block)
@@ -173,12 +202,15 @@ def run(pasta, val_path=VALIDACAO, campeao_path=CAMPEAO, tracking_uri=TRACKING, 
             except ModelValidationFailedException:
                 mlflow.set_tag("portao", "recusado")
                 raise
+            if block["metricas"] == {m: campeao["metricas"][m] for m in block["metricas"]}:
+                mlflow.set_tag("portao", "empate")
+                return campeao, "empate"
         mlflow.set_tag("portao", "aceite")
 
     block = {"modelo": nome, **block}
     campeao_path.parent.mkdir(parents=True, exist_ok=True)
     campeao_path.write_text(json.dumps(block, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    return block
+    return block, "aceite"
 
 
 def main():
@@ -189,8 +221,11 @@ def main():
     p.add_argument("--nome", default="tfidf", help="nome do modelo no MLflow e no ficheiro")
     p.add_argument("--tracking", default=TRACKING, help="registo do MLflow (por defeito mlflow.db na raiz)")
     a = p.parse_args()
-    block = run(a.pasta, a.validacao, a.campeao, tracking_uri=a.tracking, nome=a.nome)
-    print("Aceite (igual ou acima do campeão anterior): campeão gravado em", a.campeao)
+    block, resultado = run(a.pasta, a.validacao, a.campeao, tracking_uri=a.tracking, nome=a.nome)
+    if resultado == "empate":
+        print("Empate: aceite, mas o campeão continua a ser", block["sugestoes"])
+    else:
+        print("Aceite: novo campeão gravado em", a.campeao)
     for m, v in block["metricas"].items():
         print(f"  {m}: {v:.4f}")
 

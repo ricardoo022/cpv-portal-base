@@ -97,3 +97,23 @@ def test_comando_passa_a_entidade_ao_run(monkeypatch, tmp_path, args, esperado):
     monkeypatch.setattr(sys, "argv", ["train_tfidf.py", "--sem-modelo", "--saida", str(tmp_path), *args])
     tt.main()
     assert recebido["com_entidade"] is esperado
+
+
+# --- Recusa do teste pelas datas (E4-T5) ---
+
+def _datas(tmp_path, *datas):
+    path = tmp_path / "conjunto.parquet"
+    pd.DataFrame({"data": pd.to_datetime(list(datas))}).to_parquet(path, index=False)
+    return path
+
+
+@pytest.mark.parametrize("until, ultima", [(tt.VAL_START, "2025-10-01"), (tt.TEST_START, "2025-11-01")])
+def test_contrato_no_proprio_dia_do_limite_da_erro(tmp_path, until, ultima):
+    # A coluna `data` é um dia à meia-noite: um contrato de 1 de outubro (ou de novembro) é igual ao limite
+    with pytest.raises(ValueError, match="teste"):
+        tt.check_dates(_datas(tmp_path, "2024-01-01", ultima), until)
+
+
+@pytest.mark.parametrize("until, ultima", [(tt.VAL_START, "2025-09-30"), (tt.TEST_START, "2025-10-31")])
+def test_contratos_ate_a_vespera_do_limite_passam(tmp_path, until, ultima):
+    tt.check_dates(_datas(tmp_path, "2024-01-01", ultima), until)

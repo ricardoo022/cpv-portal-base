@@ -11,6 +11,7 @@ o registo do MLflow em pastas temporárias. Verifica que:
 """
 
 import json
+import shutil
 import sys
 
 import mlflow
@@ -39,7 +40,7 @@ def portao(treino, tmp_path):
     campeao, uri = tmp_path / "validacao.json", f"sqlite:///{tmp_path / 'mlflow.db'}"
 
     def correr(pasta=treino["pasta"], val=treino["validacao"]):
-        return mg.run(pasta, val, campeao_path=campeao, tracking_uri=uri)
+        return mg.run(pasta, val, campeao_path=campeao, tracking_uri=uri)[0]
     return correr, campeao, uri
 
 
@@ -84,12 +85,38 @@ def test_avalia_o_ficheiro_do_modelo_por_defeito_e_nao_o_de_tau_0(treino, portao
     assert gravado["metricas"] == mg.gate_metrics(report)
 
 
-def test_mesmo_modelo_outra_vez_passa_e_o_ficheiro_fica_igual(portao):
+def test_mesmo_modelo_outra_vez_e_empate_e_o_ficheiro_fica_igual(portao):
     correr, campeao, uri = portao
     correr()
     antes = campeao.read_bytes()
     correr()
     assert campeao.read_bytes() == antes
+    assert _runs(uri)["tags.portao"].tolist() == ["aceite", "empate"]
+
+
+def test_empate_vindo_de_outra_pasta_mantem_o_campeao(treino, portao, tmp_path):
+    # Um retreino igual noutra pasta (como metrics/tfidf, que o próximo treino reescreve) empata:
+    # o campeão continua a apontar para a pasta original
+    correr, campeao, _ = portao
+    original = correr()
+    outra = tmp_path / "outra_pasta"
+    shutil.copytree(treino["pasta"], outra)
+    devolvido = correr(pasta=outra)
+    assert devolvido == original
+    assert json.loads(campeao.read_text(encoding="utf-8"))["sugestoes"] == original["sugestoes"]
+
+
+def test_subir_numa_metrica_passa_a_campeao(treino, portao, tmp_path):
+    correr, campeao, uri = portao
+    gravado = correr()
+    gravado["metricas"]["top5_codigo_todos"] -= 0.001  # o campeão passa a ser um bocadinho pior
+    gravado["sugestoes"] = "metrics/antigo/sugestoes.parquet"
+    campeao.write_text(json.dumps(gravado), encoding="utf-8")
+    outra = tmp_path / "novo"
+    shutil.copytree(treino["pasta"], outra)
+    novo = correr(pasta=outra)
+    assert json.loads(campeao.read_text(encoding="utf-8")) == novo
+    assert novo["sugestoes"].endswith(f"novo/{tt.suggestions_file(tt.tfidf.TAU)}")
     assert _runs(uri)["tags.portao"].tolist() == ["aceite", "aceite"]
 
 
@@ -155,19 +182,36 @@ def test_comando_grava_o_campeao_e_o_run(treino, tmp_path, monkeypatch):
                                       "--validacao", str(treino["validacao"]),
                                       "--campeao", str(campeao), "--tracking", uri])
     mg.main()
+    mg.main()  # a segunda vez é empate
     assert json.loads(campeao.read_text(encoding="utf-8"))["modelo"] == "tfidf"
-    assert len(_runs(uri)) == 1
+    assert _runs(uri)["tags.portao"].tolist() == ["aceite", "empate"]
 
 
 def test_campeao_avaliado_noutra_validacao_da_erro_e_nao_muda_o_ficheiro(portao):
     correr, campeao, _ = portao
     gravado = correr()
-    gravado["contratos"] += 1  # como se a validação tivesse mudado depois de o campeão ser avaliado
+    gravado["contratos_sha256"] = "0" * 64  # como se a validação tivesse outros contratos
     campeao.write_text(json.dumps(gravado), encoding="utf-8")
     antes = campeao.read_bytes()
-    with pytest.raises(mg.GateError, match="contratos"):
+    with pytest.raises(mg.GateError, match="contratos_sha256"):
         correr()
     assert campeao.read_bytes() == antes
+
+
+@pytest.mark.parametrize("muda", [
+    {"datas": ["2024-03-01", "2025-10-03"]},   # o treino entra na validação
+    {"ficheiro": "teste.parquet"},             # o treino foi o ficheiro de teste
+])
+def test_treino_que_nao_acaba_antes_da_validacao_e_recusado(treino, portao, tmp_path, muda):
+    correr, campeao, _ = portao
+    pasta = tmp_path / "treino_mau"
+    shutil.copytree(treino["pasta"], pasta)
+    resumo = json.loads((pasta / tt.RESUMO).read_text(encoding="utf-8"))
+    resumo["treino"].update(muda)
+    (pasta / tt.RESUMO).write_text(json.dumps(resumo), encoding="utf-8")
+    with pytest.raises(mg.GateError, match="treino|teste"):
+        correr(pasta=pasta)
+    assert not campeao.exists()
 
 
 def test_copia_do_teste_com_outro_nome_e_recusada_pelas_datas(treino, portao, tmp_path):

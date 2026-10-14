@@ -6,6 +6,7 @@
   "2025-10-31"
  ],
  "contratos": 23945,
+ "contratos_sha256": "306552ea77e6ee4316a669bd0c4b05b5a0ebae175991fce6b19838a85a1f8dde",
  "sugestoes": "metrics/e4_s1/n_min_10_ep_24/sugestoes_validacao_tau0.25.parquet",
  "metricas": {
   "top5_codigo_todos": 0.7834823671254898,

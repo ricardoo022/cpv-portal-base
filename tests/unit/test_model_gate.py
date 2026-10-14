@@ -37,7 +37,7 @@ def test_campeao_guardado_vem_da_validacao():
 
 def test_campeao_guardado_nao_desce_face_ao_main():
     main = os.environ.get("VALIDACAO_MAIN")
-    if not main or not Path(main).exists():
+    if not main:
         pytest.skip("sem o campeão do main (só o CI o escreve, e o main pode ainda não o ter)")
     do_main = json.loads(Path(main).read_text(encoding="utf-8"))
     mg.check_not_worse(_guardado()["metricas"], do_main["metricas"])
@@ -104,13 +104,31 @@ def test_metrica_em_falta_no_novo_falha():
 
 # --- check_same_validation ---
 
+VALIDACAO = {"contratos": 2, "periodo": ["2025-10-01", "2025-10-31"],
+             "contratos_sha256": mg.contracts_fingerprint(["a", "b"])}
+
+
 def test_mesma_validacao_passa():
-    mg.check_same_validation({"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]},
-                             {"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]})
+    mg.check_same_validation(dict(VALIDACAO), VALIDACAO)
 
 
-@pytest.mark.parametrize("muda", [{"contratos": 11}, {"periodo": ["2025-10-02", "2025-10-31"]}])
+@pytest.mark.parametrize("muda", [{"contratos": 3}, {"periodo": ["2025-10-02", "2025-10-31"]},
+                                  {"contratos_sha256": mg.contracts_fingerprint(["a", "c"])}])
 def test_validacao_diferente_do_campeao_falha(muda):
-    campeao = {"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]}
+    campeao = VALIDACAO
     with pytest.raises(mg.GateError, match="avaliar outra vez o campeão"):
         mg.check_same_validation({**campeao, **muda}, campeao)
+
+
+def test_impressao_digital_muda_com_os_contratos_e_com_a_ordem():
+    base = mg.contracts_fingerprint(["a", "b"])
+    assert mg.contracts_fingerprint(["a", "b"]) == base
+    assert mg.contracts_fingerprint(["a", "c"]) != base
+    assert mg.contracts_fingerprint(["b", "a"]) != base
+
+
+def test_bloco_sem_periodo_da_erro_do_portao():
+    b = bloco()
+    del b["periodo"]
+    with pytest.raises(mg.GateError, match="período"):
+        mg.check_block(b)

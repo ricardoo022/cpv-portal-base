@@ -6,10 +6,10 @@ Este PR cria um **portão de qualidade**: um modelo novo só passa se não ficar
 
 | Modelo novo (top-5 na validação, código / classe, todos os contratos) | Campeão: 78,35% / 84,11% | Resultado |
 |---|---|---|
-| O mesmo modelo, avaliado outra vez: 78,35% / 84,11% | empate | **aceite**, o ficheiro do campeão não muda |
+| O mesmo modelo, avaliado outra vez: 78,35% / 84,11% | empate | **aceite, mas o campeão fica** (o ficheiro não muda) |
 | TF-IDF com 12 épocas: 77,52% / 83,13% | desce | **recusado**, o campeão fica |
 | Um modelo que sobe no código e desce 0,01 pontos na classe | desce numa | **recusado** |
-| Um modelo igual ou melhor nos 4 números | sobe ou empata | **aceite**, passa a campeão |
+| Um modelo que sobe pelo menos num número e não desce em nenhum | sobe | **aceite**, passa a campeão |
 
 ## Porquê
 
@@ -28,7 +28,7 @@ Termos usados abaixo:
 ### `src/model_gate.py` (novo)
 
 - `METRICAS` (`src/model_gate.py:46`): os 4 números do portão, o top-5 no código completo e na classe, em todos os contratos e só no texto novo.
-- `check_block` (`src/model_gate.py:59`): erro se o bloco de métricas não vier da validação (outubro de 2025) ou lhe faltar uma métrica.
+- `check_block` (`src/model_gate.py:60`): erro se o bloco de métricas não vier da validação (outubro de 2025), não disser o período ou lhe faltar uma métrica.
 
 ```python
     if block.get("conjunto") != CONJUNTO:
@@ -39,8 +39,20 @@ Termos usados abaixo:
 ```
 Um bloco que diga `"teste"`, ou com datas fora de [1 de outubro, 1 de novembro de 2025), não serve para o portão.
 
-- `check_same_validation` (`src/model_gate.py:72`): erro se o desafiante e o campeão foram avaliados em validações diferentes (outro número de contratos ou outro período). Assim nunca se comparam números medidos em conjuntos diferentes.
-- `check_not_worse` (`src/model_gate.py:84`): a regra do portão, feita com o MLflow.
+- `contracts_fingerprint` (`src/model_gate.py:75`): uma impressão digital (SHA-256, um código de 64 caracteres que muda se mudar um só contrato) da lista de `idcontrato` da validação. Vai para o bloco de métricas como `contratos_sha256`.
+- `check_training_dates` (`src/model_gate.py:80`): erro se o `treino.json` do modelo avaliado disser que o treino vai até 1 de outubro de 2025 ou depois, ou que leu o `teste.parquet`. O `train_tfidf.py` já o recusa, mas o portão é por onde vão passar todos os modelos (também os do E5), por isso confirma.
+
+```python
+    if PROIBIDO in (treino.get("ficheiro"), val.get("ficheiro")):
+        raise GateError(f"{origem}: o treino ou a validação foi o ficheiro de teste")
+    datas = treino.get("datas")
+    if not datas or pd.Timestamp(datas[1]) >= VAL_START:
+        raise GateError(...)
+```
+Um treino com contratos de outubro teria números inflacionados e ficaria campeão; aqui é recusado.
+
+- `check_same_validation` (`src/model_gate.py:96`): erro se o desafiante e o campeão foram avaliados em validações diferentes (outro número de contratos, outro período ou outra impressão digital dos contratos). Assim nunca se comparam números medidos em conjuntos diferentes.
+- `check_not_worse` (`src/model_gate.py:108`): a regra do portão, feita com o MLflow.
 
 ```python
     limiares = {m: MetricThreshold(threshold=campeao[m], greater_is_better=True) for m in METRICAS}
@@ -48,9 +60,9 @@ Um bloco que diga `"teste"`, ou com datas fora de [1 de outubro, 1 de novembro d
 ```
 Cada número do campeão é o mínimo que o desafiante tem de atingir: igual passa, qualquer descida (por pequena que seja) levanta `ModelValidationFailedException`. Não se usou `min_absolute_change` porque o MLflow só o aceita maior do que 0, e então um empate (retreinar a mesma configuração) seria recusado.
 
-- `evaluate_run` (`src/model_gate.py:99`): lê o `treino.json` de um treino, avalia na validação o ficheiro de sugestões do modelo por defeito (`ficheiro_do_modelo_por_defeito`, o do τ escolhido, não o de τ = 0) e devolve o bloco de métricas. Recusa o teste pelo nome e pelas datas.
-- `training_params` e `training_cost` (`src/model_gate.py:129`, `:144`): o que vai do `treino.json` para o MLflow (N, `alpha`, épocas, τ, datas do treino; tempo, memória, vocabulário, etiquetas).
-- `run` (`src/model_gate.py:148`): junta tudo. Avalia, regista o run no MLflow (tag `portao = aceite` ou `recusado`) e só grava o `metrics/validacao.json` se passar.
+- `evaluate_run` (`src/model_gate.py:123`): lê o `treino.json` de um treino, avalia na validação o ficheiro de sugestões do modelo por defeito (`ficheiro_do_modelo_por_defeito`, o do τ escolhido, não o de τ = 0) e devolve o bloco de métricas. Recusa o teste pelo nome e pelas datas.
+- `training_params` e `training_cost` (`src/model_gate.py:155`, `:170`): o que vai do `treino.json` para o MLflow (N, `alpha`, épocas, τ, datas do treino; tempo, memória, vocabulário, etiquetas).
+- `run` (`src/model_gate.py:174`): junta tudo. Avalia, regista o run no MLflow (tag `portao = aceite`, `empate` ou `recusado`) e só grava o `metrics/validacao.json` quando o desafiante sobe.
 
 ```python
             try:
@@ -58,11 +70,14 @@ Cada número do campeão é o mínimo que o desafiante tem de atingir: igual pas
             except ModelValidationFailedException:
                 mlflow.set_tag("portao", "recusado")
                 raise
+            if block["metricas"] == {m: campeao["metricas"][m] for m in block["metricas"]}:
+                mlflow.set_tag("portao", "empate")
+                return campeao, "empate"
         mlflow.set_tag("portao", "aceite")
 ```
-Se o desafiante descer, o run fica marcado `recusado` e o erro sobe antes de chegar à linha que grava o ficheiro (`src/model_gate.py:180`).
+Se descer, o run fica `recusado` e o erro sobe antes da linha que grava o ficheiro (`src/model_gate.py:212`). Se empatar, é aceite mas o campeão fica: o ficheiro continua a apontar para o registo fixo do campeão, e não para a pasta do desafiante (por exemplo `metrics/tfidf/`, que o próximo treino reescreve).
 
-- `main` (`src/model_gate.py:184`): o comando, `make portao PASTA=metrics/<treino>`.
+- `main` (`src/model_gate.py:216`): o comando, `make portao PASTA=metrics/<treino>`.
 
 ### `src/train_tfidf.py`
 
@@ -74,7 +89,7 @@ Se o desafiante descer, o run fica marcado `recusado` e o erro sobe antes de che
     check_dates(train_path, VAL_START)
     check_dates(val_path, TEST_START)
 ```
-O treino tem de acabar antes de 1 de outubro de 2025 e a validação antes de 1 de novembro; se não, erro. `run` usa-a no início (`src/train_tfidf.py:143`), e o portão e o `scripts/curva_epocas.py` também.
+O treino tem de acabar antes de 1 de outubro de 2025 e a validação antes de 1 de novembro; se não, erro. `run` usa-a logo a seguir a validar as épocas (`src/train_tfidf.py:144`), e o portão e o `scripts/curva_epocas.py` também.
 
 ### `scripts/registar_historico.py` (novo)
 
@@ -99,19 +114,22 @@ Um passo novo escreve o `metrics/validacao.json` do `main` num ficheiro temporá
 
 ```yaml
           git fetch --depth=1 origin main
-          git show origin/main:metrics/validacao.json > "$RUNNER_TEMP/validacao_main.json" \
-            || rm -f "$RUNNER_TEMP/validacao_main.json"
+          if git cat-file -e origin/main:metrics/validacao.json 2>/dev/null; then
+            git show origin/main:metrics/validacao.json > "$RUNNER_TEMP/validacao_main.json"
+            echo "VALIDACAO_MAIN=$RUNNER_TEMP/validacao_main.json" >> "$GITHUB_ENV"
+          fi
 ```
-Enquanto o `main` não tiver o ficheiro (até este PR entrar), a comparação salta.
+Só salta a comparação quando o `main` ainda não tem o ficheiro (até este PR entrar); qualquer outro erro do git faz o passo falhar.
 
 ## Outras mudanças
 
 - `metrics/validacao.json` (novo): o primeiro campeão, o TF-IDF de `metrics/e4_s1/n_min_10_ep_24/` (N = 10, `alpha` 1e-7, 24 épocas, τ = 0,25, treino desde 2022), escrito pelo portão.
-- `tests/unit/test_model_gate.py` (novo, 13 testes): o campeão guardado vem da validação e não desce face ao do `main`; as regras de `check_block`, `check_same_validation` e `check_not_worse` com blocos inventados.
-- `tests/integration/test_model_gate_pipeline.py` (novo, 12 testes): dos `.xlsx` inventados à preparação, ao treino e ao portão, com o campeão e o MLflow em pastas temporárias.
+- `tests/unit/test_model_gate.py` (novo, 15 testes): o campeão guardado vem da validação e não desce face ao do `main`; as regras de `check_block`, `contracts_fingerprint`, `check_same_validation` e `check_not_worse` com blocos inventados.
+- `tests/integration/test_model_gate_pipeline.py` (novo, 15 testes): dos `.xlsx` inventados à preparação, ao treino e ao portão, com o campeão e o MLflow em pastas temporárias (empate, subida, descida, outra validação, treino com datas da validação, teste recusado).
 - `tests/integration/test_model_gate_dados_reais.py` (novo): as métricas do campeão voltam a dar-se com a validação real (salta no CI).
 - `tests/integration/test_registar_historico.py` (novo, 8 testes): o script do histórico com um treino inventado guardado como os de `metrics/`.
 - `tests/integration/test_tfidf_pipeline.py`: 3 testes novos, a recusa do teste pelas datas (cópia com outro nome no treino e na validação; a validação passada como treino).
+- `tests/unit/test_train_tfidf.py`: 4 testes novos, a fronteira das datas (um contrato no próprio dia 1 de outubro, ou 1 de novembro, dá erro; na véspera passa).
 - `requirements.txt`: `mlflow==3.17.1`. Não muda nenhuma versão já fixada (scikit-learn 1.7.2, pandas 2.3.3, numpy 2.2.6, pyarrow 25.0.1).
 - `.gitignore`: `mlflow.db` e `mlruns/`.
 - `Makefile`: `make portao`, `make historico`, `make mlflow`.
@@ -127,6 +145,7 @@ Enquanto o `main` não tiver o ficheiro (até este PR entrar), a comparação sa
 - **A régua sai do portão** — continua a existir (`src/baselines.py`) e está no MLflow, mas já não é a referência: o TF-IDF bate-a por 52 pontos.
 - **O CI não treina nem avalia o modelo** — não tem os dados nem a memória. Mede-se no portátil (o portão) e o CI verifica o ficheiro guardado, como no nível 0 do guia de MLOps da Google.
 - **Os números do modelo** — nenhum treino mudou; o campeão é um treino já guardado.
+- **O `make portao` continua a ler `metrics/tfidf/` por defeito** — é onde o `make treinar-tfidf` grava; com o empate a manter o campeão, avaliar essa pasta nunca faz o campeão apontar para ela, a não ser que suba.
 - **O MLflow não guarda modelos nem dados** — só parâmetros e métricas; o registo fica no portátil, sem servidor na web (decisão 8).
 - **Não há "impressão digital" do código** — foi discutida e posta de lado por não ser prática corrente no nível 0; se o código mudar sem retreinar, o portão não o sabe.
 
@@ -137,23 +156,23 @@ Enquanto o `main` não tiver o ficheiro (até este PR entrar), a comparação sa
 | Critério (copiado do backlog) | Cumprido? | Prova (comando → resultado) |
 |---|---|---|
 | As métricas da validação do campeão ficam guardadas no git, num ficheiro pequeno (`metrics/validacao.json`), com o conjunto e o período de datas. São as do modelo por defeito: o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o de τ = 0. | ✅ | `metrics/validacao.json`: `"conjunto": "validacao"`, `"periodo": ["2025-10-01", "2025-10-31"]`, 23 945 contratos, `sugestoes_validacao_tau0.25.parquet`. `test_avalia_o_ficheiro_do_modelo_por_defeito_e_nao_o_de_tau_0` e `test_metricas_do_campeao_sao_as_da_validacao_atual` (dados reais) → passed |
-| O portão (`src/model_gate.py`, `make portao`) avalia um treino novo na validação e recusa-o se **qualquer** top-5 descer face ao campeão (e dá erro se o campeão tiver sido avaliado noutra validação, com outros contratos ou outro período), no código completo ou na classe, em todos os contratos ou só nos de texto novo. Recusado, o ficheiro do campeão não muda; aceite (igual ou acima), passa a campeão. | ✅ | `make portao PASTA=metrics/e4_s1/n_min_10_ep_24` → "Aceite", md5 do `validacao.json` igual antes e depois (`b4c09c59…`); `make portao PASTA=metrics/e4_s1/n_min_10_ep_12` → `ModelValidationFailedException` nas 4 métricas, md5 igual. Testes `test_qualquer_descida_numa_metrica_falha` (×4), `test_campeao_melhor_recusa_o_modelo_e_nao_muda_o_ficheiro` (×4), `test_campeao_avaliado_noutra_validacao_da_erro_e_nao_muda_o_ficheiro` → passed |
-| Cada avaliação do portão fica registada como um run no MLflow (parâmetros, métricas, custo do treino e se foi aceite ou recusada), num ficheiro local (`mlflow.db`, fora do git), que se vê com `make mlflow`. | ✅ | `test_run_do_mlflow_leva_as_metricas_os_parametros_e_o_custo_do_treino` → passed. No `mlflow.db` real, a experiência `portao_validacao` tem os runs `aceite` e o `recusado` (FAILED) acima |
+| O portão (`src/model_gate.py`, `make portao`) avalia um treino novo na validação e recusa-o se **qualquer** top-5 descer face ao campeão (e dá erro se o campeão tiver sido avaliado noutra validação, com outros contratos ou outro período, ou se o treino avaliado não acabar antes da validação), no código completo ou na classe, em todos os contratos ou só nos de texto novo. Recusado, o ficheiro do campeão não muda. Num empate (os 4 iguais) é aceite, mas o campeão fica, para o ficheiro continuar a apontar para o seu registo fixo; se algum subir e nenhum descer, passa a campeão. | ✅ | `make portao PASTA=metrics/e4_s1/n_min_10_ep_24` → "Empate: aceite, mas o campeão continua a ser metrics/e4_s1/n_min_10_ep_24/…", md5 do `validacao.json` igual antes e depois (`d0148009…`); `make portao PASTA=metrics/e4_s1/n_min_10_ep_12` → `ModelValidationFailedException`, 4 métricas "check failed", md5 igual. Testes `test_qualquer_descida_numa_metrica_falha` (×4), `test_campeao_melhor_recusa_o_modelo_e_nao_muda_o_ficheiro` (×4), `test_empate_vindo_de_outra_pasta_mantem_o_campeao`, `test_subir_numa_metrica_passa_a_campeao`, `test_campeao_avaliado_noutra_validacao_da_erro_e_nao_muda_o_ficheiro`, `test_treino_que_nao_acaba_antes_da_validacao_e_recusado` (×2) → passed |
+| Cada avaliação do portão fica registada como um run no MLflow (parâmetros, métricas, custo do treino e se foi aceite ou recusada), num ficheiro local (`mlflow.db`, fora do git), que se vê com `make mlflow`. | ✅ | `test_run_do_mlflow_leva_as_metricas_os_parametros_e_o_custo_do_treino` → passed. No `mlflow.db` real, a experiência `portao_validacao` tem runs `aceite`, `empate` e `recusado` (FAILED) |
 | Todos os treinos já guardados em `metrics/` (E4-H1 a E4-S6, 96 ficheiros de sugestões), a régua e a curva por época do E4-S5 ficam registados no MLflow, numa experiência à parte (`historico_e4`, `make historico`), com todas as métricas da avaliação comum e o custo de cada treino. Não passam pelo portão. | ✅ | `.venv/bin/python scripts/registar_historico.py` → "98 runs novos" (96 + régua + curva), 256 s, pico 0,6 GB; outra vez → "0 runs novos". Conferido com os docs: régua 26,32% / 15,60% (secção 12: 26,3% / 15,6%), E4-H1 43,19% / 37,91% (secção 13: 43,2% / 37,9%), campeão 78,35% / 84,11% (secção 16), desde 2019 78,63% (secção 19); curva 65,1% → 77,8% (secção 15: "nunca passa de 77,8%") |
 | O CI falha se o `metrics/validacao.json` do ramo tiver algum top-5 abaixo do do `main`. | ✅ (a partir do merge) | `VALIDACAO_MAIN=<cópia igual> pytest -k nao_desce` → 1 passed; `VALIDACAO_MAIN=<cópia com +0,0001 numa métrica>` → 1 failed. Neste PR salta, porque o `main` ainda não tem o ficheiro |
 | O CI falha se o bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025). | ✅ | `test_campeao_guardado_vem_da_validacao` (lê o ficheiro guardado), `test_bloco_de_outro_conjunto_falha` (×3), `test_bloco_fora_de_outubro_de_2025_falha` (×3) → passed |
-| O treino, a curva por época e o portão recusam o teste com as mesmas funções (`check_inputs` e `check_dates` em `src/train_tfidf.py`): pelo nome (`teste.parquet`) e pelas datas (…), mesmo com outro nome. Testes no CI confirmam as duas recusas. Os notebooks dos spikes já fechados não mudam. | ✅ | `test_caminho_do_teste_da_erro` (×2), `test_copia_do_teste_com_outro_nome_da_erro_pelas_datas` (×2), `test_validacao_no_treino_da_erro_pelas_datas`, `test_teste_e_recusado_e_nada_se_grava`, `test_copia_do_teste_com_outro_nome_e_recusada_pelas_datas` → passed (correm no CI: dados inventados) |
-| Cada verificação falha quando se estraga de propósito o que ela guarda (12 mutações no portão e uma na comparação com o `main`, todas apanhadas). | ✅ | Tabela abaixo: 26 estragos, todos apanhados |
+| O treino, a curva por época e o portão recusam o teste com as mesmas funções (`check_inputs` e `check_dates` em `src/train_tfidf.py`): pelo nome (`teste.parquet`) e pelas datas (…), mesmo com outro nome. Testes no CI confirmam as duas recusas. Os notebooks dos spikes já fechados não mudam. | ✅ | `test_caminho_do_teste_da_erro` (×2), `test_copia_do_teste_com_outro_nome_da_erro_pelas_datas` (×2), `test_validacao_no_treino_da_erro_pelas_datas`, `test_teste_e_recusado_e_nada_se_grava`, `test_copia_do_teste_com_outro_nome_e_recusada_pelas_datas`, `test_contrato_no_proprio_dia_do_limite_da_erro` (×2) → passed (correm no CI: dados inventados) |
+| Cada verificação falha quando se estraga de propósito o que ela guarda (12 mutações no portão e uma na comparação com o `main`, todas apanhadas). | ✅ | Tabela abaixo: 32 estragos, todos apanhados |
 
 Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 8 critérios do E4-T5, e "A versão do MLflow fica fixa no `requirements.txt`" da E5-T3 (feito aqui).
 
 ### Testes focados
 
-`.venv/bin/pytest -q tests/unit/test_model_gate.py tests/integration/test_model_gate_pipeline.py tests/integration/test_registar_historico.py tests/integration/test_tfidf_pipeline.py tests/integration/test_curva_epocas.py tests/integration/test_correr_experiencia_pipeline.py` → 106 passed, 1 skipped (o salto é a comparação com o `main`, que só corre no CI).
+`.venv/bin/pytest -q tests/unit/test_model_gate.py tests/integration/test_model_gate_pipeline.py tests/integration/test_registar_historico.py tests/integration/test_tfidf_pipeline.py tests/integration/test_curva_epocas.py tests/integration/test_correr_experiencia_pipeline.py` → passed (ver a suíte inteira abaixo; o salto é a comparação com o `main`, que só corre no CI).
 
 ### O comportamento que já existia continua igual
 
-- Suíte inteira: `.venv/bin/pytest -q` → **474 passed, 1 skipped**. Antes das correções da revisão: 465 passed, 1 skipped. Antes do trabalho: não medido nesta sessão.
+- Suíte inteira: `.venv/bin/pytest -q` → **485 passed, 1 skipped**. Depois da 1.ª revisão: 474 passed, 1 skipped; antes dela: 465 passed, 1 skipped. Antes do trabalho: não medido nesta sessão.
 - Os testes já existentes do treino (`test_tfidf_pipeline.py`, `test_curva_epocas.py`, `test_correr_experiencia_pipeline.py`) passam sem mudanças depois da recusa pelas datas: os dados inventados já respeitavam as datas.
 - O campeão é um treino já guardado: os números do TF-IDF não mudam (78,35% / 84,11% / 75,14% / 82,18%, iguais aos do `metrics/e4_s1/` avaliados antes deste PR).
 - CI: ainda não correu. O ramo só vai para o GitHub (`git push`) depois de aprovada esta descrição; atualizo esta linha com o resultado.
@@ -188,6 +207,12 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 8 critérios do E4-
 | `test_cada_metrica_do_relatorio_vai_para_o_seu_nome` | top-1 gravado no lugar do top-5 (escapava antes deste teste) | falhou ✅ |
 | `test_sugestoes_por_outra_ordem_dao_erro` (histórico) | ordem não verificada (escapava antes deste teste) | falhou ✅ |
 | `test_ficheiro_de_sugestoes_sem_tau_no_nome_fica_de_fora` | τ desconhecido não saltado | falhou ✅ |
+| `test_treino_que_nao_acaba_antes_da_validacao_e_recusado` | sem `check_training_dates` | falhou ✅ |
+| `test_treino_que_nao_acaba_antes_da_validacao_e_recusado` | `teste.parquet` no `treino.json` aceite | falhou ✅ |
+| `test_empate_vindo_de_outra_pasta_mantem_o_campeao` | o empate passa a campeão | falhou ✅ |
+| `test_validacao_diferente_do_campeao_falha` | a impressão digital dos contratos não é comparada | falhou ✅ |
+| `test_contrato_no_proprio_dia_do_limite_da_erro` | `data.max() >= until` → `>` (escapava antes deste teste) | falhou ✅ |
+| `test_bloco_sem_periodo_da_erro_do_portao` | período em falta não verificado | falhou ✅ |
 
 Em todos, o código foi reposto e a suíte voltou a passar.
 
@@ -201,9 +226,9 @@ Com os dados reais (só a validação, outubro de 2025; o teste nunca foi lido):
 | top-5 classe, todos | 84,11% | 83,13% | desce |
 | top-5 código, texto novo | 75,14% | 74,15% | desce |
 | top-5 classe, texto novo | 82,18% | 81,04% | desce |
-| Resultado | — | **recusado**, `validacao.json` igual (md5 `b4c09c59…`) | |
+| Resultado | — | **recusado**, `validacao.json` igual (md5 `d0148009…`) | |
 
-O mesmo campeão avaliado outra vez dá os mesmos 4 números e é aceite sem mudar o ficheiro. Fonte: `make portao PASTA=...`, nesta sessão, e os runs da experiência `portao_validacao` no `mlflow.db`.
+O mesmo campeão avaliado outra vez dá os mesmos 4 números: empate, aceite, e o ficheiro não muda. Fonte: `make portao PASTA=...`, nesta sessão, e os runs da experiência `portao_validacao` no `mlflow.db`.
 
 ### Revisão de código
 
@@ -219,5 +244,16 @@ O mesmo campeão avaliado outra vez dá os mesmos 4 números e é aceite sem mud
   - O passo do CI salta a comparação se o `git show` falhar por qualquer razão (não só por o `main` não ter o ficheiro). Depois deste merge o ficheiro existe no `main`; se mudar de nome, o teste unitário que lê o `metrics/validacao.json` também falha. Fica como está, por simplicidade.
   - O teste com dados reais lê o `validacao.json` ao importar; sem o ficheiro dá erro de recolha em vez de falha. É cosmético: o teste unitário já falha nesse caso.
   - "A frase *Planned for phase 4* do `CLAUDE.md` ficou desatualizada": não existe; foi substituída neste PR pela descrição do portão.
+
+2.ª revisão (revisor novo, sem contexto) sobre `cebba4a..cda780b`: **pronto para merge com correções**. 0 críticos, 2 importantes, 5 menores. Também não correu git (mesma razão) e correu a suíte: 474 passed, 1 skipped.
+- Corrigido (no terceiro commit do PR):
+  - **Importante:** o portão não olhava para as datas do treino que avalia; um treino com contratos de outubro passava com números inflacionados → `check_training_dates`, com testes.
+  - **Importante:** num empate, o campeão passava a apontar para a pasta do desafiante (por defeito `metrics/tfidf/`, que o próximo treino reescreve) → num empate o campeão fica; só uma subida o troca (decisão 8 atualizada).
+  - Menor: a fronteira `>=` das datas não tinha teste (trocar por `>` passava) → 4 testes unitários de `check_dates`.
+  - Menor: só se comparava o número de contratos, não os contratos → `contratos_sha256` no bloco; o `metrics/validacao.json` foi escrito de novo pelo portão (mesmas métricas, agora com a impressão digital).
+  - Menor: o passo do CI saltava a comparação em qualquer erro do git → só salta se o `main` não tiver o ficheiro (`git cat-file -e`).
+  - Menor: o teste com dados reais lia o ficheiro ao importar → lê dentro do teste.
+  - Menor: um bloco sem `periodo` dava `KeyError` → `GateError`, com teste.
+- Não corrigido: nada.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

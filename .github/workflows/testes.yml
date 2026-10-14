@@ -22,13 +22,14 @@ jobs:
         run: pip install -r requirements.txt
 
       # Portão de qualidade (E4-T5): o campeão do main, para o teste comparar com o do ramo.
-      # Se o main ainda não tiver o ficheiro, não se escreve nada e essa comparação salta.
+      # Só se o main ainda não tiver o ficheiro é que a comparação salta; outro erro do git falha.
       - name: Campeão do main
         run: |
           git fetch --depth=1 origin main
-          git show origin/main:metrics/validacao.json > "$RUNNER_TEMP/validacao_main.json" \
-            || rm -f "$RUNNER_TEMP/validacao_main.json"
-          echo "VALIDACAO_MAIN=$RUNNER_TEMP/validacao_main.json" >> "$GITHUB_ENV"
+          if git cat-file -e origin/main:metrics/validacao.json 2>/dev/null; then
+            git show origin/main:metrics/validacao.json > "$RUNNER_TEMP/validacao_main.json"
+            echo "VALIDACAO_MAIN=$RUNNER_TEMP/validacao_main.json" >> "$GITHUB_ENV"
+          fi
 
       - name: Correr os testes
         run: pytest -v
