@@ -61,13 +61,13 @@ def text_key(texto):
     return pd.util.hash_pandas_object(cd.normalize_text(texto), index=False).to_numpy()
 
 
-def load_one(path, since=None, until=cd.YEAR_END):
+def load_one(path, since=None, until=None):
     """Lê um ficheiro, filtra pela data e constrói as colunas. Devolve (contratos, nº lidos no período).
 
-    Sem `since`, o início é cd.TRAIN_START.
+    Sem `since` e `until`, o período é de cd.TRAIN_START a cd.YEAR_END.
     """
-    if since is None:
-        since = cd.TRAIN_START
+    since = cd.TRAIN_START if since is None else since
+    until = cd.YEAR_END if until is None else until
     raw = pd.read_parquet(path, columns=RAW_COLS)
     raw["data"] = pd.to_datetime(raw["dataPublicacao"], errors="coerce")
     raw = raw[(raw["data"] >= since) & (raw["data"] < until)]
@@ -195,9 +195,16 @@ def run(raw_dir=cd.RAW_PARQUET, out_dir=OUT_DIR, verbose=True, train_start=None)
         print("Funil (contratos que ficam em cada passo):")
     log(f"1. publicados de {inicio} a dez 2025 (todos os ficheiros)", n_lidos, verbose)
     log("3. com pelo menos um código CPV", len(df), verbose)
+    avaliados = set(df.loc[df["data"] >= cd.VAL_START, "idcontrato"])
     df = dedupe_ids(df)
     log("2. uma cópia por idcontrato", len(df), verbose)
     df = add_columns(df, train_start)
+    # Com um início mais antigo, uma cópia antiga num ficheiro mais recente ganharia a cópia da
+    # validação ou do teste (decisão 3), e a avaliação mudava com a janela de treino.
+    ficaram = set(df.loc[df["periodo"].isin(["validação", "teste"]), "idcontrato"])
+    saiu = sorted(avaliados - ficaram)
+    check(not saiu, f"{len(saiu)} contrato(s) com uma cópia na validação ou no teste ficaram noutro "
+                    f"período por causa de uma cópia mais antiga (ex.: {saiu[:3]})")
 
     if verbose:
         print(f"\nTreino ({inicio} a set 2025):")
@@ -229,9 +236,10 @@ def main(argv=None):
     parser.add_argument("--saida", type=Path, default=None, metavar="PASTA",
                         help=f"pasta onde gravar os três ficheiros (por omissão {OUT_DIR})")
     args = parser.parse_args(argv)
-    if args.inicio_treino != cd.TRAIN_START and args.saida is None:
+    outra_janela = args.inicio_treino != cd.TRAIN_START
+    if outra_janela and (args.saida is None or args.saida.resolve() == OUT_DIR.resolve()):
         parser.error("com --inicio-treino diferente de "
-                     f"{cd.TRAIN_START:%Y-%m-%d} é preciso indicar --saida (para não sobrescrever {OUT_DIR})")
+                     f"{cd.TRAIN_START:%Y-%m-%d} é preciso indicar --saida, diferente de {OUT_DIR}")
     run(out_dir=args.saida or OUT_DIR, train_start=args.inicio_treino)
 
 

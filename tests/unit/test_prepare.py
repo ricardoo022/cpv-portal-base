@@ -319,6 +319,42 @@ def test_linha_de_comando_outro_inicio_sem_saida_da_erro_sem_escrever(tmp_path, 
     assert list(raiz.rglob("*.parquet")) == [raw_dir / "contratos2025.parquet"]  # só o de entrada
 
 
+def test_linha_de_comando_outro_inicio_com_saida_em_data_processed_da_erro(tmp_path, monkeypatch):
+    import runpy
+    import sys
+
+    import cpv_data as cd
+
+    raiz = tmp_path / "raiz"
+    raw_dir = raiz / "data" / "processed" / "raw"
+    raw_dir.mkdir(parents=True)
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    monkeypatch.setattr(cd, "ROOT", raiz)
+    monkeypatch.setattr(cd, "RAW_PARQUET", raw_dir)
+    saida = str(raiz / "data" / "processed")
+    monkeypatch.setattr(sys, "argv", ["prepare.py", "--inicio-treino", "2019-01-01", "--saida", saida])
+    with pytest.raises(SystemExit) as erro:
+        runpy.run_path(pr.__file__, run_name="__main__")
+    assert erro.value.code == 2
+    assert list(raiz.rglob("*.parquet")) == [raw_dir / "contratos2025.parquet"]
+
+
+@pytest.mark.parametrize("conjunto, contrato", [("validação", "2"), ("teste", "3")])
+def test_run_copia_antiga_num_ficheiro_mais_recente_nao_tira_contrato_da_avaliacao(tmp_path, conjunto, contrato):
+    # O contrato tem uma cópia de out/nov 2025 (ficheiro 2025) e outra de 2020 num ficheiro mais
+    # recente (2026). Com o início por defeito a de 2020 nem é lida; com 2019 ganharia (decisão 3)
+    # e o contrato sairia da avaliação sem aviso. A preparação tem de parar.
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    escrever_raw(raw_dir, 2026, [(contrato, "2020-06-01")])
+    sets = pr.run(raw_dir=raw_dir, out_dir=tmp_path / "defeito", verbose=False)
+    assert sets[conjunto]["idcontrato"].tolist() == [contrato]
+    with pytest.raises(pr.DataCheckError, match="cópia mais antiga"):
+        pr.run(raw_dir=raw_dir, out_dir=tmp_path / "2019", verbose=False, train_start=INICIO_2019)
+    assert not list(tmp_path.glob("2019/*.parquet"))
+
+
 @pytest.mark.parametrize("argumentos", [[], ["--inicio-treino", "2022-01-01"]])
 def test_linha_de_comando_com_inicio_por_defeito_grava_em_data_processed(tmp_path, monkeypatch, argumentos):
     # `make preparar` corre o comando sem argumentos: tem de continuar a gravar na pasta de sempre,
