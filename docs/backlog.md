@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1 e E4-S3 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1 E4-S3 e E4-T4 feitos) |
 | Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -512,17 +512,19 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 
 **Feito** (13 de outubro de 2026), descrição completa em [`prs/pr_E4-S3.md`](prs/pr_E4-S3.md). A entidade **não entra**: ganha no top-5 (80,76% contra 78,35% no código completo) e não piora nas entidades novas, mas aumenta a parte das 1.as sugestões ao nível do grupo ou acima (33,13% contra 30,57%), e a regra escrita antes de correr proibia isso. A tabela dos três grupos está no [`notebooks/08_entidade.ipynb`](../notebooks/08_entidade.ipynb) e na secção 17 do [`qualidade_dados.md`](qualidade_dados.md); a decisão 7 está fechada. Como o modelo em vigor não muda, a régua e o E4-H1 não se recalculam.
 
-### E4-T4 · Tarefa: escolher a data de início do treino na preparação (P)
+### E4-T4 · Tarefa: escolher a data de início do treino na preparação (P, feito)
 
 **Porque é precisa:** hoje o treino começa sempre em janeiro de 2022. O E4-S2 precisa de preparar treinos com outras datas de início.
 
 **Desbloqueia:** E4-S2. Não depende de nada.
 
+**Feito** (14 de outubro de 2026): `src/prepare.py --inicio-treino AAAA-MM-DD --saida PASTA` (ou `make preparar-janela INICIO=... SAIDA=...`). Sem `--inicio-treino`, a data vem do `TRAIN_START` de `src/cpv_data.py`; com outra data, o comando exige `--saida`, para nunca sobrescrever `data/processed/` com outra janela. Uma data que não seja anterior à validação dá erro. Com os dados reais e a data por defeito, os três ficheiros têm a mesma impressão digital (SHA-256) que os de `data/processed/` (478 384 exemplos de treino).
+
 **Critérios de aceitação:**
 
-- [ ] A preparação aceita a data de início do treino. Sem a indicar, a data continua a vir do mesmo sítio de hoje (a constante partilhada) e dá exatamente os mesmos ficheiros e o mesmo funil (478 384 exemplos de treino).
-- [ ] Com outra data de início, a validação e o teste têm os mesmos contratos e as mesmas etiquetas. Só muda a marca "texto também aparece no treino", que depende do treino.
-- [ ] As verificações automáticas usam a data de início indicada e continuam a passar.
+- [x] A preparação aceita a data de início do treino. Sem a indicar, a data continua a vir do mesmo sítio de hoje (a constante partilhada) e dá exatamente os mesmos ficheiros e o mesmo funil (478 384 exemplos de treino).
+- [x] Com outra data de início, a validação e o teste têm os mesmos contratos e as mesmas etiquetas. Só muda a marca "texto também aparece no treino", que depende do treino.
+- [x] As verificações automáticas usam a data de início indicada e continuam a passar.
 
 ### E4-S2 · Spike: a janela de treino desde 2022 é a certa? (timebox: 1 dia)
 
@@ -535,6 +537,15 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 **Porquê esse grupo:** com mais anos no treino, mais textos da validação já foram vistos, e o modelo acerta neles por decorar. Comparar em todos os contratos favorecia as janelas longas sem elas serem melhores. O resultado em todos os contratos mostra-se também, só como informação.
 
 **Também:** medir o pico de memória do treino desde 2019 (o E4-S0 só mediu desde 2022).
+
+**Verificações de que o pod corre o que foi decidido** (acrescentadas a 14 de outubro de 2026):
+
+- [ ] **Antes de correr:** as janelas, o N e a regra das épocas estão em `experiencias/e4_s2.yaml`, escrito antes de correr, e um teste falha se o YAML for diferente da lista deste item.
+- [ ] **Antes de correr:** a lista exata dos comandos de treino (caminhos e parâmetros) é mostrada e aprovada antes de os lançar. Todos têm `--regra-por-defeito` e nenhum caminho aponta para o teste.
+- [ ] **Antes de correr:** a impressão digital (SHA-256) de cada ficheiro de treino e de validação é igual no portátil e no pod. A do treino desde 2022 é igual à do `treino.parquet` atual.
+- [ ] **Depois de correr (controlo):** a janela desde 2022 é o mesmo treino do E4-S4 (N = 10, `alpha` = 0,0000001, regra por defeito), por isso dá sugestões 100% iguais às de `metrics/e4_s4/alpha_1e-7/`, com τ = 0 e τ = 0,25. Se não der, não se tira nenhuma conclusão sobre as janelas antes de a diferença estar explicada.
+- [ ] **Depois de correr:** o número de exemplos de treino no `treino.json` de cada janela é igual ao do funil da preparação dessa janela.
+- [ ] **Antes de treinar:** a validação e o teste de cada janela são iguais aos de `data/processed/`, coluna a coluna, sem contar o `visto_no_treino`. Hoje isso acontece porque nenhum `idcontrato` aparece em dois ficheiros, mas nada no código o garante: se aparecesse, uma cópia antiga podia tirar um contrato da validação, e as janelas deixavam de ser comparadas nos mesmos contratos (revisão do E4-T4).
 
 **Resultado:**
 
@@ -567,7 +578,7 @@ E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T
 E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1 e o E4-S3 estão feitos (a entidade não entra). Segue-se o E4-T4 (a data de início na preparação, que desbloqueia o E4-S2); o E4-T5 não depende de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1 o E4-S3 (a entidade não entra) e o E4-T4 (a data de início na preparação) estão feitos. Segue-se o E4-S2; o E4-T5 não depende de mais nada.
 - O E4-S1 testa o N, as épocas e o τ numa só grelha, porque interagem (ver o E4-S1). O E4-S2 continua a treinar com a regra por defeito das épocas: a janela muda a quantidade de dados e um número fixo de épocas não se adapta (as épocas voltam a medir-se no fim, para o N e a janela escolhidos).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.

@@ -70,3 +70,33 @@ def test_period_nas_fronteiras(data, periodo):
         assert pd.isna(resultado)  # fora dos três períodos: valor em falta
     else:
         assert resultado == periodo
+
+
+# --- Início do treino indicado (E4-T4) ---
+
+@pytest.mark.parametrize("data, periodo", [
+    ("2018-12-31", None),
+    ("2019-01-01", "treino"),
+    ("2021-12-31", "treino"),
+    ("2025-09-30", "treino"),
+    ("2025-10-01", "validação"),
+    ("2025-11-01", "teste"),
+    ("2026-01-01", None),
+])
+def test_period_com_outro_inicio_do_treino_so_muda_o_treino(data, periodo):
+    resultado = cd.period(pd.Series(pd.to_datetime([data])), train_start=pd.Timestamp("2019-01-01")).iloc[0]
+    if periodo is None:
+        assert pd.isna(resultado)
+    else:
+        assert resultado == periodo
+
+
+def test_period_sem_inicio_do_treino_usa_train_start(monkeypatch):
+    # O valor por defeito é lido de cd.TRAIN_START quando se chama, não copiado para outro sítio:
+    # mudar a constante (só aqui, no teste) muda o período por defeito.
+    datas = pd.Series(pd.to_datetime(["2021-12-31", "2022-01-01", "2023-06-30"]))
+    assert cd.period(datas, train_start=None).tolist()[1:] == ["treino", "treino"]
+    assert pd.isna(cd.period(datas, train_start=None).iloc[0])
+    monkeypatch.setattr(cd, "TRAIN_START", pd.Timestamp("2023-01-01"))
+    resultado = cd.period(datas)
+    assert resultado.isna().tolist() == [True, True, False]

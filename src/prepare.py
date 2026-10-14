@@ -7,8 +7,14 @@ Para com erro se alguma das verificações no fim falhar.
 
 Uso:
     .venv/bin/python src/prepare.py
+    .venv/bin/python src/prepare.py --inicio-treino 2019-01-01 --saida data/janelas/2019
+
+--inicio-treino muda só o início do treino (por omissão cpv_data.TRAIN_START); validação e
+teste ficam iguais. Com outra data é obrigatório indicar --saida, para não sobrescrever
+data/processed/.
 """
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -55,8 +61,13 @@ def text_key(texto):
     return pd.util.hash_pandas_object(cd.normalize_text(texto), index=False).to_numpy()
 
 
-def load_one(path, since=cd.TRAIN_START, until=cd.YEAR_END):
-    """Lê um ficheiro, filtra pela data e constrói as colunas. Devolve (contratos, nº lidos no período)."""
+def load_one(path, since=None, until=cd.YEAR_END):
+    """Lê um ficheiro, filtra pela data e constrói as colunas. Devolve (contratos, nº lidos no período).
+
+    Sem `since`, o início é cd.TRAIN_START.
+    """
+    if since is None:
+        since = cd.TRAIN_START
     raw = pd.read_parquet(path, columns=RAW_COLS)
     raw["data"] = pd.to_datetime(raw["dataPublicacao"], errors="coerce")
     raw = raw[(raw["data"] >= since) & (raw["data"] < until)]
@@ -78,13 +89,14 @@ def load_one(path, since=cd.TRAIN_START, until=cd.YEAR_END):
     return out, n_lidos
 
 
-def load_all(raw_dir):
+def load_all(raw_dir, train_start=None):
     """Lê todos os contratos*.parquet da pasta. Devolve (contratos, nº lidos no período)."""
+    since = cd.TRAIN_START if train_start is None else train_start
     paths = sorted(Path(raw_dir).glob("contratos*.parquet"))
     check(len(paths) > 0, f"nenhum contratos*.parquet em {raw_dir}")
     parts, n_lidos = [], 0
     for p in paths:
-        part, n = load_one(p)
+        part, n = load_one(p, since=since)
         parts.append(part)
         n_lidos += n
     df = pd.concat(parts, ignore_index=True)
@@ -98,10 +110,10 @@ def dedupe_ids(df):
     return df.sort_values(["ficheiro", "data"]).drop_duplicates("idcontrato", keep="last")
 
 
-def add_columns(df):
+def add_columns(df, train_start=None):
     df = df.copy()
     df["nivel"] = cd.code_level(df["codigo"])
-    df["periodo"] = cd.period(df["data"])
+    df["periodo"] = cd.period(df["data"], train_start)
     df["chave"] = text_key(df["texto"])
     return df
 
@@ -145,8 +157,10 @@ def build_eval(df, nome, chaves_treino, verbose=True):
 
 # --- Passo 10: verificações ---
 
-def check_sets(sets):
+def check_sets(sets, train_start=None):
     """Regras que têm de ser sempre verdade. Levanta DataCheckError se alguma falhar."""
+    if train_start is None:
+        train_start = cd.TRAIN_START
     t, v, te = sets["treino"], sets["validação"], sets["teste"]
     for nome, x in sets.items():
         check(len(x) > 0, f"{nome} vazio")
@@ -155,7 +169,7 @@ def check_sets(sets):
         check((x["texto"].str.strip() != "").all(), f"texto vazio em {nome}")
         check(not x["texto"].str.contains(r"\b(?:None|nan)\b").any(), f"'None' ou 'nan' escrito no texto em {nome}")
         check((x["codigo"] == x["codigos"].str.split().str[0]).all(), f"etiqueta não é o primeiro código em {nome}")
-    check(t["data"].min() >= cd.TRAIN_START and t["data"].max() < cd.VAL_START, "treino fora do período")
+    check(t["data"].min() >= train_start and t["data"].max() < cd.VAL_START, "treino fora do período")
     check(v["data"].min() >= cd.VAL_START and v["data"].max() < cd.TEST_START, "validação fora do período")
     check(te["data"].min() >= cd.TEST_START and te["data"].max() < cd.YEAR_END, "teste fora do período")
     ids = [set(x["idcontrato"]) for x in (t, v, te)]
@@ -166,19 +180,27 @@ def check_sets(sets):
     check(pd.Series(text_key(t["texto"])).is_unique, "duas impressões digitais iguais no treino")
 
 
-def run(raw_dir=cd.RAW_PARQUET, out_dir=OUT_DIR, verbose=True):
-    """Corre o pipeline todo e grava os três ficheiros. Devolve os três conjuntos."""
-    df, n_lidos = load_all(raw_dir)
+def run(raw_dir=cd.RAW_PARQUET, out_dir=OUT_DIR, verbose=True, train_start=None):
+    """Corre o pipeline todo e grava os três ficheiros. Devolve os três conjuntos.
+
+    train_start: início do treino (str ou Timestamp); None usa cd.TRAIN_START.
+    """
+    train_start = pd.Timestamp(cd.TRAIN_START if train_start is None else train_start)
+    if not train_start < cd.VAL_START:
+        raise ValueError(f"o início do treino ({train_start:%Y-%m-%d}) tem de ser antes de "
+                         f"{cd.VAL_START:%Y-%m-%d} (início da validação)")
+    inicio = f"{train_start:%Y-%m-%d}"
+    df, n_lidos = load_all(raw_dir, train_start)
     if verbose:
         print("Funil (contratos que ficam em cada passo):")
-    log("1. publicados de jan 2022 a dez 2025 (todos os ficheiros)", n_lidos, verbose)
+    log(f"1. publicados de {inicio} a dez 2025 (todos os ficheiros)", n_lidos, verbose)
     log("3. com pelo menos um código CPV", len(df), verbose)
     df = dedupe_ids(df)
     log("2. uma cópia por idcontrato", len(df), verbose)
-    df = add_columns(df)
+    df = add_columns(df, train_start)
 
     if verbose:
-        print("\nTreino (jan 2022 a set 2025):")
+        print(f"\nTreino ({inicio} a set 2025):")
     treino = build_train(df, verbose)
     chaves_treino = set(treino["chave"])
     sets = {"treino": treino.drop(columns="chave")}
@@ -187,7 +209,7 @@ def run(raw_dir=cd.RAW_PARQUET, out_dir=OUT_DIR, verbose=True):
             print(f"\n{nome.capitalize()}:")
         sets[nome] = build_eval(df, nome, chaves_treino, verbose)
 
-    check_sets(sets)
+    check_sets(sets, train_start)
     if verbose:
         print("\n10. Verificações: todas passaram.")
 
@@ -200,5 +222,18 @@ def run(raw_dir=cd.RAW_PARQUET, out_dir=OUT_DIR, verbose=True):
     return sets
 
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Cria treino, validação e teste a partir de data/processed/raw/.")
+    parser.add_argument("--inicio-treino", type=pd.Timestamp, default=cd.TRAIN_START, metavar="AAAA-MM-DD",
+                        help=f"primeiro dia do treino (por omissão {cd.TRAIN_START:%Y-%m-%d})")
+    parser.add_argument("--saida", type=Path, default=None, metavar="PASTA",
+                        help=f"pasta onde gravar os três ficheiros (por omissão {OUT_DIR})")
+    args = parser.parse_args(argv)
+    if args.inicio_treino != cd.TRAIN_START and args.saida is None:
+        parser.error("com --inicio-treino diferente de "
+                     f"{cd.TRAIN_START:%Y-%m-%d} é preciso indicar --saida (para não sobrescrever {OUT_DIR})")
+    run(out_dir=args.saida or OUT_DIR, train_start=args.inicio_treino)
+
+
 if __name__ == "__main__":
-    run()
+    main()
