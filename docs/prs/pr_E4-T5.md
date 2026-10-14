@@ -177,7 +177,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: os 8 critérios do E4-
 - Suíte inteira: `.venv/bin/pytest -q` → **489 passed, 1 skipped**. Depois da 2.ª revisão: 485 passed, 1 skipped; depois da 1.ª revisão: 474 passed, 1 skipped; antes dela: 465 passed, 1 skipped. Antes do trabalho: não medido nesta sessão.
 - Os testes já existentes do treino (`test_tfidf_pipeline.py`, `test_curva_epocas.py`, `test_correr_experiencia_pipeline.py`) passam sem mudanças depois da recusa pelas datas: os dados inventados já respeitavam as datas.
 - O campeão é um treino já guardado: os números do TF-IDF não mudam (78,35% / 84,11% / 75,14% / 82,18%, iguais aos do `metrics/e4_s1/` avaliados antes deste PR).
-- CI: ainda não correu. O ramo só vai para o GitHub (`git push`) depois de aprovada esta descrição; atualizo esta linha com o resultado.
+- CI do commit `0cdc282` (o último com código): `testes` → success, no push e no PR. A comparação com o `main` saltou, como esperado: o `main` ainda não tem o `metrics/validacao.json`. Este commit só muda esta linha.
 
 ### Os testes novos falham com o código estragado
 
