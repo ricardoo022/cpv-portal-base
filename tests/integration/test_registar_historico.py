@@ -132,3 +132,14 @@ def test_cada_metrica_do_relatorio_vai_para_o_seu_nome(rh):
         assert out[f"top5_{nome}"] == i / 100 + 0.5
         assert out[f"f1_macro_{nome}"] == i / 100 + 0.25
         assert out[f"contratos_{nome}"] == 10 * i + 1
+
+
+def test_ficheiro_de_sugestoes_sem_tau_no_nome_fica_de_fora(rh, guardado, tmp_path):
+    estranho = guardado["opcao"] / "sugestoes_validacao_velho.parquet"
+    shutil.copy(guardado["opcao"] / tt.SUGESTOES, estranho)
+    try:
+        novos, _, _ = _registar(rh, guardado, tmp_path)
+    finally:
+        estranho.unlink()
+    assert not any("velho" in n for n in novos)
+    assert "e4_xx/opcao_a/tau0" in novos

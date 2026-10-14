@@ -31,10 +31,11 @@ from pathlib import Path
 import mlflow
 import pandas as pd
 from mlflow.models import EvaluationResult, MetricThreshold
+from mlflow.models.evaluation.validation import ModelValidationFailedException
 
 import evaluation as ev
 from cpv_data import TEST_START, VAL_START
-from train_tfidf import RESUMO, VALIDACAO, check_not_test
+from train_tfidf import RESUMO, VALIDACAO, check_dates, check_not_test
 
 RAIZ = Path(__file__).resolve().parents[1]
 CAMPEAO = RAIZ / "metrics" / "validacao.json"
@@ -68,6 +69,18 @@ def check_block(block):
         raise GateError(f"métricas em falta: {sorted(em_falta)}")
 
 
+def check_same_validation(block, campeao):
+    """Erro se o novo e o campeão não foram avaliados na mesma validação (contratos e período).
+
+    Se a preparação mudar, a validação pode mudar de contratos, e os números deixam de se
+    comparar: é preciso avaliar outra vez o campeão (`run` sobre a pasta dele, sem campeão).
+    """
+    for chave in ("contratos", "periodo"):
+        if block[chave] != campeao[chave]:
+            raise GateError(f"{chave} diferente do campeão ({block[chave]} contra {campeao[chave]}): "
+                            "a validação mudou; avaliar outra vez o campeão antes de comparar")
+
+
 def check_not_worse(novas, campeao):
     """Erro (`ModelValidationFailedException` do MLflow) se alguma métrica descer face ao campeão.
 
@@ -89,6 +102,7 @@ def evaluate_run(pasta, val_path=VALIDACAO):
     Devolve o bloco de métricas (o que vai para o `validacao.json`) e o resumo do treino.
     """
     check_not_test(val_path)
+    check_dates(val_path, TEST_START)
     pasta = Path(pasta)
     resumo = json.loads((pasta / RESUMO).read_text(encoding="utf-8"))
     nome = resumo.get("ficheiro_do_modelo_por_defeito")
@@ -144,6 +158,7 @@ def run(pasta, val_path=VALIDACAO, campeao_path=CAMPEAO, tracking_uri=TRACKING, 
     campeao = json.loads(campeao_path.read_text(encoding="utf-8")) if campeao_path.exists() else None
     if campeao is not None:
         check_block(campeao)
+        check_same_validation(block, campeao)
 
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment("portao_validacao")
@@ -155,7 +170,7 @@ def run(pasta, val_path=VALIDACAO, campeao_path=CAMPEAO, tracking_uri=TRACKING, 
             mlflow.set_tag("campeao_anterior", campeao["sugestoes"])
             try:
                 check_not_worse(block["metricas"], campeao["metricas"])
-            except Exception:
+            except ModelValidationFailedException:
                 mlflow.set_tag("portao", "recusado")
                 raise
         mlflow.set_tag("portao", "aceite")

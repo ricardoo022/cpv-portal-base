@@ -157,3 +157,23 @@ def test_comando_grava_o_campeao_e_o_run(treino, tmp_path, monkeypatch):
     mg.main()
     assert json.loads(campeao.read_text(encoding="utf-8"))["modelo"] == "tfidf"
     assert len(_runs(uri)) == 1
+
+
+def test_campeao_avaliado_noutra_validacao_da_erro_e_nao_muda_o_ficheiro(portao):
+    correr, campeao, _ = portao
+    gravado = correr()
+    gravado["contratos"] += 1  # como se a validação tivesse mudado depois de o campeão ser avaliado
+    campeao.write_text(json.dumps(gravado), encoding="utf-8")
+    antes = campeao.read_bytes()
+    with pytest.raises(mg.GateError, match="contratos"):
+        correr()
+    assert campeao.read_bytes() == antes
+
+
+def test_copia_do_teste_com_outro_nome_e_recusada_pelas_datas(treino, portao, tmp_path):
+    correr, campeao, _ = portao
+    copia = tmp_path / "outubro.parquet"
+    copia.write_bytes((treino["validacao"].parent / "teste.parquet").read_bytes())
+    with pytest.raises(ValueError, match="teste"):
+        correr(val=copia)
+    assert not campeao.exists()

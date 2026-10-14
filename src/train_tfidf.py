@@ -49,6 +49,7 @@ import numpy as np
 import pandas as pd
 
 import tfidf
+from cpv_data import TEST_START, VAL_START
 from labels import DEFAULT_N_MIN, collapse_rare_codes
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -64,6 +65,27 @@ def check_not_test(path):
     """Erro se `path` for o ficheiro de teste: o teste só se usa no fim do projeto."""
     if Path(path).name == PROIBIDO:
         raise ValueError(f"{path}: o conjunto de teste não se lê no treino nem nas decisões")
+
+
+def check_dates(path, until):
+    """Erro se `path` tiver algum contrato publicado em `until` ou depois.
+
+    Recusa o teste pelas datas, e não só pelo nome (`check_not_test`): uma cópia do teste com
+    outro nome também dá erro. O treino tem de acabar antes da validação (`until=VAL_START`) e a
+    validação antes do teste (`until=TEST_START`). Lê só a coluna `data`.
+    """
+    data = pd.read_parquet(path, columns=["data"])["data"]
+    if len(data) and data.max() >= until:
+        raise ValueError(f"{path}: tem contratos de {pd.Timestamp(data.max()).date()}, a partir de "
+                         f"{until.date()}; o conjunto de teste não se lê no treino nem nas decisões")
+
+
+def check_inputs(train_path, val_path):
+    """O treino e a validação não são o teste, nem pelo nome nem pelas datas."""
+    check_not_test(train_path)
+    check_not_test(val_path)
+    check_dates(train_path, VAL_START)
+    check_dates(val_path, TEST_START)
 
 
 def peak_rss_mb():
@@ -118,9 +140,8 @@ def run(train_path, val_path, out_dir, model_path=None, n_min=DEFAULT_N_MIN, min
     """
     from sklearn.exceptions import ConvergenceWarning
 
-    check_not_test(train_path)
-    check_not_test(val_path)
     tfidf.sgd_epochs(epocas)  # épocas inválidas dão erro aqui, antes de ler os ficheiros
+    check_inputs(train_path, val_path)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

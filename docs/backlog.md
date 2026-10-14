@@ -607,15 +607,15 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 **Critérios de aceitação:**
 
 - [x] As métricas da validação do campeão ficam guardadas no git, num ficheiro pequeno (`metrics/validacao.json`), com o conjunto e o período de datas. São as do modelo por defeito: o ficheiro de sugestões a ler é o que o `treino.json` indica em `ficheiro_do_modelo_por_defeito`, e não o de τ = 0.
-- [x] O portão (`src/model_gate.py`, `make portao`) avalia um treino novo na validação e recusa-o se **qualquer** top-5 descer face ao campeão, no código completo ou na classe, em todos os contratos ou só nos de texto novo. Recusado, o ficheiro do campeão não muda; aceite (igual ou acima), passa a campeão.
+- [x] O portão (`src/model_gate.py`, `make portao`) avalia um treino novo na validação e recusa-o se **qualquer** top-5 descer face ao campeão (e dá erro se o campeão tiver sido avaliado noutra validação, com outros contratos ou outro período), no código completo ou na classe, em todos os contratos ou só nos de texto novo. Recusado, o ficheiro do campeão não muda; aceite (igual ou acima), passa a campeão.
 - [x] Cada avaliação do portão fica registada como um run no MLflow (parâmetros, métricas, custo do treino e se foi aceite ou recusada), num ficheiro local (`mlflow.db`, fora do git), que se vê com `make mlflow`.
 - [x] Todos os treinos já guardados em `metrics/` (E4-H1 a E4-S6, 96 ficheiros de sugestões), a régua e a curva por época do E4-S5 ficam registados no MLflow, numa experiência à parte (`historico_e4`, `make historico`), com todas as métricas da avaliação comum e o custo de cada treino. Não passam pelo portão.
 - [x] O CI falha se o `metrics/validacao.json` do ramo tiver algum top-5 abaixo do do `main`.
 - [x] O CI falha se o bloco de métricas disser que vem de outro conjunto que não a validação (outubro de 2025).
-- [x] O treino e o portão recusam o `teste.parquet` com a mesma função (`check_not_test`). Um teste no CI confirma a recusa. Os notebooks dos spikes já fechados não mudam.
+- [x] O treino, a curva por época e o portão recusam o teste com as mesmas funções (`check_inputs` e `check_dates` em `src/train_tfidf.py`): pelo nome (`teste.parquet`) e pelas datas (um treino com contratos de outubro de 2025 ou depois, ou uma validação com contratos de novembro ou depois, dá erro, mesmo com outro nome). Testes no CI confirmam as duas recusas. Os notebooks dos spikes já fechados não mudam.
 - [x] Cada verificação falha quando se estraga de propósito o que ela guarda (12 mutações no portão e uma na comparação com o `main`, todas apanhadas).
 
-**Resultado:** o primeiro campeão é o TF-IDF do E4-S1 (N = 10, 24 épocas, τ = 0,25, treino desde 2022, `metrics/e4_s1/n_min_10_ep_24/`), com top-5 de 78,35% no código completo e 84,11% na classe em todos os contratos, e 75,14% e 82,18% no texto novo, os mesmos números da secção 16 do `qualidade_dados.md`. Com os dados reais, o mesmo treino outra vez passa (empate) sem mudar o ficheiro, e o de 12 épocas é recusado nas quatro métricas.
+**Resultado:** o primeiro campeão é o TF-IDF do E4-S1 (N = 10, 24 épocas, τ = 0,25, treino desde 2022, `metrics/e4_s1/n_min_10_ep_24/`), com top-5 de 78,35% no código completo e 84,11% na classe em todos os contratos, e 75,14% e 82,18% no texto novo (os três primeiros são os da secção 16 do `qualidade_dados.md`; os quatro saem do `metrics/validacao.json`, escrito pelo portão). Com os dados reais, o mesmo treino outra vez passa (empate) sem mudar o ficheiro, e o de 12 épocas (`metrics/e4_s1/n_min_10_ep_12/`) é recusado nas quatro métricas: o comando e a saída estão em [`docs/prs/pr_E4-T5.md`](prs/pr_E4-T5.md).
 
 ### Ordem e dependências do E4
 
@@ -705,7 +705,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Porque é precisa:** um erro no código de treino (textos e etiquetas desalinhados, a tradução de número para código partida) pode correr horas na GPU sem dar erro nenhum e só produzir um modelo mau. Nesse caso não se sabe se o BERT é mau ou se o código está errado. Este item escreve o código de treino e de sugestões do BERT e os testes que apanham esses erros em segundos, sem GPU, e continuam a apanhá-los quando o código mudar. É o equivalente do E4-H1 (o código) e do E4-T3 (os testes) para o BERT, sem ainda treinar com os dados reais. É o item mais carregado do épico; se passar de 3 dias, divide-se em dois (o treino com os testes; as pontuações por época e os modelos gravados).
 
-**Depende de:** E4-T5 (a forma comum de carregar os conjuntos, que recusa o teste).
+**Depende de:** E4-T5 (as verificações comuns que recusam o teste pelo nome e pelas datas, `check_inputs`).
 
 **Desbloqueia:** o E5-T4 (nenhum treino em GPU arranca sem estes testes a passar).
 
@@ -714,7 +714,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 - [ ] Com um modelo minúsculo de pesos aleatórios (poucas camadas, sem descarregar o modelo verdadeiro) e 5 contratos inventados com temas bem distintos, o treino acerta no top-1 em todos os 5.
 - [ ] As sugestões são sempre 5, só contêm etiquetas que existem no treino, e nunca um código ao nível da divisão.
 - [ ] Dois treinos no processador com a mesma semente aleatória dão exatamente as mesmas sugestões.
-- [ ] O treino carrega os conjuntos pela mesma via do E4-T5, e por isso recusa o teste sem autorização explícita.
+- [ ] O treino passa o treino e a validação pelas verificações do E4-T5 (`check_inputs`), e por isso recusa o teste pelo nome e pelas datas.
 - [ ] No fim de cada época, para cada contrato da validação, o treino grava as pontuações de todas as etiquetas, para se aplicar qualquer τ depois sem treinar outra vez. Ficam no pod (cerca de 0,3 GB por época e por treino), fora do git; para o portátil vêm só as sugestões e as métricas. O treino também grava as sugestões com τ = 0 e τ = 0,25 no mesmo formato das do TF-IDF. A avaliação do E4-T1 lê-as sem mudanças.
 - [ ] O treino grava o modelo no fim de cada época (*checkpoint*), para se poder usar o da época escolhida no E5-S1.
 - [ ] As versões do `torch`, do `transformers` e das bibliotecas novas ficam fixas. O CI instala o `torch` só para processador e o pod a versão para GPU, a partir de listas de requisitos separadas, e o CI completo continua abaixo de 5 minutos.
@@ -863,7 +863,7 @@ E5-T1 ───────────────────────┴�
                                                                                                  └──> [um ganha] E5-H1
 ```
 
-- O E5-T1 não depende de nada nem de GPU, e pode avançar já. O E5-T2 espera pelo E4-T5, porque usa a mesma forma de carregar os conjuntos, e o E5-T3 espera pelo E5-T2, porque regista os treinos desse código.
+- O E5-T1 não depende de nada nem de GPU, e pode avançar já. O E5-T2 espera pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 espera pelo E5-T2, porque regista os treinos desse código.
 - O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
 - O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.
 - O E5-S2 volta à E5-T6 no máximo uma vez.

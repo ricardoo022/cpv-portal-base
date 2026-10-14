@@ -100,3 +100,17 @@ def test_metrica_em_falta_no_novo_falha():
     del novas["top5_codigo_todos"]
     with pytest.raises(ModelValidationFailedException, match="missing"):
         mg.check_not_worse(novas, CAMPEAO)
+
+
+# --- check_same_validation ---
+
+def test_mesma_validacao_passa():
+    mg.check_same_validation({"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]},
+                             {"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]})
+
+
+@pytest.mark.parametrize("muda", [{"contratos": 11}, {"periodo": ["2025-10-02", "2025-10-31"]}])
+def test_validacao_diferente_do_campeao_falha(muda):
+    campeao = {"contratos": 10, "periodo": ["2025-10-01", "2025-10-31"]}
+    with pytest.raises(mg.GateError, match="avaliar outra vez o campeão"):
+        mg.check_same_validation({**campeao, **muda}, campeao)

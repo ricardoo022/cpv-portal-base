@@ -159,6 +159,9 @@ def run(metrics_dir=RAIZ / "metrics", dados=DADOS, janelas=JANELAS, tracking_uri
             continue
         for ficheiro in sorted(pasta.glob("sugestoes_validacao*.parquet")):
             tau = tau_of(ficheiro.name)
+            if tau is None:
+                print(f"aviso: {rel / ficheiro.name} fica de fora (não se sabe o τ pelo nome)")
+                continue
             sugestoes = str(Path("metrics") / rel / ficheiro.name)
             nome = f"{rel}/tau{tau:g}"
             tags = {"spike": spike, "campeao": str(sugestoes == campeao).lower()}

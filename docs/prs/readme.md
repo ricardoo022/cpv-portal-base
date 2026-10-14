@@ -8,3 +8,4 @@ Cada ficheiro é o texto de um PR: porque foi feito, o que mudou (com o código)
 | [`pr_E4-T2.md`](pr_E4-T2.md) | #10 · E4-T2, régua "códigos mais comuns" medida na validação |
 
 | [`pr_E4-S0.md`](pr_E4-S0.md) | #13 · E4-S0, quanto custa cada treino na máquina alugada |
+| [`pr_E4-T5.md`](pr_E4-T5.md) | E4-T5, portão de qualidade (o campeão) e registo no MLflow |
