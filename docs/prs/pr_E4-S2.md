@@ -118,7 +118,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: as verificações do c
 
 - Suíte inteira: `.venv/bin/pytest -q` → 427 passed (antes do trabalho, no pod: 395 passed e 22 saltados por falta de `data/processed/`). O revisor também correu a suíte inteira no portátil: 427 passed.
 - Os ficheiros desde 2022 não mudam com a verificação nova: o treino e a validação desde 2022 preparados no pod têm o mesmo md5 que `data/processed/` (`295d1a89…` e `c514da9c…`).
-- CI: `ae7a968` → success; `6bdd5a5` → <a preencher quando acabar>.
+- CI: `ae7a968`, `6bdd5a5` e `37440d2` → success (o commit que só atualiza esta linha volta a correr antes do merge).
 
 ### Os testes novos falham com o código estragado
 
