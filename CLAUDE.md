@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Model that suggests the CPV code (EU public procurement vocabulary, ~9 500 codes in a tree: division 2 digits → group 3 → class 4 → category 5 → full 8) from a Portuguese public contract description, trained on Portal BASE contracts (dados.gov.pt). The goal is a ranked top-5 of specific codes; division-level accuracy is only for comparison with published benchmarks. Plan: TF-IDF + logistic regression baseline, then fine-tune **BERTimbau base** and **Albertina PT-PT 100M** as classifiers on a rented GPU. AMALIA and Qwen were explicitly dropped.
+Model that suggests the CPV code (EU public procurement vocabulary, ~9 500 codes in a tree: division 2 digits → group 3 → class 4 → category 5 → full 8) from a Portuguese public contract description, trained on Portal BASE contracts (dados.gov.pt). The goal is a ranked top-5 of specific codes; division-level accuracy is only for comparison with published benchmarks. Plan: TF-IDF + logistic regression baseline, then fine-tune **BERTimbau base** and **Albertina PT-PT 100M** as classifiers on a rented GPU. AMALIA and Qwen were explicitly dropped. Epic E5 (BERTimbau and Albertina) is being written in `docs/backlog.md`; no GPU training starts before spike E4-S2 (training window) closes, because the window changes the data the BERT models train on.
 
 All docs, notebooks, comments and replies are in **European Portuguese**. The user is learning ML through this project: go step by step, define every term with a concrete example, give one recommendation at a time, say which lessons generalize beyond CPV, and never present unverified facts as certain. Do not write day-by-day plans ("Dia 1, Dia 2").
 
@@ -16,10 +16,12 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # Python 3.
 .venv/bin/python scripts/download_data.py [ANOS...]    # .xlsx from dados.gov.pt -> data/raw/
 .venv/bin/python src/convert_to_parquet.py [ANOS...]   # .xlsx -> data/processed/raw/*.parquet (~1 min/file)
 .venv/bin/python src/prepare.py                        # -> data/processed/{treino,validacao,teste}.parquet (~1 min)
-.venv/bin/pytest                                       # all tests (~40 s with data/processed/, less without)
+make preparar-janela INICIO=2019-01-01 SAIDA=data/janelas/2019   # same, other train start (E4-T4), never into data/processed/
+.venv/bin/pytest                                       # all tests (~1 min with data/processed/, several minutes when RAM is short; much less without)
 make test-unit | test-integracao | test-preparacao | test-avaliacao | test-tfidf   # subsets
 .venv/bin/pytest tests/unit/test_prepare.py::test_build_train_empate_fica_o_menor_codigo   # one test
 .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/01_exploracao.ipynb  # run from repo root
+make notebook | regua | tfidf | afinacao | epocas | grelha | entidade   # re-run notebooks 01, 03-08 (need data/processed/ and the frozen metrics/)
 ```
 
 `pyproject.toml` puts `src/` on the pytest path, so tests `import prepare` etc. directly. Tests marked `data` (`tests/integration/test_*_dados_reais.py`) read the real `data/processed/` files and skip when they are absent (as in CI); they never read `teste.parquet`.
@@ -30,7 +32,7 @@ Notebooks add `../src` to `sys.path`, so they must run with `notebooks/` as the 
 
 ## Git and CI
 
-- **Every `git` and `gh` command, read-only ones included (`status`, `diff`, `log`), needs the user's explicit approval first**: say which command and why, then wait. One approval may cover a stated set of commands. The steps below still apply, each only after approval.
+- **Every `git` and `gh` command, read-only ones included (`status`, `diff`, `log`), needs the user's explicit approval first**: say which command and why, then wait. One approval may cover a stated set of commands. The steps below still apply, each only after approval. A review subagent may run read-only `git diff`/`git show` when its prompt says the user approved them; otherwise it reviews the working-tree files directly.
 - Work on a branch and open a PR to `main` with `gh pr create`; don't commit straight to `main`. Commit messages and PR descriptions are in Portuguese.
 - `.github/workflows/testes.yml` runs the whole `pytest` suite on every push (any branch) and every PR, in about 40 s. CI has no `data/`, so only the hand-made-data tests run there. `claude.yml` and `claude-code-review.yml` are the Claude GitHub App workflows (review on each PR).
 - The repo is private on the free plan, so `main` has no branch protection: wait until the CI runs for the PR's head commit are green before `gh pr merge --merge --delete-branch`.
