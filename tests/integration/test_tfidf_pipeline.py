@@ -548,3 +548,21 @@ def test_por_defeito_a_coluna_adjudicante_nao_e_precisa(treinado, tmp_path):
     assert "entidade" not in model.named_steps["tfidf"].vocabulary_
     assert _resumo(saida)["com_entidade"] is False
     assert len(pd.read_parquet(saida / tt.SUGESTOES)) == len(VALIDACAO)
+
+
+# --- O teste também se recusa pelas datas, com outro nome ---
+
+@pytest.mark.parametrize("qual", ["treino", "validacao"])
+def test_copia_do_teste_com_outro_nome_da_erro_pelas_datas(treinado, tmp_path, qual):
+    copia = tmp_path / "outro_nome.parquet"
+    copia.write_bytes((Path(treinado["treino"]).parent / "teste.parquet").read_bytes())
+    paths = {"treino": treinado["treino"], "validacao": treinado["validacao"], qual: copia}
+    with pytest.raises(ValueError, match="teste"):
+        tt.run(paths["treino"], paths["validacao"], tmp_path / "saida", n_min=N_MIN, min_df=1)
+    assert not (tmp_path / "saida" / tt.SUGESTOES).exists()
+
+
+def test_validacao_no_treino_da_erro_pelas_datas(treinado, tmp_path):
+    # A validação (outubro) passada como treino: o treino tem de acabar antes de outubro
+    with pytest.raises(ValueError, match="2025-10-01"):
+        tt.run(treinado["validacao"], treinado["validacao"], tmp_path / "saida", n_min=N_MIN, min_df=1)

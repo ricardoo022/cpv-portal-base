@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao epocas grelha entidade janela janela-24
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -51,6 +51,15 @@ regua: ## Volta a correr o notebook da régua "códigos mais comuns" na validaç
 
 treinar-tfidf: ## Treina o TF-IDF (N = 10, alpha e τ do E4-S4, 24 épocas do E4-S5) e grava as sugestões da validação em metrics/tfidf/ (no pod: ~32 GB)
 	$(PY) src/train_tfidf.py --n-min 10
+
+portao: ## Portão de qualidade: avalia na validação o treino de PASTA (por defeito metrics/tfidf) e só o grava como campeão (metrics/validacao.json) se nenhum top-5 descer; regista no MLflow
+	$(PY) src/model_gate.py --pasta $(or $(PASTA),metrics/tfidf)
+
+historico: ## Regista no MLflow (experiência historico_e4) todos os treinos guardados em metrics/, a régua e a curva do E4-S5 (precisa de "make preparar"; não duplica)
+	$(PY) scripts/registar_historico.py
+
+mlflow: ## Abre a página do MLflow (http://localhost:5000) com os runs registados em mlflow.db
+	.venv/bin/mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo de "make treinar-tfidf")
 	$(PY) src/suggest.py --modelo models/tfidf_n10.joblib

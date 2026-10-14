@@ -95,8 +95,7 @@ def run(train_path, val_path, out_dir, epocas=24, alpha=tfidf.ALPHA, tau=tfidf.T
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import SGDClassifier
 
-    tt.check_not_test(train_path)
-    tt.check_not_test(val_path)
+    tt.check_inputs(train_path, val_path)
     if epocas < 1:
         raise ValueError(f"--epocas tem de ser >= 1: {epocas}")
     if tau < 0:

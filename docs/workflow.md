@@ -67,10 +67,10 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Afinar as épocas do TF-IDF e testar um `alpha` mais pequeno (spike E4-S5): o `alpha` 0,00000001 perde; ganham 24 épocas fixas. Na validação, top-5 de 78,3% no código completo e 84,1% na classe ([`qualidade_dados.md`](qualidade_dados.md), secção 15).
 - [x] Confirmar a janela de treino: TF-IDF com treino desde 2025, 2022 e 2019, comparar na validação. Fica desde 2022 (E4-S2 e E4-S6, secções 18 e 19 do `qualidade_dados.md`).
 - [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
-- [ ] 2 ou 3 treinos de cada com hiperparâmetros diferentes, registados em MLflow.
+- [ ] Uma grelha de hiperparâmetros para cada um (taxa de aprendizagem × N × épocas × τ, 9 treinos por modelo), registados em MLflow (E5-S1 no [`backlog.md`](backlog.md)).
 - [ ] Escolher o melhor de cada pela validação.
 - [ ] Testes ao modelo: consegue decorar poucos exemplos (se não conseguir, há um erro no treino); só sugere códigos que existem; bate o "escolher sempre o código mais comum".
-- [ ] Portão de qualidade (*quality gate*): o CI falha se um modelo ficar abaixo do limite.
+- [x] Portão de qualidade (*quality gate*): o CI falha se um modelo ficar abaixo do limite. Feito no E4-T5 (decisão 8 do E4): a referência é o campeão, o melhor modelo até agora, e qualquer descida num top-5 recusa o modelo novo (`src/model_gate.py`, `metrics/validacao.json`, registo no MLflow).
   - O limite mede-se na **validação**, nunca no teste (senão o teste passa a servir para escolher, e deixa de ser uma medição honesta).
   - O limite é relativo, não um número inventado: o TF-IDF tem de bater o "escolher sempre o código mais comum"; o BERTimbau e o Albertina têm de bater o TF-IDF; um modelo novo não pode ficar mais do que alguns pontos abaixo do melhor guardado. Os números definem-se depois dos primeiros resultados.
   - O CI não treina os modelos (não tem GPU nem os dados reais). O treino a sério escreve as métricas da validação num ficheiro pequeno no git (por exemplo `metrics/validacao.json`), e um teste no CI lê esse ficheiro e falha se estiver abaixo do limite.

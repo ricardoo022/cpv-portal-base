@@ -7,3 +7,5 @@ data/janelas/
 __pycache__/
 .ipynb_checkpoints/
 models/
+mlflow.db
+mlruns/
