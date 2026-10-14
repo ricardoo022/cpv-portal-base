@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3 e E4-T4 feitos) |
-| Tunar o BERTimbau e o Albertina | 4 | por escrever, depois do E4 |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em escrita (os treinos em GPU só começam depois do E4-S2) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -27,6 +27,9 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 - **Smoke test:** um teste rápido que só confirma que o treino corre e faz algo com sentido, com dados minúsculos.
 - **Portão de qualidade:** um teste no CI que falha se um modelo ficar abaixo de um limite.
 - **Tamanhos:** P = até 1 dia; M = até 3 dias. Um item maior divide-se.
+- **Tunar (fine-tuning):** pegar num modelo que já sabe português e continuar a treiná-lo com os nossos contratos, para uma tarefa específica (aqui, escolher o CPV).
+- **Token:** o pedaço de texto que o BERT lê. As palavras raras partem-se em vários pedaços: "nitrilo" pode dar `nit` + `##rilo`. Cada modelo tem o seu vocabulário, por isso o mesmo texto pode dar números de *tokens* diferentes.
+- **Comprimento máximo:** o número de *tokens* que o modelo lê de cada texto; o resto é cortado. O BERTimbau e o Albertina leem no máximo 512. Quanto maior, mais tempo de GPU custa cada treino.
 
 **Porque há poucas user stories nos E1 a E3:** quase todo esse trabalho é sobre dados e testes, que nenhum técnico vê. Por isso são tarefas técnicas e spikes, não histórias. Chamar história a tudo é um erro comum: esconde que o utilizador ainda não recebeu nada. A primeira capacidade para o técnico é a história E4-H1.
 
@@ -596,6 +599,71 @@ E4-T4 ────────────────────────�
 ### Decisões pendentes do E4
 
 Nenhuma.
+
+---
+
+## E5 · Sugestões de CPV com o BERTimbau e o Albertina (em escrita)
+
+**Estado:** em discussão (14 de outubro de 2026). Só está escrito o que já foi decidido; os itens que faltam acrescentam-se à medida que se decidem as perguntas no fim desta secção.
+
+**Objetivo:** saber, com números da validação, se tunar o BERTimbau base e o Albertina PT-PT 100M dá ao técnico de contratação sugestões de CPV melhores do que o TF-IDF, e deixar escrito que modelo segue para a fase 5.
+
+**Persona:** o técnico de contratação, como no E4. Continua sem interface: as sugestões entregam-se por um comando.
+
+**Régua:** o TF-IDF do E4, com a configuração em vigor quando o E4 fechar (hoje, na validação, top-5 de 78,3% no código completo e 84,1% na classe, secção 15 do [`qualidade_dados.md`](qualidade_dados.md)).
+
+**Medida de sucesso** (tudo na validação, outubro de 2025):
+
+1. Os dois sinais de erro (abaixo) estão verificados para o BERTimbau e para o Albertina.
+2. O melhor treino de cada um está comparado com o TF-IDF pela regra do E4-T1 (top-5 no código completo decide, top-5 na classe é a guarda, bootstrap emparelhado), em todos os contratos e só nos contratos com texto novo.
+3. Está escrito no [`qualidade_dados.md`](qualidade_dados.md) que modelo segue para a fase 5. Um modelo tunado só segue se bater o TF-IDF; em empate fica o TF-IDF, que é mais barato de treinar e de usar. "Nenhum bate o TF-IDF" também é um resultado que fecha o épico: no estudo italiano do [`readme.md`](../readme.md), o BERT tunado ficou abaixo do SVM com TF-IDF.
+
+**Sinais de erro, escritos antes de treinar:**
+
+1. **Decorar poucos exemplos:** treinado só com cerca de 100 contratos, o modelo acerta em quase todos eles. Se não acertar, há um erro no código de treino (por exemplo, etiquetas desalinhadas dos textos).
+2. **Bater a régua "códigos mais comuns"** (top-5 de 26,3% no código completo, secção 12 do [`qualidade_dados.md`](qualidade_dados.md)): até sem ler o texto se chega lá.
+
+Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro. Se passar os dois e não bater o TF-IDF, procura-se o erro só durante um spike de 1 dia (por exemplo, a curva de treino e os textos cortados pelo comprimento máximo). Se não aparecer nada, a conclusão escrita é "não vale a pena", e o TF-IDF segue para a fase 5.
+
+**Fora do âmbito deste épico:**
+
+- medir no teste e fazer a análise de erros (fase 5);
+- comparar com o modelo multilingue já tunado com concursos europeus (fase 5, no [`workflow.md`](workflow.md));
+- outros modelos (AMALIA e Qwen ficaram de fora no E1-S2) e um modelo por divisão;
+- interface gráfica e API.
+
+**Ordem:** nenhum treino em GPU começa antes de o E4-S2 fechar, porque a janela de treino muda os dados com que o BERT treina, e repetir os treinos em GPU é a parte cara. Os itens que não dependem da janela (como o E5-T1) podem avançar já.
+
+### E5-T1 · Tarefa: medir o comprimento dos textos em *tokens* (P)
+
+**Porque é precisa:** o comprimento máximo decide quanto custa cada treino em GPU, e os textos cortados perdem informação. A única medição que existe é de 12 palavras de mediana por campo (secção 5 do [`qualidade_dados.md`](qualidade_dados.md), só nos ficheiros de 2025/2026). Foi feita em palavras, não em *tokens*, e não diz nada sobre os textos longos.
+
+**Depende de:** nada (usa o `treino.parquet` atual e só os tokenizadores, sem GPU; corre no portátil).
+
+**Desbloqueia:** o treino do BERTimbau e do Albertina, e a estimativa do custo de cada treino.
+
+**Regra de escolha, escrita antes de medir:** para cada modelo, o comprimento máximo é o menor de 128, 256 e 512 *tokens* em que pelo menos 99% dos textos de treino cabem inteiros. Se nem 512 chegar aos 99%, fica 512, e diz-se que percentagem de textos é cortada.
+
+**Critérios de aceitação:**
+
+- [ ] Para cada modelo, com o seu próprio tokenizador, a percentagem dos textos de treino que cabem inteiros em 128, 256 e 512 *tokens*. A contagem inclui os *tokens* especiais que o modelo acrescenta a cada texto, porque também ocupam lugar.
+- [ ] A mesma tabela na validação, só como informação (a regra usa o treino).
+- [ ] O comprimento escolhido para cada modelo, pela regra acima, está escrito numa secção nova do [`qualidade_dados.md`](qualidade_dados.md), com os números vindos do notebook.
+- [ ] Os nomes exatos dos dois modelos (os do Hugging Face) estão escritos e são os mesmos que o treino vai usar.
+
+### Decisões tomadas para o E5 (14 de outubro de 2026)
+
+1. **Quando começa:** o épico escreve-se já, mas os treinos em GPU só arrancam depois do E4-S2.
+2. **Régua e fim do épico:** a régua é o TF-IDF. Os dois sinais de erro separam "está mal" de "não vale a pena"; se os sinais passam e o TF-IDF não é batido, há um spike de 1 dia para procurar o erro, e depois a conclusão fica escrita.
+3. **Comprimento máximo:** mede-se em *tokens* antes de treinar (E5-T1), com a regra dos 99%.
+
+### Perguntas ainda por discutir
+
+4. Custo: quanto custa uma época de cada modelo numa GPU alugada (um spike como o E4-S0)?
+5. Hiperparâmetros: quais, e quantos treinos de cada modelo (o [`workflow.md`](workflow.md) fala em 2 ou 3). Ler antes o artigo italiano para ver como treinaram o BERT.
+6. O que passa do TF-IDF: o N = 10 dos códigos raros, a correção τ das etiquetas frequentes e o pré-registo em YAML.
+7. Testes no CI sem GPU (por exemplo, um BERT minúsculo que decora 5 exemplos).
+8. MLflow: entra neste épico ou fica de fora?
 
 ---
 

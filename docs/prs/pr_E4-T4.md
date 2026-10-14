@@ -96,6 +96,7 @@ Com outra data, é obrigatório dizer onde gravar, e não pode ser `data/process
 - `tests/unit/readme.md`, `tests/integration/readme.md`, `src/readme.md`: descrevem os testes novos e a opção nova.
 - `CLAUDE.md`: diz onde está a opção e porque exige `--saida`.
 - `docs/backlog.md`: E4-T4 marcado como feito, e o E4-S2 ganha 5 verificações de que o pod corre o que foi decidido: pré-registo, comandos mostrados antes de correr, impressões digitais dos ficheiros, a janela de 2022 como controlo e contagens do funil. Estas verificações não fazem parte do E4-T4: foram pedidas durante esta tarefa e ficam declaradas aqui.
+- `docs/backlog.md`, **fora do E4-T4, junto a pedido do utilizador:** o épico **E5 · Sugestões de CPV com o BERTimbau e o Albertina**, ainda em escrita. Tem o objetivo, a régua (o TF-IDF), dois sinais de erro escritos antes de treinar, a tarefa E5-T1 (medir o comprimento dos textos em *tokens*), três decisões e cinco perguntas por discutir. Inclui também a linha do E5 na tabela de épicos e três termos novos no glossário (tunar, *token*, comprimento máximo). Foi escrito noutra conversa, não nesta tarefa. Neste PR só se corrigiu uma referência: a mediana de 12 palavras está na secção 5 do `qualidade_dados.md`, não na secção 1 (apontado pela 3.ª revisão).
 
 ### Ficou igual de propósito
 
@@ -173,7 +174,7 @@ Revisores independentes (agentes novos, sem o contexto da tarefa), sobre `main` 
 **3.ª revisão: com correções.** Dois problemas importantes, nenhum crítico. O código está correto, sem fuga de dados.
 - Corrigido:
   - **importante:** a verificação nova só estava testada com uma cópia na validação. Limitá-la à validação deixava os 97 testes verdes. O teste passou a ter também o caso "teste", e esse estrago agora faz falhar 1 teste;
-  - **importante:** o revisor viu no `backlog.md` um épico E5 e três termos novos no glossário, não declarados no PR. Esse texto foi escrito na árvore de trabalho fora desta tarefa, depois do primeiro commit, e **não entra neste PR**. Ficou no ficheiro, por fazer commit;
+  - **importante:** o revisor viu no `backlog.md` um épico E5 e três termos novos no glossário, não declarados no PR. Esse texto foi escrito fora desta tarefa. A pedido do utilizador entra neste PR, e está agora declarado em "Outras mudanças". A referência errada que o revisor encontrou nele (secção 1 → 5) foi corrigida;
   - vírgulas em falta em duas listas do `backlog.md`; "8 casos" → 7; a contagem "0 casos" feita no terminal saiu da descrição; o limite da verificação (janelas que começam depois de 2022) está escrito acima.
 - Não corrigido, e porquê: o pico de memória da preparação desde 2019 não está medido. Decidir onde se preparam as janelas (portátil ou pod) é planeamento do E4-S2.
 
