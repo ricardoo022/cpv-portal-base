@@ -529,7 +529,7 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 - [x] Com outra data de início, a validação e o teste têm os mesmos contratos e as mesmas etiquetas. Só muda a marca "texto também aparece no treino", que depende do treino.
 - [x] As verificações automáticas usam a data de início indicada e continuam a passar.
 
-### E4-S2 · Spike: a janela de treino desde 2022 é a certa? (timebox: 1 dia, feito)
+### E4-S2 · Spike: a janela de treino desde 2022 é a certa? (timebox: 1 dia, feito, com 3 verificações por cumprir, aceites pelo utilizador a 14 de outubro de 2026)
 
 **Pergunta:** com o N escolhido no E4-S1, treinar desde 2025, 2022 ou 2019 muda o resultado na validação?
 
@@ -574,7 +574,7 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 
 **Depende de:** E4-S2.
 
-**Como** (substitui o plano do `e4_s2.yaml`, que era repetir a grelha do E4-S1 na janela vencedora: primeiro confirma-se se ela ganha com o modelo em vigor): um só treino no pod, a janela desde 2019 com N = 10, `alpha` = 0,0000001, 24 épocas e τ = 0 e 0,25. Compara-se com o modelo do E4-S1 (desde 2022, N = 10, 24 épocas, τ = 0,25), que não se volta a treinar.
+**Como** (substitui o plano do `e4_s2.yaml`, que era repetir a grelha do E4-S1 na janela vencedora: primeiro confirma-se se ela ganha com o modelo em vigor; desvio ao pré-registo decidido e aceite pelo utilizador a 14 de outubro de 2026): um só treino no pod, a janela desde 2019 com N = 10, `alpha` = 0,0000001, 24 épocas e τ = 0 e 0,25. Compara-se com o modelo do E4-S1 (desde 2022, N = 10, 24 épocas, τ = 0,25), que não se volta a treinar.
 
 **Regra de escolha, escrita antes de correr** (num YAML, como nos outros spikes): a regra de comparação do E4-T1 no mesmo grupo do E4-S2 (os contratos da validação com texto novo para o treino desde 2019), com τ = 0,25. A opção em vigor é a janela desde 2022. Em empate fica a de 2022, porque é mais barato treinar com menos dados.
 
@@ -588,7 +588,7 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 **Feito** (14 de outubro de 2026). O YAML [experiencias/e4_s6.yaml](../experiencias/e4_s6.yaml) entrou no git antes do treino (commit `fc4996c`). Os números estão no [notebooks/10_janela_24_epocas.ipynb](../notebooks/10_janela_24_epocas.ipynb) e na secção 19 do [qualidade_dados.md](qualidade_dados.md); os ficheiros do pod estão em `metrics/e4_s6/`.
 
 - **Fica desde 2022.** No grupo da decisão, a janela desde 2019 tem 75,40% no top-5 do código completo e a desde 2022 tem 75,09%: +0,31 pontos, melhor em 94,8% das amostras do bootstrap, por isso não conta. Na classe tem 81,98% contra 82,13%, também sem diferença que conte. É empate, e a regra manda ficar com a mais curta. A decisão 1 fica confirmada, e a régua e o E4-H1 não se recalculam.
-- **Porque é que o E4-S2 deu outra coisa:** com a regra de paragem por defeito, a janela desde 2022 parava na época 12 e ficava em 73,46%; com 24 épocas chega a 75,09%. A desde 2019 já estava no seu máximo (75,38% com a regra, 75,40% com 24 épocas). A vantagem era de treino mais completo, não de mais dados.
+- **Porque é que o E4-S2 deu outra coisa:** com a regra de paragem por defeito, a janela desde 2022 parava na época 12 e ficava em 73,46%; com 24 épocas chega a 75,09%. A desde 2019 já estava no seu máximo (75,38% com a regra, 75,40% com 24 épocas). Com estes hiperparâmetros, a vantagem era em boa parte de treino mais completo, mas a desde 2019 ainda ganha no F1 macro do código e nos códigos de nível 5 a 7.
 - **Custo da janela desde 2019:** o treino demora quase o dobro (57,6 contra 31,2 minutos), e a preparação não cabe no portátil.
 - **Limitação:** a grelha de épocas na janela desde 2019 não se correu. Ficou decidido não a correr, porque a diferença é pequena e cada treino custa quase o dobro.
 - **Custo do spike:** um pod `cpu3g` de 8 processadores e 32 GB (não havia stock com 16), ligado cerca de 63 minutos a 0,32 $/h: cerca de 0,34 $ (`metrics/e4_s6/pod_info.json`).
@@ -705,5 +705,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro. Se 
 ---
 
 ## Ideias para depois (ainda não são épicos)
+
+- **Grelha de épocas na janela desde 2019** (14 de outubro de 2026, do E4-S6): no E4-S6, a janela desde 2019 empatou com a de 2022 usando as 24 épocas afinadas para 2022. Talvez tenha outro número ótimo de épocas. Correr a grelha de épocas (a regra por defeito, 3, 6, 12, 18 e 24) desde 2019 só vale a pena se o custo de GPU do E5 o justificar: cada treino desde 2019 custa quase o dobro.
 
 - **Interface por níveis da árvore** (proposta a 10 de outubro de 2026): em vez de uma lista de 5 códigos, o técnico escolhe a divisão, depois o grupo, depois a classe, com o modelo a ordenar as opções em cada passo. Ajudaria quando o técnico só sabe a área da compra. O projeto de Zwolle/Haskoning treinou um modelo por nível (ver `readme.md`). Fica para quando houver interface, que está fora do E4.
