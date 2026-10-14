@@ -171,6 +171,7 @@ def check_sets(sets, train_start=None):
         # uma frase é texto real (há uma gralha "domésticas nan Quinta" em 2020).
         pedacos = x["texto"].str.split(SEP, regex=False).explode().str.strip()
         check(not pedacos.isin(["None", "nan"]).any(), f"'None' ou 'nan' escrito no texto em {nome}")
+        del pedacos  # é uma cópia do texto partido; não fica em memória (CLAUDE.md)
         check((x["codigo"] == x["codigos"].str.split().str[0]).all(), f"etiqueta não é o primeiro código em {nome}")
     check(t["data"].min() >= train_start and t["data"].max() < cd.VAL_START, "treino fora do período")
     check(v["data"].min() >= cd.VAL_START and v["data"].max() < cd.TEST_START, "validação fora do período")
