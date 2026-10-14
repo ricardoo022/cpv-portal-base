@@ -1,0 +1,46 @@
+Funil (contratos que ficam em cada passo):
+  1. publicados de 2025-01-01 a dez 2025 (todos os ficheiros)        255 011
+  3. com pelo menos um código CPV                                    255 009
+  2. uma cópia por idcontrato                                        254 676
+
+Treino (2025-01-01 a set 2025):
+  contratos                                                          193 370
+  7. sem códigos ao nível da divisão                                 159 030
+  8a. contratos que seguem o código mais comum do seu texto          156 616
+  8b. exemplos de treino (um por texto)                              117 357
+
+Validação:
+  contratos                                                           23 945
+  9. com texto que já aparece no treino                                3 075
+     com código ao nível da divisão (avaliados só na divisão)          4 051
+
+Teste:
+  contratos                                                           37 361
+  9. com texto que já aparece no treino                                3 509
+     com código ao nível da divisão (avaliados só na divisão)          5 642
+
+10. Verificações: todas passaram.
+11. Gravado em data/janelas/2025 (treino, validacao, teste).parquet
+	Command being timed: ".venv/bin/python src/prepare.py --inicio-treino 2025-01-01 --saida data/janelas/2025"
+	User time (seconds): 11.88
+	System time (seconds): 0.73
+	Percent of CPU this job got: 117%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:10.73
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1478032
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 511929
+	Voluntary context switches: 3904
+	Involuntary context switches: 576
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 28232
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

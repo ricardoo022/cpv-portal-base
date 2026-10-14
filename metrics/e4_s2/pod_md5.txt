@@ -1,0 +1,6 @@
+4d0fcb05701d8f2c60542d452a9cdc08  data/janelas/2019/treino.parquet
+ef08b57eb5b7460e25ce9135c57474fa  data/janelas/2019/validacao.parquet
+295d1a89f4cc9fa0d91dcd0d6c2368b3  data/janelas/2022/treino.parquet
+c514da9c4b672b64c59ec38cfb99e10e  data/janelas/2022/validacao.parquet
+b0acab6c238093274df54a4d2714e8d1  data/janelas/2025/treino.parquet
+2bcefcfeefdfcab452daa558cc5fdf53  data/janelas/2025/validacao.parquet

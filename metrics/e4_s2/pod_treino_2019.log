@@ -1,0 +1,24 @@
+Gravado: (sem modelo) e metrics/e4_s2/desde_2019
+	Command being timed: ".venv/bin/python src/train_tfidf.py --treino data/janelas/2019/treino.parquet --validacao data/janelas/2019/validacao.parquet --n-min 10 --alpha 1e-7 --taus 0 0.25 --regra-por-defeito --sem-modelo --n-jobs 8 --saida metrics/e4_s2/desde_2019"
+	User time (seconds): 7493.82
+	System time (seconds): 11.14
+	Percent of CPU this job got: 756%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 16:32.36
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 17461904
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 458134
+	Voluntary context switches: 121478
+	Involuntary context switches: 24414
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 1344
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

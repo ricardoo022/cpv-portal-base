@@ -1,0 +1,13 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (create-pod, get-pod, delete-pod, list-pods) e do cgroup do pod, a 14 de outubro de 2026.",
+ "pods": [
+  {"id": "esfhhspry9tgyv", "nome": "cpv-e4-s2", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-14T08:35:45", "apagado_utc": "cerca de 09:10:00",
+   "preparacao": "2025, 2022 e 2019 com src/prepare.py --inicio-treino; o teste.parquet apagado logo a seguir; a de 2019 parou primeiro na verificação 'None/nan' (gralha 'domésticas nan Quinta' num contrato de 2020) e voltou a correr com a verificação corrigida",
+   "treinos": "desde_2025 08:46:45-08:50 e desde_2019 08:51-09:08, cada um com n_jobs 8; logs pod_*.log",
+   "memory_peak_cgroup_bytes": 19728158720}
+ ],
+ "tipo": "cpu3g (General Purpose)", "processadores": 16, "memoria_gb": 64, "disco_gb": 30,
+ "imagem": "runpod/base:1.0.2-ubuntu2204", "preco_por_hora_usd": 0.64,
+ "tempo_total_aproximado_min": 34, "custo_aproximado_usd": 0.36
+}

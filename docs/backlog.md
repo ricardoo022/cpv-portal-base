@@ -7,7 +7,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3 e E4-T4 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3, E4-T4, E4-S2 e E4-S6 feitos) |
 | E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em escrita (os treinos em GPU só começam depois do E4-S2) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
@@ -529,7 +529,7 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 - [x] Com outra data de início, a validação e o teste têm os mesmos contratos e as mesmas etiquetas. Só muda a marca "texto também aparece no treino", que depende do treino.
 - [x] As verificações automáticas usam a data de início indicada e continuam a passar.
 
-### E4-S2 · Spike: a janela de treino desde 2022 é a certa? (timebox: 1 dia)
+### E4-S2 · Spike: a janela de treino desde 2022 é a certa? (timebox: 1 dia, feito)
 
 **Pergunta:** com o N escolhido no E4-S1, treinar desde 2025, 2022 ou 2019 muda o resultado na validação?
 
@@ -543,11 +543,11 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 
 **Verificações de que o pod corre o que foi decidido** (acrescentadas a 14 de outubro de 2026):
 
-- [ ] **Antes de correr:** as janelas, o N e a regra das épocas estão em `experiencias/e4_s2.yaml`, escrito antes de correr, e um teste falha se o YAML for diferente da lista deste item.
-- [ ] **Antes de correr:** a lista exata dos comandos de treino (caminhos e parâmetros) é mostrada e aprovada antes de os lançar. Todos têm `--regra-por-defeito` e nenhum caminho aponta para o teste.
-- [ ] **Antes de correr:** a impressão digital (SHA-256) de cada ficheiro de treino e de validação é igual no portátil e no pod. A do treino desde 2022 é igual à do `treino.parquet` atual.
-- [ ] **Depois de correr (controlo):** a janela desde 2022 é o mesmo treino do E4-S4 (N = 10, `alpha` = 0,0000001, regra por defeito), por isso dá sugestões 100% iguais às de `metrics/e4_s4/alpha_1e-7/`, com τ = 0 e τ = 0,25. Se não der, não se tira nenhuma conclusão sobre as janelas antes de a diferença estar explicada.
-- [ ] **Depois de correr:** o número de exemplos de treino no `treino.json` de cada janela é igual ao do funil da preparação dessa janela.
+- [x] **Antes de correr:** as janelas, o N e a regra das épocas estão em `experiencias/e4_s2.yaml`, escrito antes de correr, e um teste falha se o YAML for diferente da lista deste item.
+- [ ] **Antes de correr:** a lista exata dos comandos de treino (caminhos e parâmetros) é mostrada e aprovada antes de os lançar. Todos têm `--regra-por-defeito` e nenhum caminho aponta para o teste. **Não cumprido:** os comandos foram lançados sem serem mostrados antes (a sessão trabalhava sobre uma cópia antiga deste ficheiro, sem estas verificações). Os comandos ficaram registados nos logs `metrics/e4_s2/pod_*.log` (`Command being timed`): todos têm `--regra-por-defeito`, e nenhum caminho aponta para o teste.
+- [ ] **Antes de correr:** a impressão digital (SHA-256) de cada ficheiro de treino e de validação é igual no portátil e no pod. A do treino desde 2022 é igual à do `treino.parquet` atual. **Cumprido em parte:** a comparação fez-se com md5, não com SHA-256 (`metrics/e4_s2/pod_md5.txt`). O treino e a validação desde 2022 preparados no pod são iguais aos de `data/processed/`. As janelas desde 2025 e desde 2019 foram preparadas no pod, não no portátil, por isso não havia ficheiro do portátil com que comparar antes de treinar. Depois, os ficheiros copiados (e o desde 2025, recriado no portátil) deram o mesmo md5 que no pod.
+- [x] **Depois de correr (controlo):** a janela desde 2022 é o mesmo treino do E4-S4 (N = 10, `alpha` = 0,0000001, regra por defeito), por isso dá sugestões 100% iguais às de `metrics/e4_s4/alpha_1e-7/`, com τ = 0 e τ = 0,25. Se não der, não se tira nenhuma conclusão sobre as janelas antes de a diferença estar explicada. **Cumprido:** a janela desde 2022 reusa o treino do E4-S1 com a regra por defeito (`metrics/e4_s1/n_min_10_ep_defeito/`), e as suas sugestões são 100% iguais às de `metrics/e4_s4/alpha_1e-7/` nos 23 945 contratos, com τ = 0 e τ = 0,25 (verificado no fecho).
+- [x] **Depois de correr:** o número de exemplos de treino no `treino.json` de cada janela é igual ao do funil da preparação dessa janela. Exemplos usados mais exemplos que saíram por raros: 117 357 desde 2025, 478 384 desde 2022 e 785 660 desde 2019, iguais aos funis.
 
 **Resultado:**
 
@@ -555,6 +555,43 @@ Em ambas, "piorar" e "aumentar" querem dizer uma diferença que conte segundo o 
 - a decisão 1 confirmada ou mudada no `qualidade_dados.md`.
 
 Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a correr com a nova data, e a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se.
+
+**Feito** (14 de outubro de 2026). As opções foram escritas antes de correr em [experiencias/e4_s2.yaml](../experiencias/e4_s2.yaml) (`modo: janela`, validado pelo `ler` do `scripts/correr_experiencia.py`). Os números estão no [notebooks/09_janela.ipynb](../notebooks/09_janela.ipynb) e na secção 18 do [qualidade_dados.md](qualidade_dados.md); os ficheiros do pod estão em `metrics/e4_s2/`.
+
+- **Como:** as três janelas treinam com N = 10, `alpha` = 0,0000001, τ = 0,25 e a regra de paragem por defeito, como manda o E4-S5. A de 2022 é o treino do E4-S1 (`n_min_10_ep_defeito`). As de 2025 e 2019 foram preparadas e treinadas no pod, e o `teste.parquet` foi apagado lá. A janela desde 2022 preparada no pod deu ficheiros iguais byte a byte aos do portátil.
+- **Vencedora:** **desde 2019**. No grupo da decisão (20 150 contratos com texto novo para o treino desde 2019), o top-5 é 75,38% no código completo e 81,98% na classe. A de 2022 tem 73,46% e 80,73%, e a de 2025 tem 63,28% e 72,70%. As duas diferenças contam em 100% das amostras do bootstrap.
+- **Análise completa** (informação): a de 2019 não piora em nenhuma medida do E4-T1, não aumenta as sugestões genéricas, e ganha mais nos códigos mais específicos.
+- **Não passou a valor por defeito:** foi escolhida com a regra de paragem por defeito. Com as 24 épocas do modelo em vigor empatou, e a janela ficou desde 2022 (E4-S6).
+- **Memória:** a preparação desde 2019 tem um pico de 4,3 GB e não cabe no portátil. O treino tem um pico de 17,9 GB e demora 15,8 min com 8 processadores.
+- **Correção pelo caminho:** a verificação "None/nan no texto" parava num contrato real de 2020 com a gralha "domésticas nan Quinta". Passou a olhar só para pedaços inteiros do texto entre separadores. Tem testes novos de integração e unitários, com teste por mutação.
+- **Custo:** um pod `cpu3g` de 16 processadores e 64 GB, ligado cerca de 34 minutos a 0,64 $/h: cerca de 0,36 $ (`metrics/e4_s2/pod_info.json`).
+
+### E4-S6 · Spike: a janela desde 2019 também ganha com 24 épocas? (timebox: 1 dia, feito)
+
+**Porque é precisa:** o E4-S2 escolheu a janela desde 2019 com a regra de paragem por defeito, para nenhuma janela partir com vantagem. Mas o modelo em vigor treina 24 épocas fixas (decisão 7). Antes de mudar o `TRAIN_START` e recalcular a régua e o E4-H1, confirma-se que a janela desde 2019 também ganha com o modelo que se usa de facto.
+
+**Pergunta:** treinar desde 2019 com 24 épocas dá melhores sugestões do que o modelo em vigor (desde 2022, 24 épocas)?
+
+**Depende de:** E4-S2.
+
+**Como:** um só treino no pod, a janela desde 2019 com N = 10, `alpha` = 0,0000001, 24 épocas e τ = 0 e 0,25. Compara-se com o modelo do E4-S1 (desde 2022, N = 10, 24 épocas, τ = 0,25), que não se volta a treinar.
+
+**Regra de escolha, escrita antes de correr** (num YAML, como nos outros spikes): a regra de comparação do E4-T1 no mesmo grupo do E4-S2 (os contratos da validação com texto novo para o treino desde 2019), com τ = 0,25. A opção em vigor é a janela desde 2022. Em empate fica a de 2022, porque é mais barato treinar com menos dados.
+
+**Resultado:**
+
+- a tabela das duas opções, com a mesma análise completa do E4-S2;
+- se a de 2019 ganhar: o `TRAIN_START` passa a 2019-01-01 (decisão 1), a preparação passa a fazer-se no pod (não cabe no portátil), e a régua (E4-T2) e os resultados do E4-H1 voltam a calcular-se. As 24 épocas, o N e o τ ficam os do E4-S1, sem voltar a correr a grelha nesta janela; isso fica escrito como limitação;
+- se não ganhar: a decisão 1 fica desde 2022;
+- o custo em tempo de pod e em dólares (estimativa: um treino de cerca de 30 minutos num pod de 16 processadores a 0,64 $/h, cerca de 0,35 $; não medida).
+
+**Feito** (14 de outubro de 2026). O YAML [experiencias/e4_s6.yaml](../experiencias/e4_s6.yaml) entrou no git antes do treino (commit `fc4996c`). Os números estão no [notebooks/10_janela_24_epocas.ipynb](../notebooks/10_janela_24_epocas.ipynb) e na secção 19 do [qualidade_dados.md](qualidade_dados.md); os ficheiros do pod estão em `metrics/e4_s6/`.
+
+- **Fica desde 2022.** No grupo da decisão, a janela desde 2019 tem 75,40% no top-5 do código completo e a desde 2022 tem 75,09%: +0,31 pontos, melhor em 94,8% das amostras do bootstrap, por isso não conta. Na classe tem 81,98% contra 82,13%, também sem diferença que conte. É empate, e a regra manda ficar com a mais curta. A decisão 1 fica confirmada, e a régua e o E4-H1 não se recalculam.
+- **Porque é que o E4-S2 deu outra coisa:** com a regra de paragem por defeito, a janela desde 2022 parava na época 12 e ficava em 73,46%; com 24 épocas chega a 75,09%. A desde 2019 já estava no seu máximo (75,38% com a regra, 75,40% com 24 épocas). A vantagem era de treino mais completo, não de mais dados.
+- **Custo da janela desde 2019:** o treino demora quase o dobro (57,6 contra 31,2 minutos), e a preparação não cabe no portátil.
+- **Limitação:** a grelha de épocas na janela desde 2019 não se correu. Ficou decidido não a correr, porque a diferença é pequena e cada treino custa quase o dobro.
+- **Custo do spike:** um pod `cpu3g` de 8 processadores e 32 GB (não havia stock com 16), ligado cerca de 63 minutos a 0,32 $/h: cerca de 0,34 $ (`metrics/e4_s6/pod_info.json`).
 
 ### E4-T5 · Tarefa: portão de qualidade no CI (P)
 
@@ -577,10 +614,10 @@ E4-T1 ──> E4-T2 ──┐
 E4-S0 ────────────┴──> E4-H1 ──┬──> E4-T3 ────────┐
                                ├──> E4-T5        │
                                └──> E4-S4 ───────┴──> E4-S5 ──> E4-S1 ──┬──> E4-S3 ──> (atualizar E4-T2, E4-H1 e E4-T5)
-E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> (atualizar E4-T2, E4-H1 e E4-T5)
+E4-T4 ──────────────────────────────────────────────────────────────────┴──> E4-S2 ──> E4-S6 (fica desde 2022)
 ```
 
-- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1, o E4-S3 (a entidade não entra) e o E4-T4 (a data de início na preparação) estão feitos. Segue-se o E4-S2; o E4-T5 não depende de mais nada.
+- O E4-T1, o E4-T2, o E4-S0, o E4-H1, o E4-S4, o E4-T3, o E4-S5, o E4-S1, o E4-S3 (a entidade não entra), o E4-T4 (a data de início na preparação), o E4-S2 e o E4-S6 (a janela fica desde 2022) estão feitos. Segue-se o E4-T5, que não depende de mais nada.
 - O E4-S1 testa o N, as épocas e o τ numa só grelha, porque interagem (ver o E4-S1). O E4-S2 continua a treinar com a regra por defeito das épocas: a janela muda a quantidade de dados e um número fixo de épocas não se adapta (as épocas voltam a medir-se no fim, para o N e a janela escolhidos).
 - O E4-S5 vem antes do E4-S1 para os spikes seguintes (N, entidade, janela) já usarem o TF-IDF afinado.
 - O E4-T5 cria o portão logo a seguir ao E4-H1. Os valores guardados voltam a atualizar-se no fim, com o N, a janela e a entidade decididos.

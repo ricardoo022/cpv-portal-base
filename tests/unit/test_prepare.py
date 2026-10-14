@@ -192,11 +192,20 @@ def test_check_sets_apanha_texto_repetido_no_treino():
         pr.check_sets(sets)
 
 
-def test_check_sets_apanha_none_escrito_no_texto():
+@pytest.mark.parametrize("texto", ["jardins | None", "None", "jardins | nan | AQ", "jardins |  nan "])
+def test_check_sets_apanha_none_escrito_no_texto(texto):
     sets = conjuntos_validos()
-    sets["validação"].loc[0, "texto"] = "jardins | None"
-    with pytest.raises(pr.DataCheckError, match="None"):
+    sets["validação"].loc[0, "texto"] = texto
+    with pytest.raises(pr.DataCheckError, match="'None' ou 'nan'"):
         pr.check_sets(sets)
+
+
+@pytest.mark.parametrize("texto", ["águas domésticas nan Quinta dos Farias", "jardins | None of the above"])
+def test_check_sets_aceita_none_ou_nan_dentro_de_uma_frase(texto):
+    # Só um pedaço inteiro entre separadores é um campo vazio escrito como texto.
+    sets = conjuntos_validos()
+    sets["validação"].loc[0, "texto"] = texto
+    pr.check_sets(sets)
 
 
 def test_check_sets_apanha_codigo_mal_formado():

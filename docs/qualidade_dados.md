@@ -461,6 +461,80 @@ Como ler:
 - **A guarda 2 decide sozinha.** Sem ela, a entidade entrava. Ficou escrita antes de ver os números, por isso a decisão mantém-se.
 - **Custo:** um pod `cpu3m` de 8 processadores e 64 GB, a 0,44 $/h (o `cpu3g` de 0,32 $/h não tinha stock), ligado cerca de 44 minutos: cerca de 0,32 $ (`metrics/e4_s3/pod_info.json`, escrito à mão a partir das leituras da Runpod). O treino levou 1 958 s; pico de memória do processo 10,9 GB (`treino.json`).
 
+### 18. A janela de treino do TF-IDF (E4-S2)
+
+De [`notebooks/09_janela.ipynb`](../notebooks/09_janela.ipynb), que lê as sugestões das três janelas: desde 2022 (o treino N = 10 com a regra de paragem por defeito do E4-S1, `metrics/e4_s1/n_min_10_ep_defeito/`), e desde 2025 e desde 2019 (treinos deste spike, `metrics/e4_s2/`).
+
+**Porquê:** a decisão 1 escolheu treinar desde 2022 olhando só para quantos contratos da validação têm um código com exemplos suficientes no treino. Faltava confirmá-lo com um modelo: menos anos dão dados mais recentes, mais anos dão mais exemplos (sobretudo dos códigos raros), mas mais antigos.
+
+**Como:** as janelas, a ordem da comparação e a regra foram escritas antes de correr em [`experiencias/e4_s2.yaml`](../experiencias/e4_s2.yaml). As três acabam em setembro de 2025; só muda o início (`src/prepare.py --inicio-treino`, E4-T4). O treino é o mesmo nas três: N = 10, `alpha` = 0,0000001, τ = 0,25 e a **regra de paragem por defeito** do scikit-learn, não as 24 épocas fixas. As 24 épocas foram escolhidas na janela desde 2022 e favoreciam-na; a regra por defeito para sozinha consoante os dados, por isso trata as três janelas da mesma forma. As janelas desde 2025 e desde 2019 foram preparadas e treinadas no pod; o `teste.parquet` que a preparação cria foi apagado logo lá. A janela desde 2022, preparada no pod, deu ficheiros iguais byte a byte (md5) aos de `data/processed/` (`metrics/e4_s2/pod_md5.txt`).
+
+**O grupo da decisão:** os contratos da validação cujo texto não aparece no treino desde 2019 (20 150 de 23 945). Com mais anos no treino, mais textos da validação já foram vistos (3 706 desde 2022, 3 795 desde 2019), e o modelo acerta neles por decorar; usar o mesmo grupo nas três janelas impede a janela longa de ganhar só por isso.
+
+| Janela | Exemplos de treino | Etiquetas | Épocas até parar | Top-5 código | Top-5 classe | Top-1 código |
+|---|---|---|---|---|---|---|
+| desde 2025 | 116 996 | 1 540 | 16 | 63,28% | 72,70% | 44,52% |
+| desde 2022 | 478 234 | 3 000 | 12 | 73,46% | 80,73% | 51,46% |
+| **desde 2019** | **785 542** | **3 621** | 11 | **75,38%** | **81,98%** | **52,04%** |
+
+(Grupo da decisão. Em todos os contratos, só como informação: 67,34%, 76,94% e 78,63% no top-5 do código completo.)
+
+**Escolha, com a regra escrita antes de correr** (a do E4-T1, da janela mais curta para a mais longa; em empate fica a mais curta):
+- desde 2022 contra desde 2025: +10,18 pontos no top-5 do código completo e +8,03 na classe; a de 2022 é melhor em 100% das amostras do bootstrap. Fica a de 2022.
+- desde 2019 contra desde 2022: +1,92 pontos no código completo e +1,25 na classe, também em 100% das amostras. Fica a de 2019.
+
+Escolhida: **desde 2019**, com a regra de paragem por defeito. **Não passou a valor por defeito:** o modelo em vigor treina 24 épocas, e o spike E4-S6 (secção 19) treinou a janela desde 2019 com 24 épocas. Aí empatou com o modelo em vigor, e a decisão 1 ficou desde 2022.
+
+**Análise completa** (informação, não decide; secção "Análise completa" do notebook). Em todas as medidas do E4-T1, desde 2019 contra desde 2022:
+- **Nenhuma piora.** No bootstrap das 18 combinações (código, classe e divisão × top-1, top-5 e F1 macro, no grupo da decisão e em todos os contratos), a de 2019 ganha em 15 com uma diferença que conta e empata nas outras 3 (F1 macro); a de 2022 não ganha em nenhuma. As medidas hierárquicas sobem um pouco (F1 micro em todos 65,74% → 66,38%).
+- **Não cai em códigos genéricos** (o que deixou a entidade de fora, secção 17): a parte das 1.as sugestões ao nível do grupo ou acima fica igual (29,89% → 29,98%, diferença que não conta), e a parte das 1.as sugestões que são uma das 5 etiquetas da régua desce um pouco (28,3% → 28,0%).
+- **O ganho é maior nos códigos mais específicos** (top-5 no código completo, grupo da decisão, pelo nível da etiqueta): +1,3 pontos no nível 3 (grupo), +1,4 no 4 (classe), +2,0 no 5, +3,9 no 6, +2,5 no 7 e +2,9 no 8. Os anos 2019 a 2021 trazem exemplos dos códigos raros: com N = 10 passam a existir 3 621 etiquetas, em vez de 3 000.
+- **A régua muda um pouco:** a 5.ª etiqueta passa de `98300000` para `33696500`. O modelo fica mais acima dela (+52,4 pontos no código completo em todos os contratos, contra +50,6 desde 2022 e +40,3 desde 2025, com a régua de cada janela). O treino desde 2025 não veio do pod; recriou-se no portátil (pico de 1,3 GB) e deu o mesmo md5 que lá.
+
+Como ler:
+- **Mais dados ganham, mesmo antigos.** A janela desde 2025 perde muito: com 117 mil exemplos, só conhece 1 540 etiquetas.
+- **O ganho de 2019 sobre 2022 é pequeno, mas certo:** cerca de 2 pontos, em 100% das amostras do bootstrap, e em todas as medidas.
+- **Custo:** a janela desde 2019 tem 64% mais exemplos. O treino passou de 8,7 para 15,8 minutos (`treino.json`, com 8 processadores) e o pico de memória do processo de 10,5 para 17,9 GB. A preparação desde 2019 tem um pico de 4,3 GB (`/usr/bin/time -v`, `metrics/e4_s2/pod_preparar_2019.log`) e **não cabe no portátil** (cerca de 3 GB livres): passaria a fazer-se no pod. Para o BERTimbau e o Albertina, o tempo de GPU deve crescer mais ou menos na mesma proporção dos exemplos (estimativa, não medida).
+- **Verificação corrigida pelo caminho:** a preparação desde 2019 parou na verificação "'None' ou 'nan' escrito no texto". Era um falso alarme: um contrato de 2020 tem a gralha "águas residuais domésticas nan Quinta dos Farias" ("nan" por "na") no próprio Portal BASE. A verificação passou a olhar só para pedaços inteiros do texto entre separadores (`" | "`), que é onde um campo vazio escrito como texto aparece; os ficheiros desde 2022 não mudam.
+- **Limitação:** a escolha usou a regra de paragem por defeito (o modelo em vigor usa 24 épocas). É o que o E4-S6 mede.
+- **Custo do spike:** um pod `cpu3g` de 16 processadores e 64 GB, a 0,64 $/h, ligado cerca de 34 minutos: cerca de 0,36 $ (`metrics/e4_s2/pod_info.json`). O pico de memória do pod inteiro foi 19,7 GB de 64.
+
+### 19. A janela desde 2019 com 24 épocas (E4-S6)
+
+De [`notebooks/10_janela_24_epocas.ipynb`](../notebooks/10_janela_24_epocas.ipynb), que é o notebook 09 com outro YAML. Lê as sugestões do modelo em vigor (desde 2022, N = 10, 24 épocas: o treino do E4-S1, `metrics/e4_s1/n_min_10_ep_24/`) e as da janela desde 2019 com a mesma configuração (treino deste spike, `metrics/e4_s6/desde_2019/`).
+
+**Porquê:** o E4-S2 (secção 18) escolheu a janela desde 2019 com a regra de paragem por defeito, mas o modelo em vigor treina 24 épocas fixas (decisão 7 do E4). Antes de mudar o `TRAIN_START`, confirmou-se a escolha com o modelo que se usa de facto.
+
+**Como:** as opções e a regra foram escritas antes de correr em [`experiencias/e4_s6.yaml`](../experiencias/e4_s6.yaml) (no git antes do treino, commit `fc4996c`): o mesmo grupo de decisão do E4-S2, a regra do E4-T1, a de 2022 como opção em vigor e, em empate, fica a de 2022. Só a janela desde 2019 treinou, no pod, com os ficheiros de `data/janelas/2019/` (md5 iguais aos do E4-S2).
+
+Resultados no grupo da decisão (20 150 contratos com texto novo para o treino desde 2019), τ = 0,25:
+
+| | desde 2022 (em vigor) | desde 2019 | Diferença | desde 2019 melhor em |
+|---|---|---|---|---|
+| Top-5 código | 75,09% | 75,40% | +0,31 | 94,8% das amostras |
+| Top-5 classe | 82,13% | 81,98% | −0,15 | 21,0% das amostras |
+| Top-1 código | 51,99% | 52,18% | +0,19 | 79,9% das amostras |
+
+(Em todos os contratos, só como informação: 78,35% e 78,63% no top-5 do código completo.)
+
+**Escolha, com a regra escrita antes de correr:** nenhuma das duas diferenças do top-5 conta (é preciso 95% das amostras do mesmo lado; o código completo fica nos 94,8%). É empate, e fica a janela em vigor. Escolhida: **desde 2022** (decisão 1). Como o modelo em vigor não muda, a régua (secção 12) e os resultados do E4-H1 não se recalculam.
+
+Porque é que o E4-S2 deu outra coisa:
+
+| Top-5 código (grupo da decisão) | Regra por defeito (E4-S2) | 24 épocas (E4-S6) |
+|---|---|---|
+| desde 2022 | 73,46% (parou na época 12) | 75,09% |
+| desde 2019 | 75,38% (parou na época 11) | 75,40% |
+
+Com a regra por defeito, a janela desde 2022 parava cedo demais e perdia 1,6 pontos. A desde 2019 tem mais exemplos, logo cada época dá mais passos de aprendizagem, e em 11 épocas já tinha chegado ao seu máximo. A vantagem medida no E4-S2 era sobretudo de **treino mais completo**, não de mais dados.
+
+Como ler:
+- **A regra por defeito não era neutra.** O E4-S2 usou-a para nenhuma janela partir com vantagem, mas a paragem automática favoreceu a janela com mais exemplos. Lição que generaliza: ao comparar opções de dados, cada opção tem de treinar até ao seu melhor. Senão, mede-se quem aprende mais depressa, e não quem tem melhores dados.
+- **Análise completa** (informação, não decide): nas 18 comparações do bootstrap (código, classe e divisão × top-1, top-5 e F1 macro, no grupo e em todos), a desde 2019 ganha em 6 (F1 macro no código; top-1 e F1 macro na divisão) e empata nas outras 12. As sugestões genéricas ficam iguais (30,57% → 30,42%, diferença que não conta). Por nível da etiqueta, a desde 2019 ganha nos códigos específicos (+1,4 pontos no nível 5, +3,1 no 6, +1,4 no 7) e perde na classe (−2,1 pontos no nível 4).
+- **O ganho possível não paga o custo.** O treino desde 2019 levou 57,6 minutos, contra 31,2 (`treino.json`, 8 processadores), com um pico de 17,9 GB, e a preparação não cabe no portátil (secção 18). Para o BERTimbau e o Albertina, o tempo de GPU deve crescer mais ou menos na mesma proporção dos exemplos (estimativa, não medida).
+- **Limitação:** as 24 épocas foram afinadas na janela desde 2022 (E4-S5/S1). Não se correu a grelha de épocas na janela desde 2019, que talvez tivesse outro ótimo. Decidido não a correr (14 de outubro de 2026): a diferença medida é pequena (+0,31 pontos, que não conta) e cada treino custa quase o dobro.
+- **Custo do spike:** um pod `cpu3g` de 8 processadores e 32 GB, a 0,32 $/h (não havia stock com 16 processadores), ligado cerca de 63 minutos: cerca de 0,34 $ (`metrics/e4_s6/pod_info.json`). O pico de memória do pod inteiro foi 19,2 GB de 32.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
@@ -473,6 +547,10 @@ Como ler:
    | Reserva | 2026 (até 4 de outubro) | Segunda verificação no fim, com dados mais recentes |
 
    Porquê desde 2022: com só 2025, 92,9% dos contratos de validação têm um código com pelo menos 10 exemplos no treino; desde 2022 são 98,2%; recuar até 2012 só sobe para 99,3% e multiplica os dados por 2,4. Confirmar na fase 4: treinar o TF-IDF com as janelas desde 2025, 2022 e 2019 e comparar na validação.
+
+   **Confirmado na fase 4 (14 de outubro de 2026): o treino fica desde 2022.**
+   - **E4-S2 (secção 18):** com o TF-IDF e a regra de paragem por defeito, a janela desde 2019 ganhou à de 2022 (+1,92 pontos no top-5 do código completo), e a de 2022 ganhou à de 2025 (+10,18).
+   - **E4-S6 (secção 19):** com as 24 épocas do modelo em vigor, a janela desde 2019 empata com a de 2022 (+0,31 pontos no top-5 do código completo, numa diferença que não conta). A regra escrita antes de correr manda ficar com a mais curta. A vantagem do E4-S2 vinha sobretudo de a regra por defeito parar cedo demais o treino desde 2022.
 2. Tirar os 3 contratos sem CPV.
 3. Ficar com uma só cópia de cada `idcontrato`: a do ficheiro mais recente e, no mesmo ficheiro, a de data de publicação mais recente.
 4. Contratos com vários códigos: treinar com o primeiro. Na avaliação, contar como acerto se a sugestão estiver entre os códigos do contrato.

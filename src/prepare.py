@@ -167,7 +167,10 @@ def check_sets(sets, train_start=None):
         check(x["idcontrato"].is_unique, f"idcontrato repetido em {nome}")
         check(x["codigo"].str.fullmatch(r"\d{8}").all(), f"código mal formado em {nome}")
         check((x["texto"].str.strip() != "").all(), f"texto vazio em {nome}")
-        check(not x["texto"].str.contains(r"\b(?:None|nan)\b").any(), f"'None' ou 'nan' escrito no texto em {nome}")
+        # Um campo vazio escrito como texto é um pedaço inteiro entre separadores; "nan" no meio de
+        # uma frase é texto real (há uma gralha "domésticas nan Quinta" em 2020).
+        pedacos = x["texto"].str.split(SEP, regex=False).explode().str.strip()
+        check(not pedacos.isin(["None", "nan"]).any(), f"'None' ou 'nan' escrito no texto em {nome}")
         check((x["codigo"] == x["codigos"].str.split().str[0]).all(), f"etiqueta não é o primeiro código em {nome}")
     check(t["data"].min() >= train_start and t["data"].max() < cd.VAL_START, "treino fora do período")
     check(v["data"].min() >= cd.VAL_START and v["data"].max() < cd.TEST_START, "validação fora do período")

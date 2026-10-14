@@ -354,3 +354,29 @@ def test_linha_de_comando_com_inicio_e_saida_grava_o_mesmo_que_run(janelas, tmp_
     runpy.run_path(pr.__file__, run_name="__main__")
     for nome, ficheiro in pr.FILES.items():
         pd.testing.assert_frame_equal(pd.read_parquet(saida / f"{ficheiro}.parquet"), sets_2019[nome])
+
+
+# --- "None"/"nan" no texto: só um campo inteiro conta como erro (E4-S2) ---
+#
+# Um campo vazio escrito por engano como texto aparece como um pedaço inteiro do texto de entrada,
+# entre separadores (" | "). Uma palavra "nan" no meio de uma frase real não é esse erro: o
+# contrato de 2020 que parou a preparação desde 2019 diz "águas residuais domésticas nan Quinta"
+# (gralha de "na" no Portal BASE).
+
+GRALHA_NAN = (2023, "18", datetime(2023, 7, 1), "Sistema elevatório de águas domésticas nan Quinta dos Farias",
+              None, None, "45232423-3 - Estações de bombagem de águas residuais")
+
+
+def test_palavra_nan_no_meio_de_uma_frase_nao_para_a_preparacao(tmp_path, run_pipeline):
+    sets = run_pipeline(tmp_path, CONTRATOS + [GRALHA_NAN])
+    treino = by_id(sets["treino"])
+    assert "18" in treino.index
+    assert " nan " in treino.loc["18", "texto"]
+
+
+@pytest.mark.parametrize("desc, aq", [("None", None), (None, "nan"), ("nan", "None")])
+def test_campo_escrito_como_none_ou_nan_para_a_preparacao(tmp_path, run_pipeline, desc, aq):
+    contrato = (2023, "19", datetime(2023, 8, 1), "Reparação de telhados", desc, aq,
+                "45261900-3 - Reparação de telhados")
+    with pytest.raises(pr.DataCheckError, match="'None' ou 'nan'"):
+        run_pipeline(tmp_path, CONTRATOS + [contrato])
