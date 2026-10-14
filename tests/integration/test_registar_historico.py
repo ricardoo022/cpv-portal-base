@@ -143,3 +143,14 @@ def test_ficheiro_de_sugestoes_sem_tau_no_nome_fica_de_fora(rh, guardado, tmp_pa
         estranho.unlink()
     assert not any("velho" in n for n in novos)
     assert "e4_xx/opcao_a/tau0" in novos
+
+
+def test_run_que_falhou_a_meio_volta_a_fazer_se(rh, guardado, tmp_path):
+    uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    mlflow.set_tracking_uri(uri)
+    mlflow.set_experiment(rh.EXPERIENCIA)
+    with mlflow.start_run(run_name="regua"):
+        mlflow.set_tag("estado", "rebentou")
+    mlflow.MlflowClient(uri).set_terminated(mlflow.search_runs(experiment_names=[rh.EXPERIENCIA])["run_id"][0], "FAILED")
+    novos, _, _ = _registar(rh, guardado, tmp_path)
+    assert "regua" in novos

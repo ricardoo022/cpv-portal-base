@@ -200,6 +200,7 @@ def test_campeao_avaliado_noutra_validacao_da_erro_e_nao_muda_o_ficheiro(portao)
 
 @pytest.mark.parametrize("muda", [
     {"datas": ["2024-03-01", "2025-10-03"]},   # o treino entra na validação
+    {"datas": ["2024-03-01", "2025-10-01"]},   # acaba no próprio dia em que a validação começa
     {"ficheiro": "teste.parquet"},             # o treino foi o ficheiro de teste
 ])
 def test_treino_que_nao_acaba_antes_da_validacao_e_recusado(treino, portao, tmp_path, muda):
@@ -220,4 +221,17 @@ def test_copia_do_teste_com_outro_nome_e_recusada_pelas_datas(treino, portao, tm
     copia.write_bytes((treino["validacao"].parent / "teste.parquet").read_bytes())
     with pytest.raises(ValueError, match="teste"):
         correr(val=copia)
+    assert not campeao.exists()
+
+
+def test_treino_de_outra_janela_com_esta_validacao_e_recusado(treino, portao, tmp_path):
+    # Um treino desde 2019 (outro início) com a validação preparada para o treino por defeito
+    correr, campeao, _ = portao
+    pasta = tmp_path / "desde_2019"
+    shutil.copytree(treino["pasta"], pasta)
+    resumo = json.loads((pasta / tt.RESUMO).read_text(encoding="utf-8"))
+    resumo["treino"]["datas"][0] = "2019-01-02"
+    (pasta / tt.RESUMO).write_text(json.dumps(resumo), encoding="utf-8")
+    with pytest.raises(mg.GateError, match="janela"):
+        correr(pasta=pasta)
     assert not campeao.exists()

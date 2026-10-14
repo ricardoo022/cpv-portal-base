@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from mlflow.models.evaluation.validation import ModelValidationFailedException
 
@@ -132,3 +133,12 @@ def test_bloco_sem_periodo_da_erro_do_portao():
     del b["periodo"]
     with pytest.raises(mg.GateError, match="período"):
         mg.check_block(b)
+
+
+def test_cada_grupo_e_medida_vai_para_o_seu_nome():
+    # Relatório no formato do `ev.report`, com um top-5 diferente em cada linha
+    linhas = [(g, m) for g in ("todos", "texto novo") for m in ("codigo", "classe", "divisao", "so_divisao")]
+    rep = pd.DataFrame({"top5": [i / 10 for i in range(len(linhas))]},
+                       index=pd.MultiIndex.from_tuples(linhas, names=["grupo", "medida"]))
+    assert mg.gate_metrics(rep) == {"top5_codigo_todos": 0.0, "top5_classe_todos": 0.1,
+                                    "top5_codigo_texto_novo": 0.4, "top5_classe_texto_novo": 0.5}

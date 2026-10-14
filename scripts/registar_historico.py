@@ -111,7 +111,10 @@ def _existing(nome_experiencia):
     if exp is None:
         return set()
     runs = mlflow.search_runs([exp.experiment_id])
-    return set(runs["tags.mlflow.runName"]) if len(runs) else set()
+    if not len(runs):
+        return set()
+    # Só os que acabaram: um run que rebentou a meio volta a fazer-se na corrida seguinte
+    return set(runs.loc[runs["status"] == "FINISHED", "tags.mlflow.runName"])
 
 
 def run(metrics_dir=RAIZ / "metrics", dados=DADOS, janelas=JANELAS, tracking_uri=mg.TRACKING,

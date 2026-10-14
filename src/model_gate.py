@@ -93,6 +93,25 @@ def check_training_dates(resumo, origem):
                         f"validação ({VAL_START.date()})")
 
 
+def check_window(resumo, val_path, origem):
+    """Erro se o treino avaliado não for da janela da validação dada.
+
+    O "texto novo" (`visto_no_treino`) da validação é calculado contra o treino preparado na
+    mesma pasta (`treino.parquet` ao lado do `validacao.parquet`). Um treino de outra janela
+    (por exemplo desde 2019) avaliado com esta validação contaria como novos textos que o modelo
+    viu, e o top-5 no texto novo sairia inflacionado. Avalia-se com a validação da sua janela
+    (`--validacao data/janelas/<ano>/validacao.parquet`).
+    """
+    treino_path = Path(val_path).parent / "treino.parquet"
+    if not treino_path.exists():
+        raise GateError(f"falta {treino_path}: sem ele não se sabe de que janela é a validação")
+    inicio = str(pd.read_parquet(treino_path, columns=["data"])["data"].min().date())
+    if resumo["treino"]["datas"][0] != inicio:
+        raise GateError(f"{origem}: o treino começa em {resumo['treino']['datas'][0]}, mas a validação "
+                        f"{val_path} é a do treino que começa em {inicio}; usar a validação da janela "
+                        "desse treino")
+
+
 def check_same_validation(block, campeao):
     """Erro se o novo e o campeão não foram avaliados na mesma validação (contratos e período).
 
@@ -133,6 +152,7 @@ def evaluate_run(pasta, val_path=VALIDACAO):
     if nome is None:
         raise GateError(f"{pasta / RESUMO} não indica o ficheiro do modelo por defeito")
     check_training_dates(resumo, pasta / RESUMO)
+    check_window(resumo, val_path, pasta / RESUMO)
 
     val = pd.read_parquet(val_path, columns=["idcontrato", "data", "codigos", "visto_no_treino"])
     sug = pd.read_parquet(pasta / nome, columns=["idcontrato", "sugestoes"])
