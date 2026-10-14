@@ -7,12 +7,15 @@ No fim, a régua (src/baselines.py) conta as etiquetas do treino que a preparaç
 avaliação (src/evaluation.py) corre sobre a validação que a preparação escreveu.
 """
 
+import runpy
+import sys
 from datetime import datetime
 
 import pandas as pd
 import pytest
 
 import baselines as bl
+import cpv_data as cd
 import evaluation as ev
 import prepare as pr
 
@@ -261,3 +264,93 @@ def test_correr_duas_vezes_da_exatamente_o_mesmo(sets, tmp_path, run_pipeline):
 def test_pasta_sem_ficheiros_da_erro_claro(tmp_path):
     with pytest.raises(pr.DataCheckError, match="nenhum contratos"):
         pr.run(raw_dir=tmp_path, out_dir=tmp_path / "out", verbose=False)
+
+
+# --- Início do treino indicado (E4-T4) ---
+#
+# Os mesmos contratos de CONTRATOS e mais três antigos, corridos com o início por defeito (2022)
+# e com início em 2019. Ficam numa lista à parte para não mudar os testes de cima.
+
+CONTRATOS_INICIO = CONTRATOS + [
+    # 15: publicado em 2020, com o texto do contrato 11 da validação ("Medicamentos", que no treino
+    # por defeito só tem o contrato 4, ao nível da divisão). Com início em 2019, o 11 passa a visto.
+    (2020, "15", datetime(2020, 6, 1), "medicamentos", None, None, "33600000-6 - Produtos farmacêuticos"),
+    # 16: publicado em 2020, com o texto do contrato 12 do teste. Com início em 2019, o 12 passa a visto.
+    (2020, "16", datetime(2020, 9, 1), "Jardinagem do parque", None, None, "77311000-3 - Manutenção de jardins"),
+    # 17: publicado antes de 2019 -> fica de fora mesmo com início em 2019
+    (2018, "17", datetime(2018, 12, 31), "Muito antigo", None, None, LIMPEZA_ESCOLAS),
+]
+INICIO_2019 = "2019-01-01"
+
+
+@pytest.fixture(scope="module")
+def janelas(tmp_path_factory, run_pipeline):
+    """{nome: (conjuntos, pasta)} para o início por defeito, 2022 dito explicitamente e 2019."""
+    corridas = {"defeito": None, "2022 explícito": cd.TRAIN_START, "2019": INICIO_2019}
+    out = {}
+    for nome, inicio in corridas.items():
+        base = tmp_path_factory.mktemp("janela")
+        out[nome] = (run_pipeline(base, CONTRATOS_INICIO, train_start=inicio), base)
+    return out
+
+
+def test_inicio_por_defeito_da_a_mesma_saida_que_antes(sets, janelas):
+    # Os contratos de 2018 e 2020 não mudam nada com o início por defeito: a saída é a mesma que
+    # a dos CONTRATOS de cima (que guardam o comportamento de antes), e a mesma que dizer 2022.
+    for nome in ["defeito", "2022 explícito"]:
+        for conjunto in sets:
+            pd.testing.assert_frame_equal(janelas[nome][0][conjunto], sets[conjunto])
+
+
+def test_inicio_por_defeito_grava_os_mesmos_ficheiros(janelas):
+    pasta_defeito, pasta_2022 = janelas["defeito"][1] / "out", janelas["2022 explícito"][1] / "out"
+    nomes = sorted(p.name for p in pasta_defeito.iterdir())
+    assert nomes == sorted(f"{f}.parquet" for f in pr.FILES.values())
+    assert nomes == sorted(p.name for p in pasta_2022.iterdir())
+    for nome in nomes:
+        assert (pasta_defeito / nome).read_bytes() == (pasta_2022 / nome).read_bytes()
+
+
+def test_inicio_em_2019_poe_contratos_antigos_no_treino(janelas):
+    treino = janelas["2019"][0]["treino"]
+    # 9 (31 dez 2021), 15 e 16 (2020) entram; 17 (2018) e 4 (divisão) continuam fora
+    assert sorted(treino["idcontrato"], key=int) == ["2", "5", "6", "7", "9", "15", "16"]
+    assert by_id(treino).loc["15", "codigo"] == "33600000"
+    assert by_id(treino).loc["2", "n_contratos"] == 3
+
+
+def test_contrato_antes_do_inicio_indicado_fica_de_fora(janelas):
+    todos = set().union(*(set(df["idcontrato"]) for df in janelas["2019"][0].values()))
+    assert {"8", "14", "17"}.isdisjoint(todos)
+
+
+def test_outro_inicio_nao_muda_validacao_nem_teste_so_visto_no_treino(janelas):
+    defeito, inicio_2019 = janelas["defeito"][0], janelas["2019"][0]
+    for conjunto in ["validação", "teste"]:
+        a, b = defeito[conjunto], inicio_2019[conjunto]
+        assert a["idcontrato"].tolist() == b["idcontrato"].tolist()
+        assert a["codigo"].tolist() == b["codigo"].tolist()
+        assert a["codigos"].tolist() == b["codigos"].tolist()
+        # Todas as outras colunas também ficam iguais: só o visto_no_treino pode mudar
+        pd.testing.assert_frame_equal(a.drop(columns="visto_no_treino"), b.drop(columns="visto_no_treino"))
+
+
+def test_outro_inicio_muda_visto_no_treino_dos_textos_antigos(janelas):
+    defeito, inicio_2019 = janelas["defeito"][0], janelas["2019"][0]
+    assert by_id(defeito["validação"])["visto_no_treino"].to_dict() == {"10": True, "11": False}
+    assert by_id(inicio_2019["validação"])["visto_no_treino"].to_dict() == {"10": True, "11": True}
+    assert by_id(defeito["teste"])["visto_no_treino"].to_dict() == {"12": False, "13": True}
+    assert by_id(inicio_2019["teste"])["visto_no_treino"].to_dict() == {"12": True, "13": True}
+
+
+def test_linha_de_comando_com_inicio_e_saida_grava_o_mesmo_que_run(janelas, tmp_path, monkeypatch):
+    # `python src/prepare.py --inicio-treino 2019-01-01 --saida PASTA`, dentro do pytest e com a
+    # entrada de cpv_data trocada pelos .parquet inventados (nunca toca nos dados reais).
+    sets_2019, base = janelas["2019"]
+    monkeypatch.setattr(cd, "ROOT", tmp_path)
+    monkeypatch.setattr(cd, "RAW_PARQUET", base / "raw")
+    saida = tmp_path / "janela_2019"
+    monkeypatch.setattr(sys, "argv", ["prepare.py", "--inicio-treino", INICIO_2019, "--saida", str(saida)])
+    runpy.run_path(pr.__file__, run_name="__main__")
+    for nome, ficheiro in pr.FILES.items():
+        pd.testing.assert_frame_equal(pd.read_parquet(saida / f"{ficheiro}.parquet"), sets_2019[nome])

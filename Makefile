@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao epocas grelha entidade
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir tfidf afinacao epocas grelha entidade
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -21,6 +21,9 @@ dados: ## Descarrega os .xlsx do dados.gov.pt e converte-os para Parquet (demora
 
 preparar: ## Cria treino, validação e teste em data/processed/ (prepare.py, ~1 min)
 	$(PY) src/prepare.py
+
+preparar-janela: ## Cria treino, validação e teste com outro início do treino: make preparar-janela INICIO=2019-01-01 SAIDA=data/janelas/2019
+	$(PY) src/prepare.py --inicio-treino $(INICIO) --saida $(SAIDA)
 
 test: ## Todos os testes
 	$(PYTEST) -q

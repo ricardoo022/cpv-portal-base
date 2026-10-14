@@ -204,3 +204,173 @@ def test_check_sets_apanha_codigo_mal_formado():
     sets["treino"].loc[0, "codigo"] = "9091120"
     with pytest.raises(pr.DataCheckError, match="mal formado"):
         pr.check_sets(sets)
+
+
+# --- Início do treino indicado (E4-T4) ---
+
+INICIO_2019 = pd.Timestamp("2019-01-01")
+
+
+def escrever_raw(pasta, ano, linhas):
+    """Um contratos<ano>.parquet como os de convert_to_parquet.py (todas as colunas em texto)."""
+    n = len(linhas)
+    pd.DataFrame({
+        "idcontrato": [i for i, _ in linhas],
+        "dataPublicacao": [d for _, d in linhas],
+        "objectoContrato": [f"Contrato {i}" for i, _ in linhas],
+        "descContrato": [None] * n,
+        "DescrAcordoQuadro": [None] * n,
+        "CPV": ["90911200-8 - Limpeza de edifícios"] * n,
+        "adjudicante": ["500000000 - Entidade"] * n,
+        "tipoContrato": ["Aquisição de serviços"] * n,
+        "tipoprocedimento": ["Ajuste Direto Regime Geral"] * n,
+    }).to_parquet(pasta / f"contratos{ano}.parquet", index=False)
+
+
+def test_add_columns_com_inicio_anterior_poe_contratos_antigos_no_treino():
+    df = contratos([
+        (1, "2020-06-01", "limpeza", "90911200", 2020),
+        (2, "2025-10-05", "jardins", "77311000"),
+    ])
+    assert pd.isna(df.set_index("idcontrato").loc[1, "periodo"])  # por defeito (2022) fica de fora
+    com_inicio = pr.add_columns(df.drop(columns=["nivel", "periodo", "chave"]), train_start=INICIO_2019)
+    assert com_inicio["periodo"].tolist() == ["treino", "validação"]
+
+
+def test_build_train_com_inicio_anterior_marca_texto_antigo_como_visto():
+    df = contratos([
+        (1, "2020-06-01", "limpeza", "90911200", 2020),
+        (2, "2024-01-10", "papel", "30197630", 2024),
+        (3, "2025-10-05", "Limpeza", "90911200"),
+    ])
+    base = df.drop(columns=["nivel", "periodo", "chave"])
+    for inicio, visto in [(None, False), (INICIO_2019, True)]:
+        df = pr.add_columns(base, train_start=inicio)
+        tr = pr.build_train(df, verbose=False)
+        val = pr.build_eval(df, "validação", set(tr["chave"]), verbose=False)
+        assert val["visto_no_treino"].tolist() == [visto]
+
+
+def test_load_all_le_contratos_desde_o_inicio_indicado(tmp_path):
+    escrever_raw(tmp_path, 2020, [("1", "2018-12-31"), ("2", "2019-01-01"), ("3", "2021-12-31")])
+    escrever_raw(tmp_path, 2025, [("4", "2022-01-01"), ("5", "2025-10-05")])
+    por_defeito, n_defeito = pr.load_all(tmp_path)
+    assert sorted(por_defeito["idcontrato"]) == ["4", "5"]
+    assert n_defeito == 2
+    com_inicio, n_inicio = pr.load_all(tmp_path, train_start=INICIO_2019)
+    assert sorted(com_inicio["idcontrato"]) == ["2", "3", "4", "5"]
+    assert n_inicio == 4
+
+
+def test_check_sets_usa_o_inicio_do_treino_indicado():
+    # O treino de conjuntos_validos() tem um contrato de 2024-01-10: com início em junho de 2024
+    # fica antes do início, e a verificação tem de o apanhar.
+    sets = conjuntos_validos()
+    pr.check_sets(sets, train_start=pd.Timestamp("2024-01-10"))
+    with pytest.raises(pr.DataCheckError, match="treino fora do período"):
+        pr.check_sets(sets, train_start=pd.Timestamp("2024-06-01"))
+
+
+def test_check_sets_por_defeito_apanha_treino_antes_de_2022():
+    sets = conjuntos_validos()
+    sets["treino"].loc[0, "data"] = pd.Timestamp("2021-06-01")
+    with pytest.raises(pr.DataCheckError, match="treino fora do período"):
+        pr.check_sets(sets)
+    with pytest.raises(pr.DataCheckError, match="treino fora do período"):
+        pr.check_sets(sets, train_start=None)
+
+
+def test_check_sets_aceita_treino_antigo_com_inicio_anterior():
+    sets = conjuntos_validos()
+    sets["treino"].loc[0, "data"] = pd.Timestamp("2021-06-01")
+    pr.check_sets(sets, train_start=INICIO_2019)
+
+
+@pytest.mark.parametrize("inicio", ["2025-10-01", pd.Timestamp("2025-10-01"), "2025-12-01", "2026-03-01"])
+def test_run_inicio_do_treino_nao_anterior_a_validacao_da_erro(tmp_path, inicio):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    with pytest.raises(ValueError):
+        pr.run(raw_dir=raw_dir, out_dir=tmp_path / "out", verbose=False, train_start=inicio)
+    assert not list(tmp_path.glob("out/*.parquet"))
+
+
+def test_linha_de_comando_outro_inicio_sem_saida_da_erro_sem_escrever(tmp_path, monkeypatch, capsys):
+    # Corre src/prepare.py como `python src/prepare.py --inicio-treino 2019-01-01`, mas dentro do
+    # pytest e com as pastas de cpv_data trocadas por pastas temporárias: mesmo que o argparse não
+    # parasse, nunca leria nem reescreveria os dados reais de data/processed/.
+    import runpy
+    import sys
+
+    import cpv_data as cd
+
+    raiz = tmp_path / "raiz"
+    raw_dir = raiz / "data" / "processed" / "raw"
+    raw_dir.mkdir(parents=True)
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    monkeypatch.setattr(cd, "ROOT", raiz)
+    monkeypatch.setattr(cd, "RAW_PARQUET", raw_dir)
+    monkeypatch.setattr(sys, "argv", ["prepare.py", "--inicio-treino", "2019-01-01"])
+    with pytest.raises(SystemExit) as erro:
+        runpy.run_path(pr.__file__, run_name="__main__")
+    assert erro.value.code == 2
+    assert "--saida" in capsys.readouterr().err
+    assert list(raiz.rglob("*.parquet")) == [raw_dir / "contratos2025.parquet"]  # só o de entrada
+
+
+def test_linha_de_comando_outro_inicio_com_saida_em_data_processed_da_erro(tmp_path, monkeypatch):
+    import runpy
+    import sys
+
+    import cpv_data as cd
+
+    raiz = tmp_path / "raiz"
+    raw_dir = raiz / "data" / "processed" / "raw"
+    raw_dir.mkdir(parents=True)
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    monkeypatch.setattr(cd, "ROOT", raiz)
+    monkeypatch.setattr(cd, "RAW_PARQUET", raw_dir)
+    saida = str(raiz / "data" / "processed")
+    monkeypatch.setattr(sys, "argv", ["prepare.py", "--inicio-treino", "2019-01-01", "--saida", saida])
+    with pytest.raises(SystemExit) as erro:
+        runpy.run_path(pr.__file__, run_name="__main__")
+    assert erro.value.code == 2
+    assert list(raiz.rglob("*.parquet")) == [raw_dir / "contratos2025.parquet"]
+
+
+@pytest.mark.parametrize("conjunto, contrato", [("validação", "2"), ("teste", "3")])
+def test_run_copia_antiga_num_ficheiro_mais_recente_nao_tira_contrato_da_avaliacao(tmp_path, conjunto, contrato):
+    # O contrato tem uma cópia de out/nov 2025 (ficheiro 2025) e outra de 2020 num ficheiro mais
+    # recente (2026). Com o início por defeito a de 2020 nem é lida; com 2019 ganharia (decisão 3)
+    # e o contrato sairia da avaliação sem aviso. A preparação tem de parar.
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    escrever_raw(raw_dir, 2026, [(contrato, "2020-06-01")])
+    sets = pr.run(raw_dir=raw_dir, out_dir=tmp_path / "defeito", verbose=False)
+    assert sets[conjunto]["idcontrato"].tolist() == [contrato]
+    with pytest.raises(pr.DataCheckError, match="cópia mais antiga"):
+        pr.run(raw_dir=raw_dir, out_dir=tmp_path / "2019", verbose=False, train_start=INICIO_2019)
+    assert not list(tmp_path.glob("2019/*.parquet"))
+
+
+@pytest.mark.parametrize("argumentos", [[], ["--inicio-treino", "2022-01-01"]])
+def test_linha_de_comando_com_inicio_por_defeito_grava_em_data_processed(tmp_path, monkeypatch, argumentos):
+    # `make preparar` corre o comando sem argumentos: tem de continuar a gravar na pasta de sempre,
+    # sem pedir --saida. Dizer a data por defeito explicitamente também não precisa de --saida.
+    import runpy
+    import sys
+
+    import cpv_data as cd
+
+    raiz = tmp_path / "raiz"
+    raw_dir = raiz / "data" / "processed" / "raw"
+    raw_dir.mkdir(parents=True)
+    escrever_raw(raw_dir, 2025, [("1", "2024-01-10"), ("2", "2025-10-05"), ("3", "2025-11-05")])
+    monkeypatch.setattr(cd, "ROOT", raiz)
+    monkeypatch.setattr(cd, "RAW_PARQUET", raw_dir)
+    monkeypatch.setattr(sys, "argv", ["prepare.py", *argumentos])
+    runpy.run_path(pr.__file__, run_name="__main__")
+    gravados = sorted(p.name for p in (raiz / "data" / "processed").glob("*.parquet"))
+    assert gravados == sorted(f"{f}.parquet" for f in pr.FILES.values())

@@ -30,7 +30,7 @@ def write_xlsx(path, rows):
     wb.save(path)
 
 
-def _run_pipeline(base, contratos):
+def _run_pipeline(base, contratos, train_start=None):
     xlsx_dir, raw_dir, out_dir = base / "xlsx", base / "raw", base / "out"
     xlsx_dir.mkdir()
     raw_dir.mkdir()
@@ -38,16 +38,19 @@ def _run_pipeline(base, contratos):
         xlsx = xlsx_dir / f"contratos{ano}.xlsx"
         write_xlsx(xlsx, [c for c in contratos if c[0] == ano])
         conv.convert(xlsx, raw_dir / f"contratos{ano}.parquet")
-    pr.run(raw_dir=raw_dir, out_dir=out_dir, verbose=False)
+    # Sem train_start não se passa o argumento: assim corre-se o valor por defeito do próprio run
+    extra = {} if train_start is None else {"train_start": train_start}
+    pr.run(raw_dir=raw_dir, out_dir=out_dir, verbose=False, **extra)
     return {nome: pd.read_parquet(out_dir / f"{f}.parquet") for nome, f in pr.FILES.items()}
 
 
 @pytest.fixture(scope="session")
 def run_pipeline():
-    """run_pipeline(base, contratos) -> {"treino", "validação", "teste": DataFrame}.
+    """run_pipeline(base, contratos, train_start=None) -> {"treino", "validação", "teste": DataFrame}.
 
     Cada contrato é (ficheiro, idcontrato, dataPublicacao, objectoContrato, descContrato,
-    DescrAcordoQuadro, CPV). Escreve em `base` (uma pasta de `tmp_path`).
+    DescrAcordoQuadro, CPV). Escreve em `base` (uma pasta de `tmp_path`): os .parquet de entrada
+    em `base / "raw"` e os três conjuntos em `base / "out"`. `train_start` vai para `prepare.run`.
     """
     return _run_pipeline
 
