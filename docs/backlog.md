@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3, E4-T4, E4-S2 e E4-S6 feitos) |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | por começar |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 feito) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -651,7 +651,7 @@ Nenhuma.
 
 ---
 
-## E5 · Sugestões de CPV com o BERTimbau e o Albertina (por começar)
+## E5 · Sugestões de CPV com o BERTimbau e o Albertina (em curso)
 
 **Objetivo:** saber, com números da validação, se tunar o BERTimbau base e o Albertina PT-PT 100M dá ao técnico de contratação sugestões de CPV melhores do que o TF-IDF, e pôr o comando de sugestões a usar o modelo que ganhar.
 
@@ -684,7 +684,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Tamanho:** no máximo 16 dias de trabalho (3 itens M de 3 dias, 4 itens P de 1 dia, o E5-S1 com 2 dias e o E5-S2 com 1 dia, se for preciso). O tempo de GPU à espera não conta, mas fica dentro do teto de gastos (decisão pendente 1). Se for preciso cortar, a grelha do E5-S1 é a primeira a encolher (menos valores de N), e isso fica escrito como limitação.
 
-### E5-T1 · Tarefa: medir o comprimento dos textos em *tokens* (P)
+### E5-T1 · Tarefa: medir o comprimento dos textos em *tokens* (P) · feito
 
 **Porque é precisa:** o comprimento máximo decide quanto custa cada treino em GPU, e os textos cortados perdem informação. A única medição que existe é de 12 palavras de mediana por campo (secção 5 do [`qualidade_dados.md`](qualidade_dados.md), só nos ficheiros de 2025/2026). Foi feita em palavras, não em *tokens*, e não diz nada sobre os textos longos.
 
@@ -696,10 +696,12 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Critérios de aceitação:**
 
-- [ ] Para cada modelo, com o seu próprio tokenizador, a percentagem dos textos de treino que cabem inteiros em 128, 256 e 512 *tokens*. A contagem inclui os *tokens* especiais que o modelo acrescenta a cada texto, porque também ocupam lugar.
-- [ ] A mesma tabela na validação, só como informação (a regra usa o treino).
-- [ ] O comprimento escolhido para cada modelo, pela regra acima, está escrito numa secção nova do [`qualidade_dados.md`](qualidade_dados.md), com os números vindos do notebook.
-- [ ] Os nomes exatos dos dois modelos (os do Hugging Face) estão escritos e são os mesmos que o treino vai usar.
+- [x] Para cada modelo, com o seu próprio tokenizador, a percentagem dos textos de treino que cabem inteiros em 128, 256 e 512 *tokens*. A contagem inclui os *tokens* especiais que o modelo acrescenta a cada texto, porque também ocupam lugar.
+- [x] A mesma tabela na validação, só como informação (a regra usa o treino).
+- [x] O comprimento escolhido para cada modelo, pela regra acima, está escrito numa secção nova do [`qualidade_dados.md`](qualidade_dados.md), com os números vindos do notebook.
+- [x] Os nomes exatos dos dois modelos (os do Hugging Face) estão escritos e são os mesmos que o treino vai usar.
+
+**Resultado** (secção 20 do [`qualidade_dados.md`](qualidade_dados.md), [`notebooks/11_comprimento_tokens.ipynb`](../notebooks/11_comprimento_tokens.ipynb)): 256 *tokens* para os dois modelos (99,81% do treino cabe inteiro no BERTimbau e 99,63% no Albertina; com 128 ficavam abaixo dos 99%). Os nomes, a revisão fixa e o comprimento estão em [`src/bert_models.py`](../src/bert_models.py), que o treino do E5-T2 vai ler.
 
 ### E5-T2 · Tarefa: código de treino do BERT, testado no CI (M)
 

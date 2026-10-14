@@ -536,6 +536,35 @@ Como ler:
 - **Limitação:** as 24 épocas foram afinadas na janela desde 2022 (E4-S5/S1), na mesma validação, o que dá vantagem à opção em vigor. Não se correu a grelha de épocas na janela desde 2019, que talvez tivesse outro ótimo. O utilizador decidiu não a correr agora (14 de outubro de 2026): a diferença medida é pequena (+0,31 pontos, que não conta) e cada treino custa quase o dobro. Fica nas ideias para depois do `backlog.md`.
 - **Custo do spike:** um pod `cpu3g` de 8 processadores e 32 GB, a 0,32 $/h (não havia stock com 16 processadores), ligado cerca de 63 minutos: cerca de 0,34 $ (`metrics/e4_s6/pod_info.json`). O pico de memória do pod inteiro foi 19,2 GB de 32.
 
+### 20. Comprimento dos textos em *tokens* (E5-T1)
+
+De [`notebooks/11_comprimento_tokens.ipynb`](../notebooks/11_comprimento_tokens.ipynb). Lê a coluna `texto` do treino (478 384 textos, um por linha do `treino.parquet`) e da validação (23 945 contratos), tal como o BERT a vai ler (com maiúsculas e acentos), e conta os *tokens* de cada texto com o tokenizador de cada modelo, já com os 2 *tokens* especiais (`[CLS]` e `[SEP]`) que os dois juntam a cada texto. Não usa GPU nem os pesos dos modelos.
+
+**Os modelos**, os mesmos que o treino vai usar (em [`src/bert_models.py`](../src/bert_models.py), com o commit do Hugging Face fixo, lido a 14 de outubro de 2026):
+
+| Modelo | Nome no Hugging Face | Revisão |
+|---|---|---|
+| BERTimbau base | `neuralmind/bert-base-portuguese-cased` | `94d69c95f98f7d5b2a8700c420230ae10def0baa` |
+| Albertina PT-PT 100M | `PORTULAN/albertina-100m-portuguese-ptpt-encoder` | `d15e086005cdab26d746d9113984cc654439df2b` |
+
+**Regra, escrita no backlog antes de medir:** o menor de 128, 256 e 512 em que pelo menos 99% dos textos de treino cabem inteiros; se nenhum chegar, 512.
+
+| Modelo | Conjunto | ≤ 128 | ≤ 256 | ≤ 512 | Mediana | Percentil 90 | Percentil 99 | Máximo |
+|---|---|---|---|---|---|---|---|---|
+| BERTimbau | treino | 98,17% | **99,81%** | 99,98% | 31 | 72 | 154 | 5 713 |
+| BERTimbau | validação | 94,22% | 98,10% | 99,91% | 33 | 94 | 316 | 851 |
+| Albertina | treino | 96,21% | **99,63%** | 99,96% | 40 | 90 | 190 | 7 844 |
+| Albertina | validação | 91,84% | 97,81% | 99,92% | 42 | 115 | 372 | 1 009 |
+
+**Escolha, pela regra:** **256 *tokens* para os dois.** Com 256, cortam-se 890 textos de treino no BERTimbau e 1 786 no Albertina. Com 128, a regra falhava nos dois (98,17% e 96,21%, abaixo dos 99%).
+
+Como ler:
+- **O mesmo texto tem mais *tokens* no Albertina.** A mediana é de 2,05 *tokens* por palavra no BERTimbau e 2,72 no Albertina, no treino. O [cartão do modelo](https://huggingface.co/PORTULAN/albertina-100m-portuguese-ptpt-encoder) diz que os dados "were tokenized with the original DeBERTa tokenizer", um tokenizador feito para inglês, por isso parte mais as palavras portuguesas: "manutenção" dá 1 *token* no BERTimbau e 4 no Albertina (célula dos tokenizadores). Cada texto do Albertina ocupa mais lugar. Se o treino juntar os textos de cada lote só até ao comprimento do mais comprido (*padding* dinâmico), o Albertina custa mais por texto; se encher todos até 256, custa o mesmo. Não medido: vê-se no E5-T4 e no E5-T5.
+- **A validação tem textos mais compridos do que o treino** (percentil 99 de 316 contra 154 no BERTimbau), e com 256 cortam-se cerca de 2% dos contratos da validação. Não muda a escolha, porque a regra usa o treino. Uma explicação possível, não verificada: o treino junta os textos repetidos, que costumam ser curtos ("medicamentos"), e a validação guarda todos os contratos.
+- **Comprimento das palavras:** a mediana é de 15 palavras por texto, maior do que as 12 da secção 5. A secção 5 media cada campo sozinho, e só nos ficheiros de 2025/2026. Aqui mede-se o texto já juntado (objeto, descrição e acordo-quadro).
+- **Limitação:** o [cartão do Albertina](https://huggingface.co/PORTULAN/albertina-100m-portuguese-ptpt-encoder) diz que foi treinado "with a 128 token sequence truncation and dynamic padding" (cartão consultado a 14 de outubro de 2026; o artigo não foi lido), mas aceita até 512 posições (`max_position_embeddings`, célula dos tokenizadores), herdadas do DeBERTa original. Não se sabe se perde qualidade entre 128 e 256; a regra não olha para isso. Se o primeiro treino do Albertina (E5-T5) correr mal, é uma pista a ver.
+- Lição que generaliza: o comprimento de um texto mede-se com o tokenizador do modelo que o vai ler, não em palavras. Aqui, a mesma regra deu 256 nos dois modelos, mas 2,7 *tokens* por palavra no Albertina põem mais textos perto do limite do que os 2,05 do BERTimbau.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):

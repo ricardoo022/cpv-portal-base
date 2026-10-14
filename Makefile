@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -84,3 +84,6 @@ janela: ## Volta a correr o notebook da janela de treino (precisa de metrics/e4_
 
 janela-24: ## Volta a correr o notebook da janela desde 2019 com 24 épocas (precisa de metrics/e4_s1/, metrics/e4_s6/, data/janelas/2019/ e de "make preparar")
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 10_janela_24_epocas.ipynb
+
+tokens: ## Volta a correr o notebook do comprimento dos textos em tokens (E5-T1; descarrega os tokenizadores do Hugging Face, ~3 min; precisa de "make preparar")
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 11_comprimento_tokens.ipynb
