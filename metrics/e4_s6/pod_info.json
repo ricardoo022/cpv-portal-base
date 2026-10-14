@@ -1,0 +1,14 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (create-pod, get-pod, delete-pod, list-pods) e do cgroup do pod, a 14 de outubro de 2026.",
+ "pods": [
+  {"id": "6jm44mkybl2oq8", "nome": "cpv-e4-s6", "centro_de_dados": "EU-RO-1",
+   "criado_utc": "2026-10-14T09:24:22", "apagado_utc": "cerca de 10:27:00",
+   "nota_stock": "o cpu3g de 16 processadores não tinha stock em nenhum centro de dados; usou-se o de 8",
+   "dados": "data/janelas/2019/treino.parquet e validacao.parquet copiados do portátil (md5 iguais aos do E4-S2)",
+   "treinos": "desde_2019 com 24 épocas, 09:27:15-10:25:37 (58 min 22 s), n_jobs 8; log pod_treino_2019.log",
+   "memory_peak_cgroup_bytes": 19237277696}
+ ],
+ "tipo": "cpu3g (General Purpose)", "processadores": 8, "memoria_gb": 32, "disco_gb": 30,
+ "imagem": "runpod/base:1.0.2-ubuntu2204", "preco_por_hora_usd": 0.32,
+ "tempo_total_aproximado_min": 63, "custo_aproximado_usd": 0.34
+}

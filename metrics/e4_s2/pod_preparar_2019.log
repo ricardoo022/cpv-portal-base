@@ -1,0 +1,46 @@
+Funil (contratos que ficam em cada passo):
+  1. publicados de 2019-01-01 a dez 2025 (todos os ficheiros)      1 360 565
+  3. com pelo menos um código CPV                                  1 360 551
+  2. uma cópia por idcontrato                                      1 357 069
+
+Treino (2019-01-01 a set 2025):
+  contratos                                                        1 295 763
+  7. sem códigos ao nível da divisão                               1 040 375
+  8a. contratos que seguem o código mais comum do seu texto        1 015 110
+  8b. exemplos de treino (um por texto)                              785 660
+
+Validação:
+  contratos                                                           23 945
+  9. com texto que já aparece no treino                                3 795
+     com código ao nível da divisão (avaliados só na divisão)          4 051
+
+Teste:
+  contratos                                                           37 361
+  9. com texto que já aparece no treino                                4 635
+     com código ao nível da divisão (avaliados só na divisão)          5 642
+
+10. Verificações: todas passaram.
+11. Gravado em data/janelas/2019 (treino, validacao, teste).parquet
+	Command being timed: ".venv/bin/python src/prepare.py --inicio-treino 2019-01-01 --saida data/janelas/2019"
+	User time (seconds): 62.96
+	System time (seconds): 2.44
+	Percent of CPU this job got: 102%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:03.69
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4224076
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1893589
+	Voluntary context switches: 3838
+	Involuntary context switches: 896
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 130184
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,20 @@
+data/janelas/2019/:
+total 62056
+drwxr-xr-x 2 root root       65 Oct 14 08:51 .
+drwxr-xr-x 5 root root       58 Oct 14 08:51 ..
+-rw-r--r-- 1 root root 61473152 Oct 14 08:51 treino.parquet
+-rw-r--r-- 1 root root  2064711 Oct 14 08:51 validacao.parquet
+
+data/janelas/2022/:
+total 38968
+drwxr-xr-x 2 root root       65 Oct 14 08:45 .
+drwxr-xr-x 5 root root       58 Oct 14 08:51 ..
+-rw-r--r-- 1 root root 37890345 Oct 14 08:45 treino.parquet
+-rw-r--r-- 1 root root  2009376 Oct 14 08:45 validacao.parquet
+
+data/janelas/2025/:
+total 11232
+drwxr-xr-x 2 root root      53 Oct 14 08:44 .
+drwxr-xr-x 5 root root      58 Oct 14 08:51 ..
+-rw-r--r-- 1 root root 9587165 Oct 14 08:44 treino.parquet
+-rw-r--r-- 1 root root 1911005 Oct 14 08:44 validacao.parquet
