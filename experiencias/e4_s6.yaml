@@ -1,0 +1,49 @@
+# Spike E4-S6 (docs/backlog.md): a janela desde 2019 também ganha com 24 épocas?
+# As opções e a forma de decidir ficam escritas aqui ANTES de correr, e não mudam depois de ver os
+# resultados. A decisão (notebooks/10_janela_24_epocas.ipynb) lê este ficheiro.
+#
+# O E4-S2 escolheu a janela desde 2019 com a regra de paragem por defeito do scikit-learn, para
+# nenhuma janela partir com vantagem. O modelo em vigor treina 24 épocas fixas (decisão 7 do E4).
+# Este spike confirma a escolha com o modelo que se usa de facto, antes de mudar o TRAIN_START.
+#
+# Usa o mesmo `modo: janela` do E4-S2. A janela desde 2022 NÃO se volta a treinar: é o modelo em
+# vigor, o treino do E4-S1 com N = 10 e 24 épocas (metrics/e4_s1/n_min_10_ep_24), reproduzível
+# (sugestões 100% iguais às do E4-S5). Só a desde 2019 treina no pod (data/janelas/2019, a mesma
+# preparação do E4-S2).
+#
+# Os números escrevem-se com ponto (1.0e-7, não 1e-7); as datas vão entre aspas.
+
+spike: E4-S6
+saida: metrics/e4_s6
+modo: janela
+
+# O modelo em vigor: N do E4-S1, alpha do E4-S4, as 24 épocas do E4-S5/S1 e τ = 0,25.
+n_min: 10
+alpha: 1.0e-7
+epocas: 24
+tau: [0.25]
+
+# Pela ordem da comparação (decidida a 14 de outubro de 2026, antes de correr): a 1.ª é a opção em
+# vigor (o modelo atual, desde 2022); a desde 2019 só a substitui se ganhar. Em empate fica a de
+# 2022, que é mais barata de treinar.
+janelas:
+  - nome: desde_2022
+    inicio: "2022-01-01"
+    pasta: metrics/e4_s1/n_min_10_ep_24   # o modelo em vigor, já treinado no E4-S1
+  - nome: desde_2019
+    inicio: "2019-01-01"
+    pasta: metrics/e4_s6/desde_2019
+
+# O mesmo grupo do E4-S2: os contratos da validação cujo texto NÃO aparece no treino desde 2019
+# (`visto_no_treino == False` em data/janelas/2019/validacao.parquet; 20 150 contratos).
+grupo: texto_novo_na_janela_mais_longa
+
+# Regra de escolha (escrita antes de correr): a regra de comparação do E4-T1 (bootstrap
+# emparelhado, 1 000 amostras, 95%; decide o top-5 no código completo, o top-5 na classe é a guarda
+# e desempata), no grupo acima, com τ = 0,25. Mostra-se também, sem decidir, a mesma análise
+# completa do E4-S2.
+#
+# Depois da decisão (escrito antes de correr): se ganhar a desde 2019, o TRAIN_START passa a
+# 2019-01-01 (decisão 1), a preparação passa a fazer-se no pod (pico de 4,3 GB) e a régua (E4-T2) e
+# os resultados do E4-H1 voltam a calcular-se. O N, as 24 épocas e o τ ficam os do E4-S1, sem
+# voltar a correr a grelha nesta janela (limitação a escrever). Se não ganhar, fica desde 2022.

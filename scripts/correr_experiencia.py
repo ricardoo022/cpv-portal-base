@@ -4,8 +4,12 @@ O YAML diz que opções se testam e por que ordem se comparam, escrito antes de 
 só lança os treinos (`src/train_tfidf.py` e `scripts/curva_epocas.py`); a decisão faz-se no
 portátil, num notebook, que lê o mesmo YAML com `ler`.
 
-Três modos, conforme o YAML:
+Quatro modos, conforme o YAML:
 
+- **janela** (`modo: janela`; spike E4-S2): a mesma configuração de treino em várias janelas de
+  treino (datas de início), pela ordem da comparação (da mais curta para a mais longa). Não se
+  corre por este script: cada janela prepara-se (`src/prepare.py --inicio-treino ... --saida ...`)
+  e treina-se à mão no pod, e a decisão lê o YAML com `ler`.
 - **entidade** (`modo: entidade`; spike E4-S3): uma só variante do texto de entrada (com ou sem a
   `adjudicante`) e a forma de comparar. Não se corre por este script: é um único comando
   (`src/train_tfidf.py --com-entidade`) e a decisão lê o YAML com `ler`, como os outros.
@@ -33,6 +37,7 @@ Exemplos (da raiz do projeto, no pod):
 
 import argparse
 import datetime as dt
+import re
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -45,9 +50,11 @@ PY = sys.executable
 OBRIGATORIAS_FASES = {"spike", "saida", "n_min", "alpha", "tau", "epocas", "curva_epocas"}
 OBRIGATORIAS_GRELHA = {"spike", "saida", "n_min", "alpha", "tau", "epocas"}
 OBRIGATORIAS_ENTIDADE = {"spike", "saida", "n_min", "alpha", "epocas", "tau", "com_entidade", "grupos"}
-MODOS = ("fases", "grelha", "entidade")
+OBRIGATORIAS_JANELA = {"spike", "saida", "n_min", "alpha", "epocas", "tau", "janelas", "grupo"}
+MODOS = ("fases", "grelha", "entidade", "janela")
 OBRIGATORIAS = {"fases": OBRIGATORIAS_FASES, "grelha": OBRIGATORIAS_GRELHA,
-                "entidade": OBRIGATORIAS_ENTIDADE}
+                "entidade": OBRIGATORIAS_ENTIDADE, "janela": OBRIGATORIAS_JANELA}
+CHAVES_JANELA = {"nome", "inicio", "pasta"}
 
 
 def _numero(valor, onde):
@@ -72,8 +79,63 @@ def _lista(valor, onde):
     return list(valor)
 
 
+def _texto(valor, onde):
+    if not isinstance(valor, str) or not valor:
+        raise ValueError(f"{onde}: tem de ser texto não vazio: {valor!r}")
+    return valor
+
+
+def _data(valor, onde):
+    """Uma data escrita como texto AAAA-MM-DD; devolve o texto tal como está no YAML."""
+    if isinstance(valor, dt.date):
+        # Sem aspas, o PyYAML lê 2022-01-01 como datetime.date, não como texto.
+        raise ValueError(f"{onde}: {valor!r} foi lido como data; escreve-a entre aspas (\"AAAA-MM-DD\")")
+    if not isinstance(valor, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", valor):
+        raise ValueError(f"{onde}: {valor!r} não é texto no formato AAAA-MM-DD")
+    try:
+        dt.date.fromisoformat(valor)
+    except ValueError:
+        raise ValueError(f"{onde}: {valor!r} não é uma data válida") from None
+    return valor
+
+
+def _ler_janela(exp, out):
+    """Valida o modo `janela` (E4-S2) e acrescenta-o a `out`."""
+    out["n_min"] = _inteiro_positivo(exp["n_min"], "n_min")
+    out["alpha"] = _numero(exp["alpha"], "alpha")
+    if out["alpha"] <= 0:
+        raise ValueError("alpha tem de ser > 0")
+    ep = exp["epocas"]
+    out["epocas"] = None if ep is None else _inteiro_positivo(ep, "epocas")
+    out["tau"] = [_numero(v, "tau") for v in _lista(exp["tau"], "tau")]
+    if any(t < 0 for t in out["tau"]):
+        raise ValueError("τ tem de ser >= 0")
+    janelas = exp["janelas"]
+    if not isinstance(janelas, list) or len(janelas) < 2:
+        raise ValueError(f"janelas: lista de pelo menos duas janelas: {janelas!r}")
+    out["janelas"] = []
+    for i, j in enumerate(janelas):
+        onde = f"janelas[{i}]"
+        if not isinstance(j, dict) or set(j) != CHAVES_JANELA:
+            raise ValueError(f"{onde}: mapa com exatamente as chaves {sorted(CHAVES_JANELA)}: {j!r}")
+        out["janelas"].append({"nome": _texto(j["nome"], f"{onde}.nome"),
+                               "inicio": _data(j["inicio"], f"{onde}.inicio"),
+                               "pasta": _texto(j["pasta"], f"{onde}.pasta")})
+    nomes = [j["nome"] for j in out["janelas"]]
+    if len(set(nomes)) != len(nomes):
+        raise ValueError(f"janelas: há nomes repetidos: {nomes}")
+    inicios = [j["inicio"] for j in out["janelas"]]
+    # Da mais curta (início mais recente) para a mais longa: a 1.ª é a opção em vigor de partida e
+    # fica em caso de empate. O texto AAAA-MM-DD ordena-se como a data.
+    if any(a <= b for a, b in zip(inicios, inicios[1:])):
+        raise ValueError(f"janelas: as datas de início têm de ser distintas e por ordem decrescente "
+                         f"(da janela mais curta para a mais longa): {inicios}")
+    out["grupo"] = _texto(exp["grupo"], "grupo")
+    return out
+
+
 def ler(path):
-    """Lê e valida o YAML de uma experiência (modo `fases`, `grelha` ou `entidade`).
+    """Lê e valida o YAML de uma experiência (modo `fases`, `grelha`, `entidade` ou `janela`).
 
     `fases` (por defeito, ver `e4_s5.yaml`): dois passos, cada eixo testado na forma
     {"em_vigor": valor, "candidatos": [...]}, com `curva_epocas` obrigatório.
@@ -82,6 +144,10 @@ def ler(path):
     sem ele, é `fases`.
     `entidade` (ver `e4_s3.yaml`): uma só variante do texto, com o `n_min`, o `alpha`, as `epocas` e
     os `tau` fixos, o mapa `com_entidade` (nome -> pasta de cada opção) e os `grupos` da comparação.
+    `janela` (ver `e4_s2.yaml`): o `n_min`, o `alpha`, as `epocas` e os `tau` fixos; as `janelas`
+    (lista de {nome, inicio, pasta}, `inicio` texto AAAA-MM-DD entre aspas, por ordem decrescente de
+    data: da mais curta, a em vigor de partida, para a mais longa) e o `grupo` da decisão. As
+    janelas devolvem-se como lista de dicts pela ordem do YAML.
     """
     with open(path, encoding="utf-8") as f:
         exp = yaml.safe_load(f)
@@ -96,6 +162,8 @@ def ler(path):
     if faltam or a_mais:
         raise ValueError(f"{path}: chaves em falta {sorted(faltam)}, a mais {sorted(a_mais)}")
     out = {"spike": str(exp["spike"]), "saida": str(exp["saida"]), "modo": modo}
+    if modo == "janela":
+        return _ler_janela(exp, out)
     if modo == "entidade":
         out["n_min"] = _inteiro_positivo(exp["n_min"], "n_min")
         out["alpha"] = _numero(exp["alpha"], "alpha")
@@ -187,6 +255,9 @@ def comandos(exp, fase, alpha=None, tau=None, n_jobs=-1, treino=None, validacao=
     if exp.get("modo") == "entidade":
         raise ValueError("a experiência da entidade treina-se com um só comando "
                          "(src/train_tfidf.py --com-entidade); este script não a corre")
+    if exp.get("modo") == "janela":
+        raise ValueError("a experiência das janelas prepara-se e treina-se à mão no pod "
+                         "(src/prepare.py --inicio-treino, src/train_tfidf.py); este script não a corre")
     comum = ["--n-jobs", str(n_jobs)]
     comum += [] if treino is None else ["--treino", str(treino)]
     comum += [] if validacao is None else ["--validacao", str(validacao)]

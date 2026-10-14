@@ -1,0 +1,61 @@
+# Spike E4-S2 (docs/backlog.md): a janela de treino desde 2022 é a certa?
+# As opções e a forma de decidir ficam escritas aqui ANTES de correr, e não mudam depois de ver os
+# resultados. A decisão (notebooks/09_janela.ipynb) lê este ficheiro.
+#
+# NÃO é uma grelha de hiperparâmetros: só muda a data de início do treino (E4-T4,
+# src/prepare.py --inicio-treino). A validação e o teste têm os mesmos contratos e etiquetas em
+# todas as janelas; só muda a marca `visto_no_treino`. As janelas preparam-se e treinam-se no pod
+# (src/prepare.py --inicio-treino ... --saida data/janelas/<ano>, e src/train_tfidf.py), e o
+# teste.parquet que a preparação cria lá apaga-se logo, sem ser copiado.
+#
+# A janela desde 2022 NÃO se volta a treinar: é exatamente o treino do E4-S1 com N = 10 e a regra
+# de paragem por defeito (metrics/e4_s1/n_min_10_ep_defeito), com o mesmo alpha e o mesmo τ.
+# O E4-S1 provou que os treinos são reproduzíveis (sugestões 100% iguais às do E4-S5).
+#
+# Os números escrevem-se com ponto (1.0e-7, não 1e-7): no YAML 1.1, que o PyYAML segue, "1e-7" é
+# lido como texto. As datas vão entre aspas: sem aspas, o PyYAML lê-as como datas, não como texto.
+
+spike: E4-S2
+saida: metrics/e4_s2
+modo: janela
+
+# A configuração do treino, igual em todas as janelas: o N do E4-S1, o alpha do E4-S4 e a regra de
+# paragem por defeito do scikit-learn (null), como o E4-S5 manda: um número fixo de épocas foi
+# escolhido para a janela desde 2022 e não se adapta a outra quantidade de dados.
+n_min: 10
+alpha: 1.0e-7
+epocas: null
+# A decisão usa só τ = 0,25 (decisão 6 do E4); o treino grava também τ = 0 (o ficheiro de
+# referência do train_tfidf.py), que não entra na decisão.
+tau: [0.25]
+
+# As janelas, pela ordem da comparação (decidida a 14 de outubro de 2026, antes de correr):
+# a 1.ª é a opção em vigor de partida; cada uma das seguintes só a substitui se ganhar.
+# Em empate fica a que já estava, que é sempre a mais curta (é mais barato treinar com menos dados).
+janelas:
+  - nome: desde_2025
+    inicio: "2025-01-01"
+    pasta: metrics/e4_s2/desde_2025
+  - nome: desde_2022
+    inicio: "2022-01-01"
+    pasta: metrics/e4_s1/n_min_10_ep_defeito   # já treinada no E4-S1
+  - nome: desde_2019
+    inicio: "2019-01-01"
+    pasta: metrics/e4_s2/desde_2019
+
+# O grupo de contratos em que se decide: os da validação cujo texto NÃO aparece no treino da
+# janela mais longa (desde 2019), isto é, `visto_no_treino == False` no validacao.parquet dessa
+# janela. É o mesmo grupo para as três janelas. Com mais anos no treino, mais textos da validação
+# já foram vistos e o modelo acerta neles por decorar; comparar em todos os contratos favorecia as
+# janelas longas sem elas serem melhores. O resultado em todos os contratos mostra-se, sem decidir.
+grupo: texto_novo_na_janela_mais_longa
+
+# Regra de escolha (escrita antes de correr, a do backlog): a regra de comparação do E4-T1
+# (bootstrap emparelhado, 1 000 amostras, 95%; decide o top-5 no código completo, o top-5 na
+# classe é a guarda e desempata), aplicada no grupo acima, pela ordem das `janelas`.
+# Também se mede (sem decidir) o pico de memória da preparação e do treino desde 2019.
+
+# Depois da decisão (escrito antes de correr): se ganhar a janela desde 2022, nada se repete (a
+# grelha N × épocas × τ do E4-S1 foi feita nela). Se ganhar outra, repete-se a grelha do E4-S1
+# nessa janela (num spike à parte), e o N, as épocas e o τ voltam a escolher-se. O alpha não se
+# reabre: o seu efeito foi grande e claro no E4-S5 (limitação a escrever).

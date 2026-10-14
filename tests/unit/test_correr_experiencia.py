@@ -1,8 +1,8 @@
-"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5, E4-S1 e E4-S3): ler o YAML e montar os comandos.
+"""Testes unitários a scripts/correr_experiencia.py (spikes E4-S5, E4-S1, E4-S3 e E4-S2): ler o YAML e montar os comandos.
 
 Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (modo `fases`),
-`experiencias/e4_s1.yaml` (modo `grelha`) e `experiencias/e4_s3.yaml` (modo `entidade`), as do
-backlog: se alguém mudar uma lista depois de ver resultados, o teste falha e a mudança tem de ficar
+`experiencias/e4_s1.yaml` (modo `grelha`), `experiencias/e4_s3.yaml` (modo `entidade`) e
+`experiencias/e4_s2.yaml` (modo `janela`), as do backlog: se alguém mudar uma lista depois de ver resultados, o teste falha e a mudança tem de ficar
 explícita.
 """
 
@@ -18,6 +18,7 @@ import correr_experiencia as ce  # noqa: E402
 E4_S5 = RAIZ / "experiencias" / "e4_s5.yaml"
 E4_S1 = RAIZ / "experiencias" / "e4_s1.yaml"
 E4_S3 = RAIZ / "experiencias" / "e4_s3.yaml"
+E4_S2 = RAIZ / "experiencias" / "e4_s2.yaml"
 
 BASE = """spike: X
 n_min: 10
@@ -283,3 +284,99 @@ def test_yaml_da_entidade_sem_modo_continua_a_ser_fases(tmp_path):
     # Sem `modo`, o leitor assume `fases` (comportamento antigo): este YAML passa a faltar chaves
     with pytest.raises(ValueError, match="curva_epocas"):
         ce.ler(escrever(tmp_path, BASE_ENTIDADE.replace("modo: entidade\n", "")))
+
+
+# --- Spike E4-S2: a janela de treino (modo `janela`) ---
+
+BASE_JANELA = """spike: X
+saida: metrics/x
+modo: janela
+n_min: 10
+alpha: 1.0e-7
+epocas: null
+tau: [0.25]
+janelas:
+  - {nome: curta, inicio: "2025-01-01", pasta: a}
+  - {nome: media, inicio: "2022-01-01", pasta: b}
+grupo: g
+"""
+
+
+def test_o_yaml_do_e4_s2_tem_as_opcoes_do_backlog():
+    # As opções do E4-S2, escritas à mão a partir do backlog e do YAML pré-registado: se alguém as
+    # mudar depois de ver resultados, este teste falha e a mudança tem de ficar explícita.
+    exp = ce.ler(E4_S2)
+    assert exp["modo"] == "janela"
+    assert exp["n_min"] == 10
+    assert exp["alpha"] == 1e-7
+    assert exp["epocas"] is None
+    assert exp["tau"] == [0.25]
+    assert exp["saida"] == "metrics/e4_s2"
+    # Por esta ordem: a 1.ª (a mais curta) é a opção em vigor de partida e fica em caso de empate
+    assert exp["janelas"] == [
+        {"nome": "desde_2025", "inicio": "2025-01-01", "pasta": "metrics/e4_s2/desde_2025"},
+        {"nome": "desde_2022", "inicio": "2022-01-01", "pasta": "metrics/e4_s1/n_min_10_ep_defeito"},
+        {"nome": "desde_2019", "inicio": "2019-01-01", "pasta": "metrics/e4_s2/desde_2019"},
+    ]
+    assert exp["grupo"] == "texto_novo_na_janela_mais_longa"
+
+
+def test_a_experiencia_das_janelas_nao_corre_pelo_script():
+    # Cada janela prepara-se e treina-se à mão no pod: o script de experiências não a corre
+    with pytest.raises(ValueError, match="janelas"):
+        ce.comandos(ce.ler(E4_S2), "alpha")
+
+
+def test_a_base_das_janelas_e_valida(tmp_path):
+    # Sem isto, os casos inválidos abaixo podiam falhar por outra razão qualquer
+    exp = ce.ler(escrever(tmp_path, BASE_JANELA))
+    assert [j["nome"] for j in exp["janelas"]] == ["curta", "media"]
+
+
+def test_data_da_janela_sem_aspas_da_erro_a_pedir_aspas(tmp_path):
+    # Sem aspas, o PyYAML lê 2025-01-01 como datetime.date, não como texto
+    path = escrever(tmp_path, BASE_JANELA.replace('"2025-01-01"', "2025-01-01"))
+    with pytest.raises(ValueError, match="aspas"):
+        ce.ler(path)
+
+
+@pytest.mark.parametrize("velho, novo", [
+    ('"2025-01-01"', "2025-01-01"),                                         # data sem aspas
+    ('"2025-01-01"', '"2019-01-01"'),                                       # ordem crescente
+    ('"2025-01-01"', '"2022-01-01"'),                                       # datas repetidas
+    ('"2025-01-01"', '"2025-1-1"'),                                         # formato errado
+    ('"2025-01-01"', '"2025-02-30"'),                                       # data que não existe
+    ("nome: media", "nome: curta"),                                         # janela repetida
+    ("pasta: b}", "pasta: b, extra: 1}"),                                   # chave a mais numa janela
+    ("pasta: b}", "}"),                                                     # chave em falta numa janela
+    ("pasta: a}", 'pasta: ""}'),                                            # pasta vazia
+    ("alpha: 1.0e-7", "alpha: -1.0e-7"),                                    # alpha negativo
+    ("tau: [0.25]", "tau: []"),                                             # τ vazio
+    ('  - {nome: media, inicio: "2022-01-01", pasta: b}\n', ""),            # uma só janela
+    ("grupo: g", 'grupo: ""'),                                              # grupo vazio
+    ("epocas: null", "epocas: 0"),                                          # 0 épocas
+    ("grupo: g", "grupo: g\nextra: 1"),                                     # chave a mais
+    ("grupo: g", "grupo: g\ninformacao_epocas: 24"),                        # chave que saiu do YAML
+])
+def test_yaml_das_janelas_invalido_da_erro(tmp_path, velho, novo):
+    assert velho in BASE_JANELA
+    with pytest.raises(ValueError):
+        ce.ler(escrever(tmp_path, BASE_JANELA.replace(velho, novo, 1)))
+
+
+E4_S6 = RAIZ / "experiencias" / "e4_s6.yaml"
+
+
+def test_o_yaml_do_e4_s6_tem_as_opcoes_do_backlog():
+    exp = ce.ler(E4_S6)
+    assert exp["modo"] == "janela"
+    assert exp["n_min"] == 10
+    assert exp["alpha"] == 1e-7
+    assert exp["epocas"] == 24
+    assert exp["tau"] == [0.25]
+    assert exp["janelas"] == [
+        {"nome": "desde_2022", "inicio": "2022-01-01", "pasta": "metrics/e4_s1/n_min_10_ep_24"},
+        {"nome": "desde_2019", "inicio": "2019-01-01", "pasta": "metrics/e4_s6/desde_2019"},
+    ]
+    assert exp["grupo"] == "texto_novo_na_janela_mais_longa"
+    assert exp["saida"] == "metrics/e4_s6"
