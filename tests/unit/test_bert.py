@@ -119,6 +119,31 @@ def test_pasta_de_modelo_sem_max_length_da_erro(modelo_minusculo):
         bert.load_model(modelo_minusculo, CLASSES)
 
 
+def test_max_length_por_defeito_e_o_do_e5_t1_e_o_dado_prevalece():
+    assert bert.model_max_length("bertimbau") == bert.bert_models.COMPRIMENTO_MAXIMO["bertimbau"] == 256
+    assert bert.model_max_length("albertina", 128) == 128
+
+
+def test_pontuar_desliga_o_dropout_e_devolve_o_modo_de_treino(modelo_minusculo):
+    # Os modelos verdadeiros têm dropout 0,1 (o minúsculo dos outros testes não tem nenhum): ao
+    # pontuar a validação tem de estar desligado, senão as pontuações gravadas em cada época
+    # teriam ruído e não seriam as do checkpoint
+    from transformers import AutoTokenizer
+    model, _, _ = bert.load_model(modelo_minusculo, CLASSES, max_length=16)
+    for m in model.modules():
+        if isinstance(m, torch.nn.Dropout):
+            m.p = 0.5
+    tok = AutoTokenizer.from_pretrained(modelo_minusculo)
+    ids = bert.encode(tok, ["Limpeza das escolas", "Papel e canetas"], 16)
+    model.train()
+    batch = bert.Collator(tok.pad_token_id)([{"input_ids": i} for i in ids])
+    with torch.no_grad():  # pré-condição: em modo de treino, o dropout muda as pontuações
+        assert not torch.equal(model(**batch).logits, model(**batch).logits)
+    p1 = bert.predict_scores(model, ids, tok.pad_token_id)
+    assert model.training  # volta ao modo em que estava, para o treino continuar com dropout
+    np.testing.assert_array_equal(p1, bert.predict_scores(model, ids, tok.pad_token_id))
+
+
 @pytest.mark.parametrize("max_length", [1, 0, 2.5])
 def test_max_length_invalido_da_erro(modelo_minusculo, max_length):
     with pytest.raises(ValueError, match="max_length"):

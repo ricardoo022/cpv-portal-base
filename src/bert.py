@@ -84,6 +84,20 @@ def training_labels(codigo, n_min=DEFAULT_N_MIN):
     return etiqueta, classes
 
 
+def model_max_length(modelo, max_length=None):
+    """O comprimento máximo em tokens do `modelo`: o dado, ou, para uma chave do E5, o do E5-T1.
+
+    Com a pasta de um modelo (testes) tem de ser dado. Erro se não for um inteiro >= 2.
+    """
+    if max_length is None:
+        if modelo not in bert_models.MODELOS:
+            raise ValueError(f"{modelo}: com a pasta de um modelo é preciso dar o max_length")
+        max_length = bert_models.COMPRIMENTO_MAXIMO[modelo]
+    if not isinstance(max_length, (int, np.integer)) or isinstance(max_length, bool) or max_length < 2:
+        raise ValueError(f"max_length tem de ser um inteiro >= 2: {max_length!r}")
+    return int(max_length)
+
+
 def load_model(modelo, classes, max_length=None):
     """O tokenizador e o modelo pré-treinado com uma camada de classificação nova, uma saída por etiqueta.
 
@@ -93,16 +107,11 @@ def load_model(modelo, classes, max_length=None):
     do E5-T1; com uma pasta tem de ser dado.
     Devolve (modelo, tokenizador, {"nome", "revisao", "max_length"}).
     """
+    max_length = model_max_length(modelo, max_length)
     if modelo in bert_models.MODELOS:
         nome, revisao = bert_models.MODELOS[modelo]["nome"], bert_models.MODELOS[modelo]["revisao"]
-        if max_length is None:
-            max_length = bert_models.COMPRIMENTO_MAXIMO[modelo]
     else:
         nome, revisao = str(modelo), None
-        if max_length is None:
-            raise ValueError(f"{modelo}: com a pasta de um modelo é preciso dar o max_length")
-    if not isinstance(max_length, (int, np.integer)) or isinstance(max_length, bool) or max_length < 2:
-        raise ValueError(f"max_length tem de ser um inteiro >= 2: {max_length!r}")
     extra = {} if revisao is None else {"revision": revisao}
     tokenizer = AutoTokenizer.from_pretrained(nome, **extra)
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -118,7 +127,7 @@ def load_model(modelo, classes, max_length=None):
         # uma nova (os modelos do Hugging Face não trazem nenhuma; a camada nova é sempre aleatória)
         ignore_mismatched_sizes=True,
     )
-    return model, tokenizer, {"nome": nome, "revisao": revisao, "max_length": int(max_length)}
+    return model, tokenizer, {"nome": nome, "revisao": revisao, "max_length": max_length}
 
 
 def encode(tokenizer, textos, max_length, batch_size=1000):

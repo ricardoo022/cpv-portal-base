@@ -339,6 +339,23 @@ def test_retomar_com_outros_argumentos_e_recusado(treinado, tmp_path, monkeypatc
     assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == antes  # nada mudou
 
 
+def test_retomar_com_o_treino_de_outra_pasta_e_recusado(treinado, tmp_path, monkeypatch):
+    # Outra janela de treino tem o mesmo nome de ficheiro (treino.parquet)
+    _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
+    outra = tmp_path / "janela" / "treino.parquet"
+    outra.parent.mkdir()
+    outra.write_bytes(treinado["treino"].read_bytes())
+    with pytest.raises(ValueError, match="diferentes: treino"):
+        _treinar(tmp_path, outra, treinado["validacao"], treinado["modelo"], retomar=True)
+
+
+def test_retomar_sem_argumentos_gravados_da_erro_claro(treinado, tmp_path, monkeypatch):
+    _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
+    (tmp_path / "saida" / tb.ARGUMENTOS).unlink()
+    with pytest.raises(ValueError, match="não existe"):
+        _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], retomar=True)
+
+
 def test_retomar_depois_da_ultima_epoca_so_escreve_o_que_faltava(treinado, tmp_path, monkeypatch):
     # O pod cai depois do último checkpoint, ao copiar as sugestões para a raiz: as épocas estão
     # todas treinadas, mas falta o treino.json. A retoma não treina nada e acaba o que faltava.

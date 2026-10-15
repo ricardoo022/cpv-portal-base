@@ -117,8 +117,11 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     pontuacoes_dir = Path(pontuacoes_dir or padrao_pt)
     # Tudo o que muda o treino. Ao retomar tem de ser igual: com outro lote ou outro número de
     # épocas o Trainer saltava os passos errados sem dar erro, e as épocas misturavam configurações.
-    argumentos = {"treino": Path(train_path).name, "validacao": Path(val_path).name, "modelo": str(modelo),
-                  "n_min": n_min, "taus": [float(t) for t in taus], "max_length": max_length,
+    # Os caminhos completos: o treino de outra janela também se chama treino.parquet. O max_length
+    # já resolvido: dar 256 ou deixar o do E5-T1 (256) é o mesmo treino.
+    argumentos = {"treino": str(Path(train_path).resolve()), "validacao": str(Path(val_path).resolve()),
+                  "modelo": str(modelo), "n_min": n_min, "taus": [float(t) for t in taus],
+                  "max_length": bert.model_max_length(modelo, max_length),
                   "taxa_aprendizagem": taxa_aprendizagem, "lote": lote, "epocas": epocas, "aquecimento": aquecimento,
                   "decaimento_pesos": decaimento_pesos, "semente": semente}
     apagar = f"apague {out_dir}, {checkpoints_dir} e {pontuacoes_dir} e treine de novo"
@@ -127,6 +130,9 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         if ultimo is None:
             raise ValueError(f"{checkpoints_dir}: não há nenhum checkpoint para retomar; o treino caiu antes da "
                              f"1.ª época acabar: {apagar}")
+        if not (out_dir / ARGUMENTOS).is_file():
+            raise ValueError(f"{out_dir / ARGUMENTOS}: não existe, por isso não se sabe com que argumentos o treino "
+                             f"começou; confirme a pasta de saída (--saida), ou {apagar}")
         guardados = json.loads((out_dir / ARGUMENTOS).read_text(encoding="utf-8"))
         diferentes = sorted(k for k in argumentos if guardados.get(k) != argumentos[k])
         if diferentes:

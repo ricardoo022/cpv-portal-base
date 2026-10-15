@@ -109,11 +109,13 @@ Fontes (documentação oficial da Runpod, além do que foi lido no próprio pod)
 
 ## 7. Pod com GPU para o BERT (E5-T2)
 
-Ainda não foi feito: escrito para o E5-T4. Os passos 1 a 5 valem na mesma (saldo, chave SSH, `rsync` do código e só do `treino.parquet` e do `validacao.parquet`, `tmux`, apagar no fim). Mudam a instalação, uma verificação antes de treinar e o que se traz de volta. O preço por hora não está aqui: lê-se na Runpod no dia e o custo de um treino mede-se no E5-T4.
+Ainda não foi feito: escrito para o E5-T4. Os passos 1 a 5 valem na mesma (saldo, chave SSH, `rsync` do código e só do `treino.parquet` e do `validacao.parquet`, `tmux`, apagar no fim). Mudam o sítio do projeto no pod, a instalação, uma verificação antes de treinar e o que se traz de volta.
+
+**O projeto vai para `/workspace`, não para `/root`.** Segundo a Runpod (https://docs.runpod.io/pods/storage/types, lido a 15 de outubro de 2026), o disco do contentor "is cleared when the Pod stops" (perde-se quando o pod para ou reinicia), e o volume `/workspace` "survives Pod stops and restarts, but is deleted when the Pod is terminated". O treino do TF-IDF cabia numa sessão; o do BERT pode durar horas, e os *checkpoints* (em `models/bert/`, dentro do projeto) só servem para retomar se sobreviverem a um reinício. Por isso, nos passos 3 e 4, o destino do `rsync` é `root@IP:/workspace/projeto_CPV/` em vez de `/root/projeto_CPV/`, e o volume do pod tem de ter espaço para os *checkpoints* e as pontuações (ver a tabela abaixo). O preço por hora não está aqui: lê-se na Runpod no dia e o custo de um treino mede-se no E5-T4.
 
 **Instalar.** No pod usa-se `make setup-gpu` em vez de `make setup`:
 ```bash
-$E root@IP 'cd /root/projeto_CPV && make setup-gpu && .venv/bin/pytest -q'
+$E root@IP 'cd /workspace/projeto_CPV && make setup-gpu && .venv/bin/pytest -q'
 ```
 - `make setup` (portátil e CI) instala o `requirements-cpu.txt`: o `torch` só para processador, do índice do PyTorch (~200 MB).
 - `make setup-gpu` instala o `requirements-gpu.txt`: o mesmo `torch` 2.14.1, mas do PyPI, que para Linux já traz as bibliotecas CUDA (vários GB). As duas listas incluem o `requirements.txt`, por isso as outras versões são as mesmas.
@@ -125,7 +127,7 @@ $E root@IP nvidia-smi          # no cabeçalho: "Driver Version" (>= 580) e "CUD
 
 **Antes de treinar, confirmar que o `torch` vê a GPU:**
 ```bash
-$E root@IP 'cd /root/projeto_CPV && make verificar-gpu'
+$E root@IP 'cd /workspace/projeto_CPV && make verificar-gpu'
 ```
 Mostra o nome da GPU, ou falha. Se falhar, não se lança o treino: sem GPU, o treino no processador demoraria dias e continuaria a cobrar. O `src/train_bert.py` usa `--dispositivo cuda` por defeito, por isso também para com erro em vez de cair no processador sem avisar.
 
@@ -141,6 +143,6 @@ make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="..."
 | a pasta do `--saida` (`metrics/bert/...`) | sugestões com τ = 0 e τ = 0,25 por época e da última época, `treino.json` | **portátil** (pequenos; `rsync` como no passo 4) |
 | `models/bert/...` | pontuações de todas as etiquetas por época (~0,3 GB por época) e um *checkpoint* por época (o modelo e o estado do otimizador, cerca de 3 vezes o modelo) | **fica no pod** (grandes, fora do git) |
 
-Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o disco do contentor desaparece com o pod. O `teste.parquet` nunca vai para o pod.
+Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o volume `/workspace` apaga-se quando o pod é apagado. O `teste.parquet` nunca vai para o pod.
 
-**Se o treino parar a meio** (o pod reiniciou, a ligação caiu e o `tmux` também): corre-se o mesmo comando com `--retomar`, por exemplo `make treinar-bert MODELO=bertimbau ARGS="--retomar"`, com os mesmos argumentos do treino interrompido (o treino recusa-se a retomar com outros: confirma-os no `argumentos.json` da pasta de saída). Cada *checkpoint* leva o estado do otimizador, da taxa de aprendizagem e dos geradores aleatórios, por isso o treino continua da última época gravada e só se pagam as épocas que faltam. Nos testes, um treino retomado dá as mesmas pontuações que um treino que nunca parou. Se o pod foi apagado, o disco foi com ele e não há nada para retomar.
+**Se o treino parar a meio** (o pod parou ou reiniciou, ou o processo caiu): corre-se o mesmo comando com `--retomar`, por exemplo `make treinar-bert MODELO=bertimbau ARGS="--retomar"`, com os mesmos argumentos do treino interrompido (o treino recusa-se a retomar com outros: confirma-os no `argumentos.json` da pasta de saída). Cada *checkpoint* leva o estado do otimizador, da taxa de aprendizagem e dos geradores aleatórios, por isso o treino continua da última época gravada e só se pagam as épocas que faltam. Nos testes, um treino retomado dá as mesmas pontuações que um treino que nunca parou. Isto só funciona porque o projeto está em `/workspace`: no disco do contentor, os *checkpoints* perdiam-se ao reiniciar. Se o pod foi apagado, o volume foi com ele e não há nada para retomar.
