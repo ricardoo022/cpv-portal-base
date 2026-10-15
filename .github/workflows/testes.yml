@@ -17,9 +17,14 @@ jobs:
         with:
           python-version: "3.10"
           cache: pip
+          # A chave da cache muda se mudar qualquer uma das duas listas (o requirements-cpu.txt inclui o requirements.txt).
+          cache-dependency-path: |
+            requirements.txt
+            requirements-cpu.txt
 
+      # torch só para processador (E5-T2): o CI não tem GPU e a versão para GPU pesa ~2 GB.
       - name: Instalar bibliotecas
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-cpu.txt
 
       # Portão de qualidade (E4-T5): o campeão do main, para o teste comparar com o do ramo.
       # Só se o main ainda não tiver o ficheiro é que a comparação salta; outro erro do git falha.

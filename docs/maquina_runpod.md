@@ -1,6 +1,6 @@
 # Alugar, preparar e apagar uma máquina na Runpod
 
-Guia para o treino do TF-IDF num pod alugado (E4-S0 e seguintes). O TF-IDF só usa processador e memória; a GPU fica para o BERTimbau e o Albertina, também na Runpod. Tudo o que está aqui foi feito e confirmado a 11 de outubro de 2026, no ensaio do E4-S0 (pod `cpv-e4-s0`), salvo onde diz o contrário.
+Guia para o treino do TF-IDF num pod alugado (E4-S0 e seguintes); a secção 7 é o pod com GPU para o BERT (E5-T2). O TF-IDF só usa processador e memória; a GPU fica para o BERTimbau e o Albertina, também na Runpod. Tudo o que está aqui foi feito e confirmado a 11 de outubro de 2026, no ensaio do E4-S0 (pod `cpv-e4-s0`), salvo onde diz o contrário.
 
 Termos que aparecem muitas vezes:
 
@@ -106,3 +106,41 @@ Fontes (documentação oficial da Runpod, além do que foi lido no próprio pod)
 - Pods, templates e tipos de disco: https://docs.runpod.io/pods/overview
 - SSH básico vs SSH completo, chaves: https://docs.runpod.io/pods/configuration/use-ssh
 - Parar vs apagar: https://docs.runpod.io/pods/manage-pods
+
+## 7. Pod com GPU para o BERT (E5-T2)
+
+Ainda não foi feito: escrito para o E5-T4. Os passos 1 a 5 valem na mesma (saldo, chave SSH, `rsync` do código e só do `treino.parquet` e do `validacao.parquet`, `tmux`, apagar no fim). Mudam a instalação, uma verificação antes de treinar e o que se traz de volta. O preço por hora não está aqui: lê-se na Runpod no dia e o custo de um treino mede-se no E5-T4.
+
+**Instalar.** No pod usa-se `make setup-gpu` em vez de `make setup`:
+```bash
+$E root@IP 'cd /root/projeto_CPV && make setup-gpu && .venv/bin/pytest -q'
+```
+- `make setup` (portátil e CI) instala o `requirements-cpu.txt`: o `torch` só para processador, do índice do PyTorch (~200 MB).
+- `make setup-gpu` instala o `requirements-gpu.txt`: o mesmo `torch` 2.14.1, mas do PyPI, que para Linux já traz as bibliotecas CUDA (vários GB). As duas listas incluem o `requirements.txt`, por isso as outras versões são as mesmas.
+
+**O driver do pod tem de servir a CUDA do `torch`.** O *driver* (o programa da NVIDIA que fala com a placa) vem da máquina física, não da imagem nem do `pip`. O `torch` 2.14.1 do PyPI para Linux depende do `cuda-toolkit==13.0.3` e de pacotes `nvidia-*-cu13` (campo `requires_dist` em https://pypi.org/pypi/torch/2.14.1/json, lido a 15 de outubro de 2026), ou seja, CUDA 13.0. Segundo as notas da NVIDIA, um programa CUDA 13.x corre com *driver* >= 580 (https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html, tabela de compatibilidade). Por isso, ao escolher o pod, pede-se uma máquina com CUDA 13.0 ou mais, e no pod confirma-se com:
+```bash
+$E root@IP nvidia-smi          # no cabeçalho: "Driver Version" (>= 580) e "CUDA Version" (>= 13.0)
+```
+
+**Antes de treinar, confirmar que o `torch` vê a GPU:**
+```bash
+$E root@IP 'cd /root/projeto_CPV && make verificar-gpu'
+```
+Mostra o nome da GPU, ou falha. Se falhar, não se lança o treino: sem GPU, o treino no processador demoraria dias e continuaria a cobrar. O `src/train_bert.py` usa `--dispositivo cuda` por defeito, por isso também para com erro em vez de cair no processador sem avisar.
+
+**Treinar** (dentro do `tmux`, como no passo 4):
+```bash
+make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="..."
+```
+
+**O que fica no pod e o que vem para o portátil:**
+
+| Onde está | O que é | Para onde vai |
+|---|---|---|
+| a pasta do `--saida` (`metrics/bert/...`) | sugestões com τ = 0 e τ = 0,25 por época e da última época, `treino.json` | **portátil** (pequenos; `rsync` como no passo 4) |
+| `models/bert/...` | pontuações de todas as etiquetas por época (~0,3 GB por época) e um *checkpoint* por época (o modelo e o estado do otimizador, cerca de 3 vezes o modelo) | **fica no pod** (grandes, fora do git) |
+
+Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o disco do contentor desaparece com o pod. O `teste.parquet` nunca vai para o pod.
+
+**Se o treino parar a meio** (o pod reiniciou, a ligação caiu e o `tmux` também): corre-se o mesmo comando com `--retomar`, por exemplo `make treinar-bert MODELO=bertimbau ARGS="--retomar"`, com os mesmos argumentos do treino interrompido. Cada *checkpoint* leva o estado do otimizador, da taxa de aprendizagem e dos geradores aleatórios, por isso o treino continua da última época gravada e só se pagam as épocas que faltam. Nos testes, um treino retomado dá as mesmas pontuações que um treino que nunca parou. Se o pod foi apagado, o disco foi com ele e não há nada para retomar.

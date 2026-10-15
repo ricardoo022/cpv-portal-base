@@ -7,6 +7,6 @@ Todos usam dados **inventados à mão**, com o resultado certo calculado no come
 | [`unit/`](unit/) | Cada função sozinha, com poucos contratos inventados. | `make test-unit` |
 | [`integration/`](integration/) | O pipeline inteiro: `.xlsx` inventados → treino, validação e teste → avaliação. | `make test-integracao` |
 
-Tudo de uma vez: `make test`.
+Tudo de uma vez: `make test`. Os testes do BERT (`make test-bert`) precisam do `torch` só para processador do `requirements-cpu.txt` (`make setup`).
 
 Cada teste foi visto a falhar quando se estragou de propósito a regra que ele guarda (mutation testing).

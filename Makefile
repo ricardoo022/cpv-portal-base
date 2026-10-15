@@ -6,14 +6,21 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert test-bert
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
 
-setup: ## Cria o ambiente (.venv) e instala as bibliotecas do requirements.txt
+setup: ## Cria o ambiente (.venv) no portátil: requirements-cpu.txt (o requirements.txt + torch só para processador)
 	python3 -m venv .venv
-	.venv/bin/pip install -r requirements.txt
+	.venv/bin/pip install -r requirements-cpu.txt
+
+setup-gpu: ## Cria o ambiente (.venv) no pod com GPU: requirements-gpu.txt (o requirements.txt + torch com CUDA)
+	python3 -m venv .venv
+	.venv/bin/pip install -r requirements-gpu.txt
+
+verificar-gpu: ## No pod, antes de treinar o BERT: falha se o torch não vir a GPU; se a vir, mostra o nome
+	$(PY) -c "import sys; sys.path.insert(0, 'src'); import bert; bert.check_gpu()"
 
 dados: ## Descarrega os .xlsx do dados.gov.pt e converte-os para Parquet (demora)
 	$(PY) scripts/download_data.py
@@ -40,6 +47,9 @@ test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, p
 test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
+test-bert: ## Testes do BERT (E5-T2) com modelos minúsculos de pesos aleatórios, só no processador
+	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py
+
 test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
 	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py tests/integration/test_tfidf_dados_reais.py
 
@@ -51,6 +61,9 @@ regua: ## Volta a correr o notebook da régua "códigos mais comuns" na validaç
 
 treinar-tfidf: ## Treina o TF-IDF (N = 10, alpha e τ do E4-S4, 24 épocas do E4-S5) e grava as sugestões da validação em metrics/tfidf/ (no pod: ~32 GB)
 	$(PY) src/train_tfidf.py --n-min 10
+
+treinar-bert: ## Treina o BERT na GPU (E5-T2): make treinar-bert MODELO=bertimbau|albertina (por defeito bertimbau) SAIDA=... (por defeito metrics/bert/MODELO) ARGS="outras opções"; os ficheiros grandes ficam em models/bert/ no pod
+	$(PY) src/train_bert.py --modelo $(or $(MODELO),bertimbau) --saida $(or $(SAIDA),metrics/bert/$(or $(MODELO),bertimbau)) $(ARGS)
 
 portao: ## Portão de qualidade: avalia na validação o treino de PASTA (por defeito metrics/tfidf) e só o grava como campeão (metrics/validacao.json) se nenhum top-5 descer; regista no MLflow
 	$(PY) src/model_gate.py --pasta $(or $(PASTA),metrics/tfidf)
