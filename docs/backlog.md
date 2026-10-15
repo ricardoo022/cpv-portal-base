@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3, E4-T4, E4-S2 e E4-S6 feitos) |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 feito; E5-T2 em revisão) |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 e E5-T2 feitos) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -703,7 +703,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Resultado** (secção 20 do [`qualidade_dados.md`](qualidade_dados.md), [`notebooks/11_comprimento_tokens.ipynb`](../notebooks/11_comprimento_tokens.ipynb)): 256 *tokens* para os dois modelos (99,81% do treino cabe inteiro no BERTimbau e 99,63% no Albertina; com 128 ficavam abaixo dos 99%). Os nomes, a revisão fixa e o comprimento estão em [`src/bert_models.py`](../src/bert_models.py), que o treino do E5-T2 vai ler.
 
-### E5-T2 · Tarefa: código de treino do BERT, testado no CI (M) · em revisão
+### E5-T2 · Tarefa: código de treino do BERT, testado no CI (M) · feito
 
 **Porque é precisa:** um erro no código de treino (textos e etiquetas desalinhados, a tradução de número para código partida) pode correr horas na GPU sem dar erro nenhum e só produzir um modelo mau. Nesse caso não se sabe se o BERT é mau ou se o código está errado. Este item escreve o código de treino e de sugestões do BERT e os testes que apanham esses erros em segundos, sem GPU, e continuam a apanhá-los quando o código mudar. É o equivalente do E4-H1 (o código) e do E4-T3 (os testes) para o BERT, sem ainda treinar com os dados reais. É o item mais carregado do épico; se passar de 3 dias, divide-se em dois (o treino com os testes; as pontuações por época e os modelos gravados).
 
@@ -724,7 +724,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 - [x] Cada teste falha quando se estraga de propósito o que ele guarda.
 - [x] Fica escrito no teste que ele guarda a ligação entre textos, etiquetas e sugestões, não a qualidade do modelo (como no E4-T3).
 
-**Resultado:** [`src/bert.py`](../src/bert.py) e [`src/train_bert.py`](../src/train_bert.py), com os testes em `tests/unit/test_bert.py` e `tests/integration/test_bert_pipeline.py` (cada um falhou com o erro que guarda injetado de propósito), mais `tests/unit/test_requisitos.py` (as versões fixas) e `tests/integration/test_makefile_bert.py` (os atalhos do Makefile). Decisão do utilizador (15 de outubro de 2026): cada *checkpoint* grava também o estado do otimizador (cerca de 3 vezes o modelo), para um treino interrompido continuar da última época gravada (`--retomar`) em vez de se pagar outra vez; um teste confirma que o treino retomado dá as mesmas pontuações. Os hiperparâmetros por defeito são os do artigo do BERT (Devlin et al., 2019); os do E5-T4 escrevem-se num YAML. O Albertina é um DeBERTa v1 (`model_type: "deberta"`), não v2, por isso o segundo modelo minúsculo dos testes é um `DebertaConfig`. Tempo do CI completo (instalar e testar), lido com `gh run view` em cada commit do ramo: 3 min 56 s no primeiro (`89a69e2`, com um teste a falhar), depois 2 min 42 s, 2 min 59 s e 3 min 28 s (`98f84a5`, 77 s de testes), sempre abaixo dos 5 minutos. Um *checkpoint* gravado só a meio (o pod caiu enquanto gravava) é saltado ao retomar.
+**Resultado:** [`src/bert.py`](../src/bert.py) e [`src/train_bert.py`](../src/train_bert.py), com os testes em `tests/unit/test_bert.py` e `tests/integration/test_bert_pipeline.py` (cada um falhou com o erro que guarda injetado de propósito), mais `tests/unit/test_requisitos.py` (as versões fixas) e `tests/integration/test_makefile_bert.py` (os atalhos do Makefile). Decisão do utilizador (15 de outubro de 2026): cada *checkpoint* grava também o estado do otimizador (cerca de 3 vezes o modelo), para um treino interrompido continuar da última época gravada (`--retomar`) em vez de se pagar outra vez; um teste confirma que o treino retomado dá as mesmas pontuações. Os hiperparâmetros por defeito são os do artigo do BERT (Devlin et al., 2019); os do E5-T4 escrevem-se num YAML. O Albertina é um DeBERTa v1 (`model_type: "deberta"`), não v2, por isso o segundo modelo minúsculo dos testes é um `DebertaConfig`. Tempo do CI completo (instalar e testar), lido com `gh run view` em cada commit do ramo: 3 min 56 s no primeiro (`89a69e2`, com um teste a falhar), depois 2 min 42 s, 2 min 59 s, 3 min 28 s e 3 min 4 s (`3e9c87a`, 78 s de testes), sempre abaixo dos 5 minutos. Um *checkpoint* gravado só a meio (o pod caiu enquanto gravava) é saltado ao retomar.
 
 ### E5-T3 · Tarefa: registar cada treino no MLflow (P)
 

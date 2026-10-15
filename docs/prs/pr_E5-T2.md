@@ -90,7 +90,9 @@ Com outro lote ou outro número de épocas, o `Trainer` saltaria os passos errad
 - `tests/unit/test_requisitos.py` (novo): as versões fixas nas duas listas, sem `torch` no `requirements.txt`, e o CI a instalar a lista do processador.
 - `tests/integration/test_makefile_bert.py` (novo): os alvos do Makefile, vistos com `make -n`, e o `verificar-gpu` a falhar sem GPU.
 - `docs/maquina_runpod.md`: secção 7, o pod com GPU. O projeto vai para `/workspace` (o volume), porque o disco do contentor apaga-se quando o pod para ou reinicia (docs da Runpod), e os *checkpoints* têm de sobreviver para se retomar.
-- `docs/backlog.md`: critérios do E5-T2 marcados e o resultado escrito.
+- `docs/backlog.md`: E5-T2 "feito", os 10 critérios marcados e o resultado escrito.
+- `docs/workflow.md`: caixa nova `[x]` da fase 4 para o código de treino do BERT.
+- `docs/prs/pr_E5-T2.md` e `docs/prs/readme.md`: esta descrição e a sua linha na tabela.
 - `CLAUDE.md`, `readme.md`, `src/readme.md`, `tests/*/readme.md`: os ficheiros e comandos novos.
 
 ### Ficou igual de propósito
@@ -113,7 +115,7 @@ Com outro lote ou outro número de épocas, o `Trainer` saltaria os passos errad
 | O treino passa o treino e a validação pelas verificações do E4-T5 (`check_inputs`), e por isso recusa o teste pelo nome e pelas datas. | ✅ | `test_ficheiro_chamado_teste_*`, `test_copia_do_teste_com_outro_nome_*`, `test_validacao_passada_como_treino_*` → passam, e não fica nada gravado |
 | No fim de cada época, para cada contrato da validação, o treino grava as pontuações de todas as etiquetas, para se aplicar qualquer τ depois sem treinar outra vez. Ficam no pod (cerca de 0,3 GB por época e por treino), fora do git; para o portátil vêm só as sugestões e as métricas. O treino também grava as sugestões com τ = 0 e τ = 0,25 no mesmo formato das do TF-IDF. A avaliação do E4-T1 lê-as sem mudanças. | ✅ | `test_pontuacoes_de_cada_epoca_*`, `test_sugestoes_de_cada_epoca_sao_o_top_5_das_pontuacoes_com_cada_tau`, `test_sugestoes_avaliam_se_com_a_avaliacao_comum_e_com_o_portao` → passam. Os 0,3 GB são uma estimativa (24 mil contratos × 3 000 etiquetas × 4 bytes), por medir no E5-T4 |
 | O treino grava o modelo no fim de cada época (*checkpoint*), para se poder usar o da época escolhida no E5-S1. | ✅ | `test_um_checkpoint_por_epoca_com_a_traducao_numero_codigo`: cada *checkpoint* recarrega e reproduz as pontuações dessa época → passa |
-| As versões do `torch`, do `transformers` e das bibliotecas novas ficam fixas. O CI instala o `torch` só para processador e o pod a versão para GPU, a partir de listas de requisitos separadas, e o CI completo continua abaixo de 5 minutos. | ✅ | `tests/unit/test_requisitos.py` → passa; CI do commit `{CI_SHA}`: **{CI_TEMPO}** ao todo |
+| As versões do `torch`, do `transformers` e das bibliotecas novas ficam fixas. O CI instala o `torch` só para processador e o pod a versão para GPU, a partir de listas de requisitos separadas, e o CI completo continua abaixo de 5 minutos. | ✅ | `tests/unit/test_requisitos.py` → passa; CI do commit `3e9c87a`: **3 min 4 s** ao todo |
 | No pod, antes de treinar, uma verificação confirma que o `torch` vê a GPU. | ✅ | `make verificar-gpu`; `test_sem_gpu_o_treino_em_cuda_recusa_antes_de_ler_os_dados`, `test_verificar_gpu_falha_sem_gpu` → passam |
 | Cada teste falha quando se estraga de propósito o que ele guarda. | ✅ | tabela "Os testes novos falham com o código estragado" |
 | Fica escrito no teste que ele guarda a ligação entre textos, etiquetas e sugestões, não a qualidade do modelo (como no E4-T3). | ✅ | descrição no topo de `tests/integration/test_bert_pipeline.py` e de `tests/unit/test_bert.py` |
@@ -128,7 +130,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: as 10 do E5-T2.
 
 - Suíte inteira no portátil: `.venv/bin/pytest -q` → 576 passed, 1 skipped. Sem os 4 ficheiros de testes novos (`--ignore`): 492 passed, 1 skipped, ou seja, os outros testes continuam todos a passar.
 - O TF-IDF, a avaliação e o portão não mudaram de código; os seus testes, incluindo os que leem os dados reais, passam.
-- CI do commit `{CI_SHA}`: {CI_RESULTADO}.
+- CI do commit `3e9c87a`: success, 554 passed e 23 skipped (os que leem dados reais), em 3 min 4 s.
 
 ### Os testes novos falham com o código estragado
 
@@ -162,7 +164,7 @@ Não se aplica a este item: o código ainda não treinou com os dados reais, e p
 | Medida | Antes | Depois | Fonte |
 |---|---|---|---|
 | Testes no portátil | 492 passed (sem os ficheiros novos) | 576 passed | `.venv/bin/pytest -q` |
-| Tempo do CI (instalar + testes) | 2 min 30 s (E5-T1, commit `5af6013`) | {CI_TEMPO} | `gh run view` do commit `{CI_SHA}` |
+| Tempo do CI (instalar + testes) | 2 min 30 s (E5-T1, commit `5af6013`) | 3 min 4 s | `gh run view` do commit `3e9c87a` |
 | Treino retomado vs. treino sem interrupção | — | pontuações iguais (tolerância 1e-5) em todas as épocas | `test_treino_retomado_da_o_mesmo_que_sem_interrupcao` |
 
 ### Revisão de código
@@ -173,7 +175,7 @@ Revisão independente (um agente novo de cada vez, só com o id, a base e o topo
 2. `603ab8c..d00a748`: com correções. Três importantes: o `model.eval()` sem teste (os modelos minúsculos não tinham *dropout*), a retoma a comparar só o nome dos ficheiros, e o guia a pôr os *checkpoints* num disco que se apaga ao reiniciar o pod.
 3. `603ab8c..df75316`: com correções. Nada crítico. Faltavam esta descrição e o tempo do CI no commit final.
 4. `603ab8c..98f84a5`: com correções pequenas. Nada crítico; o importante era juntar esta descrição ao commit. Menor corrigido: uma retoma depois de o pod cair a meio de gravar um *checkpoint* partia dessa pasta incompleta.
-5. {REVISAO_5}
+5. `603ab8c..3e9c87a`: interrompida a pedido do utilizador, para abrir o PR. A última correção (saltar um *checkpoint* incompleto) tem o seu teste e foi vista a falhar com o código estragado.
 
 - Corrigido:
   - o teste do `verificar-gpu` usa o Python que corre os testes (`d00a748`);
@@ -183,7 +185,7 @@ Revisão independente (um agente novo de cada vez, só com o id, a base e o topo
   - a retoma compara caminhos completos e o comprimento já resolvido (`df75316`);
   - o projeto no pod com GPU fica em `/workspace` (`df75316`);
   - a retoma confirma as pastas dos *checkpoints* e das pontuações, e o `treino.json` grava o n.º de GPUs (`98f84a5`);
-  - a retoma salta um *checkpoint* gravado só a meio, e os números estimados dos docs dizem que são estimativas ({SHA_FINAL}).
+  - a retoma salta um *checkpoint* gravado só a meio, e os números estimados dos docs dizem que são estimativas (`3e9c87a`).
 - Não corrigido, e porquê:
   - os 0,3 GB por época e o "3 vezes o modelo" são estimativas, escritas como tal → medem-se no E5-T4;
   - com várias GPUs o lote efetivo multiplica-se → fica registado (`n_gpus`), e o E5-T4 escolhe um pod com 1 GPU;

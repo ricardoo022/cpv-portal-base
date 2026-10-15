@@ -10,3 +10,4 @@ Cada ficheiro é o texto de um PR: porque foi feito, o que mudou (com o código)
 | [`pr_E4-S0.md`](pr_E4-S0.md) | #13 · E4-S0, quanto custa cada treino na máquina alugada |
 | [`pr_E4-T5.md`](pr_E4-T5.md) | E4-T5, portão de qualidade (o campeão) e registo no MLflow |
 | [`pr_E5-T1.md`](pr_E5-T1.md) | E5-T1, comprimento dos textos em *tokens* (256 nos dois modelos) |
+| [`pr_E5-T2.md`](pr_E5-T2.md) | E5-T2, código de treino do BERT testado no CI (modelo minúsculo, retoma de treinos interrompidos) |
