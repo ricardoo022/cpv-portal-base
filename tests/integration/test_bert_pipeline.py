@@ -64,9 +64,8 @@ TREINO_RAPIDO = dict(n_min=N_MIN, max_length=32, taxa_aprendizagem=3e-3, lote=2,
 
 def _treinar(base, treino_path, val_path, modelo, **kw):
     """`train_bert.run` com as pastas dos checkpoints e das pontuações dentro de `base`."""
-    args = {**TREINO_RAPIDO, **kw}
-    return tb.run(treino_path, val_path, base / "saida", modelo=modelo, checkpoints_dir=base / "checkpoints",
-                  pontuacoes_dir=base / "pontuacoes", **args)
+    args = {"checkpoints_dir": base / "checkpoints", "pontuacoes_dir": base / "pontuacoes", **TREINO_RAPIDO, **kw}
+    return tb.run(treino_path, val_path, base / "saida", modelo=modelo, **args)
 
 
 @pytest.fixture(scope="module")
@@ -329,12 +328,17 @@ def test_treino_retomado_da_o_mesmo_que_sem_interrupcao(treinado, tmp_path, monk
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
 
 
-@pytest.mark.parametrize("outro", [{"lote": 1}, {"epocas": EPOCAS + 1}, {"semente": 5}, {"taus": (0.0,)}])
+@pytest.mark.parametrize("outro", [{"lote": 1}, {"epocas": EPOCAS + 1}, {"semente": 5}, {"taus": (0.0,)},
+                                   {"pontuacoes_dir": "outras"}])
 def test_retomar_com_outros_argumentos_e_recusado(treinado, tmp_path, monkeypatch, outro):
-    # Com outro lote ou outras épocas o Trainer saltava os passos errados sem dar erro
+    # Com outro lote ou outras épocas o Trainer saltava os passos errados sem dar erro; com outra
+    # pasta de pontuações, as épocas ficavam divididas por duas pastas
     _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
     antes = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
-    with pytest.raises(ValueError, match=f"diferentes: {next(iter(outro))}"):
+    if "pontuacoes_dir" in outro:
+        outro = {"pontuacoes_dir": tmp_path / outro["pontuacoes_dir"]}
+    chave = next(iter(outro)).removesuffix("_dir")
+    with pytest.raises(ValueError, match=f"diferentes: {chave}"):
         _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], retomar=True, **outro)
     assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == antes  # nada mudou
 
@@ -347,6 +351,14 @@ def test_retomar_com_o_treino_de_outra_pasta_e_recusado(treinado, tmp_path, monk
     outra.write_bytes(treinado["treino"].read_bytes())
     with pytest.raises(ValueError, match="diferentes: treino"):
         _treinar(tmp_path, outra, treinado["validacao"], treinado["modelo"], retomar=True)
+
+
+def test_retomar_com_a_pasta_do_modelo_escrita_de_outra_forma_e_aceite(treinado, tmp_path, monkeypatch):
+    # O mesmo modelo, uma vez com o caminho absoluto e outra com um relativo: é o mesmo treino
+    _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
+    monkeypatch.chdir(treinado["modelo"].parent)
+    _treinar(tmp_path, treinado["treino"], treinado["validacao"], Path(treinado["modelo"].name), retomar=True)
+    assert (tmp_path / "saida" / tt.RESUMO).is_file()
 
 
 def test_retomar_sem_argumentos_gravados_da_erro_claro(treinado, tmp_path, monkeypatch):
@@ -404,7 +416,7 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
     assert set(r) == {
         "data", "modelo", "max_length", "n_min", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino",
         "validacao", "exemplos_usados", "exemplos_saidos", "etiquetas", "taxa_aprendizagem", "lote", "epocas",
-        "aquecimento", "decaimento_pesos", "semente", "dispositivo", "gpu", "checkpoints", "pontuacoes", "por_epoca",
+        "aquecimento", "decaimento_pesos", "semente", "dispositivo", "gpu", "n_gpus", "checkpoints", "pontuacoes", "por_epoca",
         "retomado_depois_da_epoca", "tempo_treinar_s", "pico_rss_mb", "nucleos", "versoes"}
     assert r["ficheiro_do_modelo_por_defeito"] == tt.suggestions_file(tfidf.TAU)
     assert r["ficheiros"] == {tt.SUGESTOES: 0.0, tt.suggestions_file(tfidf.TAU): tfidf.TAU}
@@ -413,7 +425,7 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
                               "contratos": len(VALIDACAO)}
     assert r["modelo"] == {"chave": None, "nome": str(treinado["modelo"]), "revisao": None}
     assert (r["n_min"], r["max_length"], r["epocas"], r["lote"], r["semente"]) == (N_MIN, 32, EPOCAS, 2, 0)
-    assert (r["dispositivo"], r["gpu"], r["etiquetas"]) == ("cpu", None, 6)
+    assert (r["dispositivo"], r["gpu"], r["n_gpus"], r["etiquetas"]) == ("cpu", None, 0, 6)
     assert {"torch", "transformers", "accelerate", "tokenizers"} <= set(r["versoes"])
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
     assert r["retomado_depois_da_epoca"] is None

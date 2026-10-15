@@ -45,6 +45,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 
 import bert
 import bert_models
@@ -120,7 +121,10 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     # Os caminhos completos: o treino de outra janela também se chama treino.parquet. O max_length
     # já resolvido: dar 256 ou deixar o do E5-T1 (256) é o mesmo treino.
     argumentos = {"treino": str(Path(train_path).resolve()), "validacao": str(Path(val_path).resolve()),
-                  "modelo": str(modelo), "n_min": n_min, "taus": [float(t) for t in taus],
+                  "modelo": modelo if modelo in bert_models.MODELOS else str(Path(modelo).resolve()),
+                  # As pastas grandes: retomar com outras deixava as épocas divididas por duas pastas
+                  "checkpoints": str(checkpoints_dir.resolve()), "pontuacoes": str(pontuacoes_dir.resolve()),
+                  "n_min": n_min, "taus": [float(t) for t in taus],
                   "max_length": bert.model_max_length(modelo, max_length),
                   "taxa_aprendizagem": taxa_aprendizagem, "lote": lote, "epocas": epocas, "aquecimento": aquecimento,
                   "decaimento_pesos": decaimento_pesos, "semente": semente}
@@ -223,6 +227,8 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         "semente": semente,
         "dispositivo": dispositivo,
         "gpu": gpu,
+        # Com mais de uma GPU, o Trainer usa todas e o lote efetivo é lote × n.º de GPUs
+        "n_gpus": torch.cuda.device_count() if dispositivo == "cuda" else 0,
         "checkpoints": str(checkpoints_dir),
         "pontuacoes": str(pontuacoes_dir),
         "por_epoca": epocas_info,
