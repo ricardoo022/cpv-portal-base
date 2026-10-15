@@ -155,7 +155,7 @@ O `--experiencia` não muda o treino: o caminho, o SHA-256 e o texto do YAML fic
 make registar-bert PASTA=metrics/bert/bertimbau
 make mlflow   # http://localhost:5000, experiência treinos_bert: um treino por linha, e em cada um o gráfico do top-5 por época
 ```
-Não se copia o `mlflow.db` do pod: por cima do do portátil, apagava os registos do portão e do histórico. O registo refaz-se a partir da pasta copiada, e recusa-se se o `validacao.parquet` do portátil tiver outro SHA-256 que o do pod (não seriam os mesmos contratos). Registar outra vez a mesma pasta não duplica.
+Não se copia o `mlflow.db` do pod: por cima do do portátil, apagava os registos do portão e do histórico. O registo refaz-se a partir da pasta copiada, e recusa-se se o `validacao.parquet` ou o `treino.parquet` do portátil tiverem outro SHA-256 que os do pod (não seriam os mesmos contratos). Registar outra vez a mesma pasta não duplica.
 
 Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o volume `/workspace` apaga-se quando o pod é apagado. O `teste.parquet` nunca vai para o pod.
 
