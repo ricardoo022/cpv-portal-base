@@ -343,6 +343,21 @@ def test_retomar_com_outros_argumentos_e_recusado(treinado, tmp_path, monkeypatc
     assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == antes  # nada mudou
 
 
+def test_retomar_salta_um_checkpoint_gravado_so_a_meio(treinado, tmp_path, monkeypatch):
+    # O pod caiu enquanto gravava o checkpoint da época 2: a pasta existe, mas sem o
+    # trainer_state.json, que o Trainer grava em último lugar. A retoma parte do da época 1.
+    _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
+    meio = tmp_path / "checkpoints" / treinado["resumo"]["por_epoca"][1]["checkpoint"]
+    meio.mkdir()
+    (meio / "model.safetensors").write_bytes(b"")
+    _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], retomar=True)
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert r["retomado_depois_da_epoca"] == 1
+    for k in range(1, EPOCAS + 1):
+        np.testing.assert_allclose(np.load(tmp_path / "pontuacoes" / tb.scores_file(k)),
+                                   np.load(treinado["pontuacoes"] / tb.scores_file(k)), rtol=1e-5, atol=1e-5)
+
+
 def test_retomar_com_o_treino_de_outra_pasta_e_recusado(treinado, tmp_path, monkeypatch):
     # Outra janela de treino tem o mesmo nome de ficheiro (treino.parquet)
     _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")

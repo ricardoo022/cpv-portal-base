@@ -117,7 +117,7 @@ Ainda não foi feito: escrito para o E5-T4. Os passos 1 a 5 valem na mesma (sald
 ```bash
 $E root@IP 'cd /workspace/projeto_CPV && make setup-gpu && .venv/bin/pytest -q'
 ```
-- `make setup` (portátil e CI) instala o `requirements-cpu.txt`: o `torch` só para processador, do índice do PyTorch (~200 MB).
+- `make setup` (portátil e CI) instala o `requirements-cpu.txt`: o `torch` só para processador, do índice do PyTorch (~200 MB; ordem de grandeza, não medida).
 - `make setup-gpu` instala o `requirements-gpu.txt`: o mesmo `torch` 2.14.1, mas do PyPI, que para Linux já traz as bibliotecas CUDA (vários GB). As duas listas incluem o `requirements.txt`, por isso as outras versões são as mesmas.
 
 **O driver do pod tem de servir a CUDA do `torch`.** O *driver* (o programa da NVIDIA que fala com a placa) vem da máquina física, não da imagem nem do `pip`. O `torch` 2.14.1 do PyPI para Linux depende do `cuda-toolkit==13.0.3` e de pacotes `nvidia-*-cu13` (campo `requires_dist` em https://pypi.org/pypi/torch/2.14.1/json, lido a 15 de outubro de 2026), ou seja, CUDA 13.0. Segundo as notas da NVIDIA, um programa CUDA 13.x corre com *driver* >= 580 (https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html, tabela de compatibilidade). Por isso, ao escolher o pod, pede-se uma máquina com CUDA 13.0 ou mais, e no pod confirma-se com:
@@ -141,7 +141,7 @@ make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="..."
 | Onde está | O que é | Para onde vai |
 |---|---|---|
 | a pasta do `--saida` (`metrics/bert/...`) | sugestões com τ = 0 e τ = 0,25 por época e da última época, `treino.json` | **portátil** (pequenos; `rsync` como no passo 4) |
-| `models/bert/...` | pontuações de todas as etiquetas por época (~0,3 GB por época) e um *checkpoint* por época (o modelo e o estado do otimizador, cerca de 3 vezes o modelo) | **fica no pod** (grandes, fora do git) |
+| `models/bert/...` | pontuações de todas as etiquetas por época (~0,3 GB por época: estimativa, 24 mil contratos × 3 000 etiquetas × 4 bytes; mede-se no E5-T4) e um *checkpoint* por época (o modelo e o estado do otimizador, cerca de 3 vezes o modelo: estimativa, o otimizador AdamW guarda 2 números por peso; mede-se no E5-T4) | **fica no pod** (grandes, fora do git) |
 
 Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o volume `/workspace` apaga-se quando o pod é apagado. O `teste.parquet` nunca vai para o pod.
 

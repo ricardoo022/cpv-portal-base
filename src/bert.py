@@ -29,7 +29,7 @@ import pandas as pd
 import torch
 from transformers import (AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainerCallback,
                           TrainingArguments, set_seed)
-from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 import bert_models
 import tfidf
@@ -260,9 +260,18 @@ def training_arguments(checkpoints_dir, taxa_aprendizagem=TAXA_APRENDIZAGEM, lot
 
 
 def last_checkpoint(checkpoints_dir):
-    """A pasta do último checkpoint gravado em `checkpoints_dir` (None se não houver nenhum)."""
+    """A pasta do último checkpoint completo em `checkpoints_dir` (None se não houver nenhum).
+
+    O Trainer grava o `trainer_state.json` em último lugar, depois do modelo e do otimizador: um
+    checkpoint sem ele ficou a meio (o pod caiu enquanto gravava) e não serve para retomar. O
+    `get_last_checkpoint` do transformers escolheria a pasta de número maior, completa ou não.
+    """
     pasta = Path(checkpoints_dir)
-    return get_last_checkpoint(str(pasta)) if pasta.is_dir() else None
+    if not pasta.is_dir():
+        return None
+    completos = [p for p in pasta.glob(f"{PREFIX_CHECKPOINT_DIR}-*")
+                 if p.is_dir() and p.name.split("-")[-1].isdigit() and (p / "trainer_state.json").is_file()]
+    return str(max(completos, key=lambda p: int(p.name.split("-")[-1]))) if completos else None
 
 
 def train(texto, codigo, modelo, checkpoints_dir, textos_val=None, on_epoch=None, n_min=DEFAULT_N_MIN,
@@ -304,9 +313,10 @@ def train(texto, codigo, modelo, checkpoints_dir, textos_val=None, on_epoch=None
                                      tokenizer.pad_token_id, on_epoch))
     trainer = Trainer(model=model, args=args, train_dataset=treino, data_collator=Collator(tokenizer.pad_token_id),
                       processing_class=tokenizer, callbacks=callbacks)
-    if retomar and last_checkpoint(checkpoints_dir) is None:
+    retomar_de = last_checkpoint(checkpoints_dir) if retomar else None
+    if retomar and retomar_de is None:
         raise ValueError(f"{checkpoints_dir}: não há nenhum checkpoint para retomar")
-    trainer.train(resume_from_checkpoint=True if retomar else None)
+    trainer.train(resume_from_checkpoint=retomar_de)
     return {"model": trainer.model, "tokenizer": tokenizer, "classes": classes,
             "log_prior": tfidf.log_prior(codigo, classes, n_min=n_min), "info": info, "trainer": trainer,
             "exemplos_usados": int(keep.sum()), "exemplos_saidos": int((~keep).sum())}
