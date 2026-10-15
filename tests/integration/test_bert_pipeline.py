@@ -329,6 +329,16 @@ def test_treino_retomado_da_o_mesmo_que_sem_interrupcao(treinado, tmp_path, monk
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
 
 
+@pytest.mark.parametrize("outro", [{"lote": 1}, {"epocas": EPOCAS + 1}, {"semente": 5}, {"taus": (0.0,)}])
+def test_retomar_com_outros_argumentos_e_recusado(treinado, tmp_path, monkeypatch, outro):
+    # Com outro lote ou outras épocas o Trainer saltava os passos errados sem dar erro
+    _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
+    antes = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
+    with pytest.raises(ValueError, match=f"diferentes: {next(iter(outro))}"):
+        _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], retomar=True, **outro)
+    assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == antes  # nada mudou
+
+
 def test_retomar_depois_da_ultima_epoca_so_escreve_o_que_faltava(treinado, tmp_path, monkeypatch):
     # O pod cai depois do último checkpoint, ao copiar as sugestões para a raiz: as épocas estão
     # todas treinadas, mas falta o treino.json. A retoma não treina nada e acaba o que faltava.
@@ -390,6 +400,9 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
     assert {"torch", "transformers", "accelerate", "tokenizers"} <= set(r["versoes"])
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
     assert r["retomado_depois_da_epoca"] is None
+    # Os argumentos que a retoma vai confirmar
+    a = json.loads((treinado["saida"] / tb.ARGUMENTOS).read_text(encoding="utf-8"))
+    assert (a["lote"], a["epocas"], a["semente"], a["n_min"], a["taus"]) == (2, EPOCAS, 0, N_MIN, [0.0, tfidf.TAU])
 
 
 # --- Critério 8: no pod, antes de treinar, confirma-se que o torch vê a GPU ---

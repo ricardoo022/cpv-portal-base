@@ -5,6 +5,7 @@ GPU que não falha) só se veria lá, a pagar. `make -n` mostra o comando sem o 
 """
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,7 @@ def test_treinar_bert_nao_muda_a_saida_do_preparar_janela():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="há GPU: a verificação passa")
 def test_verificar_gpu_falha_sem_gpu():
-    r = _make("verificar-gpu")
-    assert r.returncode != 0
-    assert "GPU" in r.stderr
+    # O Python que corre os testes: no CI não há .venv, as bibliotecas estão no Python do sistema
+    r = _make("verificar-gpu", f"PY={sys.executable}")
+    assert r.returncode != 0, r.stdout
+    assert "GPU" in r.stderr, f"código {r.returncode}: {r.stderr}"

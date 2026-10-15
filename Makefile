@@ -20,7 +20,7 @@ setup-gpu: ## Cria o ambiente (.venv) no pod com GPU: requirements-gpu.txt (o re
 	.venv/bin/pip install -r requirements-gpu.txt
 
 verificar-gpu: ## No pod, antes de treinar o BERT: falha se o torch não vir a GPU; se a vir, mostra o nome
-	$(PY) -c "import sys; sys.path.insert(0, 'src'); import bert; bert.check_gpu()"
+	$(PY) -c "import sys; sys.path.insert(0, 'src'); import bert; print(bert.check_gpu())"
 
 dados: ## Descarrega os .xlsx do dados.gov.pt e converte-os para Parquet (demora)
 	$(PY) scripts/download_data.py

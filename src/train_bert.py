@@ -57,6 +57,7 @@ MODELOS_DIR = RAIZ / "models" / "bert"  # fora do git
 ETIQUETAS = "etiquetas.json"
 LOG_PRIOR = "log_prior.npy"
 EPOCA_INFO = "epoca.json"  # dentro de cada epoca_<k>/: o que entra no `por_epoca` do treino.json
+ARGUMENTOS = "argumentos.json"  # na <saida>: os argumentos do treino, para a retoma os confirmar
 
 
 def epoch_dir(k):
@@ -73,10 +74,11 @@ def default_dirs(out_dir):
     return base / "checkpoints", base / "pontuacoes"
 
 
-def _check_empty(path, o_que):
+def _check_empty(path, o_que, apagar):
     path = Path(path)
     if path.exists() and any(path.iterdir()):
-        raise ValueError(f"{path}: a pasta de {o_que} não está vazia; use outra pasta para não misturar treinos")
+        raise ValueError(f"{path}: a pasta de {o_que} não está vazia; use outra pasta para não misturar treinos, "
+                         f"ou --retomar se o treino caiu a meio, ou {apagar}")
 
 
 def _versions():
@@ -113,20 +115,36 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     padrao_ck, padrao_pt = default_dirs(out_dir)
     checkpoints_dir = Path(checkpoints_dir or padrao_ck)
     pontuacoes_dir = Path(pontuacoes_dir or padrao_pt)
+    # Tudo o que muda o treino. Ao retomar tem de ser igual: com outro lote ou outro número de
+    # épocas o Trainer saltava os passos errados sem dar erro, e as épocas misturavam configurações.
+    argumentos = {"treino": Path(train_path).name, "validacao": Path(val_path).name, "modelo": str(modelo),
+                  "n_min": n_min, "taus": [float(t) for t in taus], "max_length": max_length,
+                  "taxa_aprendizagem": taxa_aprendizagem, "lote": lote, "epocas": epocas, "aquecimento": aquecimento,
+                  "decaimento_pesos": decaimento_pesos, "semente": semente}
+    apagar = f"apague {out_dir}, {checkpoints_dir} e {pontuacoes_dir} e treine de novo"
     if retomar:
         ultimo = bert.last_checkpoint(checkpoints_dir)
         if ultimo is None:
-            raise ValueError(f"{checkpoints_dir}: não há nenhum checkpoint para retomar")
+            raise ValueError(f"{checkpoints_dir}: não há nenhum checkpoint para retomar; o treino caiu antes da "
+                             f"1.ª época acabar: {apagar}")
+        guardados = json.loads((out_dir / ARGUMENTOS).read_text(encoding="utf-8"))
+        diferentes = sorted(k for k in argumentos if guardados.get(k) != argumentos[k])
+        if diferentes:
+            raise ValueError(f"para retomar, os argumentos têm de ser os do treino interrompido ({out_dir / ARGUMENTOS}); "
+                             f"diferentes: {', '.join(f'{k} ({guardados.get(k)!r} -> {argumentos[k]!r})' for k in diferentes)}")
         with open(Path(ultimo) / "trainer_state.json", encoding="utf-8") as f:
             retomado = int(round(json.load(f)["epoch"]))  # a última época acabada
     else:
         retomado = None
-        _check_empty(checkpoints_dir, "checkpoints")
-        _check_empty(pontuacoes_dir, "pontuações")
+        _check_empty(checkpoints_dir, "checkpoints", apagar)
+        _check_empty(pontuacoes_dir, "pontuações", apagar)
         if out_dir.exists() and any(out_dir.glob("epoca_*")):
-            raise ValueError(f"{out_dir}: já tem pastas epoca_* de outro treino; use outra pasta de saída")
+            raise ValueError(f"{out_dir}: já tem pastas epoca_* de outro treino; use outra pasta de saída, ou "
+                             f"--retomar se o treino caiu a meio, ou {apagar}")
     out_dir.mkdir(parents=True, exist_ok=True)
     pontuacoes_dir.mkdir(parents=True, exist_ok=True)
+    if not retomar:
+        (out_dir / ARGUMENTOS).write_text(json.dumps(argumentos, ensure_ascii=False, indent=1), encoding="utf-8")
 
     treino = pd.read_parquet(train_path, columns=["data", "texto", "codigo"])
     datas_treino = _date_range(treino["data"])
