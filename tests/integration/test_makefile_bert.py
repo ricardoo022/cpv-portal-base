@@ -1,4 +1,4 @@
-"""Os atalhos do Makefile para o BERT (E5-T2): `treinar-bert` e `verificar-gpu`.
+"""Os atalhos do Makefile para o BERT (E5-T2 e E5-T3): `treinar-bert`, `verificar-gpu` e `registar-bert`.
 
 São os comandos que se escrevem no pod; um erro aqui (outra pasta de saída, a verificação da
 GPU que não falha) só se veria lá, a pagar. `make -n` mostra o comando sem o correr.
@@ -47,3 +47,9 @@ def test_verificar_gpu_falha_sem_gpu():
     r = _make("verificar-gpu", f"PY={sys.executable}")
     assert r.returncode != 0, r.stdout
     assert "GPU" in r.stderr, f"código {r.returncode}: {r.stderr}"
+
+
+def test_registar_bert_passa_a_pasta_e_os_outros_argumentos():
+    r = _make("registar-bert", "PASTA=metrics/bert/bertimbau", "ARGS=--nome primeiro", ver_so=True)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.rstrip().endswith("src/registo_bert.py --pasta metrics/bert/bertimbau --nome primeiro")

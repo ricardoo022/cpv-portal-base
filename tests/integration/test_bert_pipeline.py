@@ -11,7 +11,9 @@ decora-os com quase qualquer configuração, por isso o CI não apanha hiperpar�
 os testes de sobreajuste do TF-IDF, E4-T3). Cada teste diz que critério de aceitação do E5-T2 guarda.
 """
 
+import hashlib
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -27,7 +29,7 @@ import model_gate as mg
 import tfidf
 import train_bert as tb
 import train_tfidf as tt
-from conftest import TEMAS_DECORAR, make_tiny_model
+from conftest import GIT_FALSO, TEMAS_DECORAR, make_tiny_model
 from labels import collapse_rare_codes
 
 # --- Treino principal: frequências diferentes por etiqueta (para o τ mudar a ordem) ---
@@ -329,18 +331,42 @@ def test_treino_retomado_da_o_mesmo_que_sem_interrupcao(treinado, tmp_path, monk
 
 
 @pytest.mark.parametrize("outro", [{"lote": 1}, {"epocas": EPOCAS + 1}, {"semente": 5}, {"taus": (0.0,)},
-                                   {"pontuacoes_dir": "outras"}])
+                                   {"pontuacoes_dir": "outras"}, {"experiencia": "e5_t4.yaml"}])
 def test_retomar_com_outros_argumentos_e_recusado(treinado, tmp_path, monkeypatch, outro):
     # Com outro lote ou outras épocas o Trainer saltava os passos errados sem dar erro; com outra
     # pasta de pontuações, as épocas ficavam divididas por duas pastas
     _treino_que_cai_na_epoca(tmp_path, treinado, monkeypatch, epoca=2, onde="pontuar")
-    antes = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
     if "pontuacoes_dir" in outro:
         outro = {"pontuacoes_dir": tmp_path / outro["pontuacoes_dir"]}
+    if "experiencia" in outro:  # o treino que caiu não tinha YAML: misturava duas experiências
+        outro = {"experiencia": tmp_path / outro["experiencia"]}
+        outro["experiencia"].write_text("modelo: bertimbau\n", encoding="utf-8")
+    antes = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*"))
     chave = next(iter(outro)).removesuffix("_dir")
     with pytest.raises(ValueError, match=f"diferentes: {chave}"):
         _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], retomar=True, **outro)
     assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) == antes  # nada mudou
+
+
+@pytest.mark.parametrize("muda", ["commit", "alteracoes", "treino", "validacao"])
+def test_retomar_com_outro_codigo_ou_outros_dados_e_recusado(treinado, tmp_path, monkeypatch, muda):
+    # O pod caiu, e antes de retomar fez-se um rsync de código novo, ou prepararam-se os dados outra
+    # vez no mesmo caminho: as épocas seguintes seriam de outro treino
+    dados = {k: tmp_path / "dados" / treinado[k].name for k in ("treino", "validacao")}
+    dados["treino"].parent.mkdir()
+    for k, path in dados.items():
+        shutil.copyfile(treinado[k], path)
+    _treino_que_cai_na_epoca(tmp_path, {**treinado, **dados}, monkeypatch, epoca=2, onde="pontuar")
+    if muda == "commit":
+        monkeypatch.setattr(tb, "git_info", lambda: {**GIT_FALSO, "commit": "b" * 40})
+    elif muda == "alteracoes":
+        monkeypatch.setattr(tb, "git_info", lambda: {**GIT_FALSO, "alteracoes_por_gravar": True})
+    else:  # os mesmos contratos gravados de outra forma: outros bytes, outra impressão digital
+        pd.read_parquet(dados[muda]).to_parquet(dados[muda], index=False, compression="gzip")
+    chave = {"commit": "git_commit", "alteracoes": "git_alteracoes_por_gravar", "treino": "treino_sha256",
+             "validacao": "validacao_sha256"}[muda]
+    with pytest.raises(ValueError, match=f"diferentes: {chave}"):
+        _treinar(tmp_path, dados["treino"], dados["validacao"], treinado["modelo"], retomar=True)
 
 
 def test_retomar_salta_um_checkpoint_gravado_so_a_meio(treinado, tmp_path, monkeypatch):
@@ -432,7 +458,8 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
         "data", "modelo", "max_length", "n_min", "taus", "ficheiros", "ficheiro_do_modelo_por_defeito", "treino",
         "validacao", "exemplos_usados", "exemplos_saidos", "etiquetas", "taxa_aprendizagem", "lote", "epocas",
         "aquecimento", "decaimento_pesos", "semente", "dispositivo", "gpu", "n_gpus", "checkpoints", "pontuacoes", "por_epoca",
-        "retomado_depois_da_epoca", "tempo_treinar_s", "pico_rss_mb", "nucleos", "versoes"}
+        "retomado_depois_da_epoca", "tempo_treinar_s", "pico_rss_mb", "nucleos", "versoes", "sha256", "git",
+        "experiencia"}
     assert r["ficheiro_do_modelo_por_defeito"] == tt.suggestions_file(tfidf.TAU)
     assert r["ficheiros"] == {tt.SUGESTOES: 0.0, tt.suggestions_file(tfidf.TAU): tfidf.TAU}
     assert r["treino"] == {"ficheiro": "treino.parquet", "datas": ["2024-03-01", "2024-03-04"]}
@@ -447,6 +474,61 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
     # Os argumentos que a retoma vai confirmar
     a = json.loads((treinado["saida"] / tb.ARGUMENTOS).read_text(encoding="utf-8"))
     assert (a["lote"], a["epocas"], a["semente"], a["n_min"], a["taus"]) == (2, EPOCAS, 0, N_MIN, [0.0, tfidf.TAU])
+    assert a["experiencia_sha256"] is None
+
+
+# --- E5-T3: o que o registo no MLflow precisa e só se sabe no pod ---
+
+def test_treino_json_tem_o_sha256_dos_ficheiros_o_git_e_sem_experiencia(treinado):
+    r = treinado["resumo"]
+    # Os ficheiros minúsculos usados, um a um (trocar o treino pela validação falhava aqui)
+    assert r["sha256"] == {"treino": tb.file_sha256(treinado["treino"]),
+                           "validacao": tb.file_sha256(treinado["validacao"])}
+    assert r["sha256"]["treino"] != r["sha256"]["validacao"]
+    assert r["git"] == GIT_FALSO  # o da fixture do conftest: nenhum teste corre o git verdadeiro
+    assert r["experiencia"] is None
+
+
+def _treino_curto(base, treinado, **kw):
+    """Uma época só, para os testes que não precisam do treino completo."""
+    return _treinar(base, treinado["treino"], treinado["validacao"], treinado["modelo"], epocas=1, **kw)
+
+
+def test_treino_com_yaml_da_experiencia_grava_caminho_sha256_e_texto(treinado, tmp_path, monkeypatch):
+    texto = "# E5-T4\nmodelo: bertimbau\ntaxa_aprendizagem: 2.0e-5\népocas: [2, 3]\n"
+    dentro = tmp_path / "raiz" / "experiencias" / "e5_t4.yaml"
+    dentro.parent.mkdir(parents=True)
+    dentro.write_text(texto, encoding="utf-8")
+    # Dentro da raiz do projeto, o caminho fica relativo a ela (o mesmo no pod e no portátil)
+    monkeypatch.setattr(tb, "RAIZ", tmp_path / "raiz")
+    _treino_curto(tmp_path, treinado, experiencia=dentro)
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert r["experiencia"] == {"ficheiro": "experiencias/e5_t4.yaml",
+                                "sha256": hashlib.sha256(texto.encode("utf-8")).hexdigest(),
+                                "conteudo": texto}
+    a = json.loads((tmp_path / "saida" / tb.ARGUMENTOS).read_text(encoding="utf-8"))
+    assert a["experiencia_sha256"] == r["experiencia"]["sha256"]
+
+
+def test_yaml_da_experiencia_fora_da_raiz_fica_com_o_caminho_absoluto(treinado, tmp_path, monkeypatch):
+    fora = tmp_path / "e5_t4.yaml"
+    fora.write_text("modelo: albertina\n", encoding="utf-8")
+    monkeypatch.setattr(tb, "RAIZ", tmp_path / "raiz")
+    _treino_curto(tmp_path, treinado, experiencia=fora)
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert r["experiencia"]["ficheiro"] == str(fora.resolve())
+
+
+@pytest.mark.parametrize("conteudo, erro", [(None, "não existe"), ("- uma\n- lista\n", "dicionário"),
+                                            ("", "dicionário"), ("chave: [sem fim\n", "ler"),
+                                            ("a: 1\n" * (tb.MAX_YAML // 5 + 1), "leva até 8000")])
+def test_yaml_da_experiencia_errado_e_recusado_antes_de_treinar(treinado, tmp_path, conteudo, erro):
+    yaml_path = tmp_path / "e5_t4.yaml"
+    if conteudo is not None:
+        yaml_path.write_text(conteudo, encoding="utf-8")
+    with pytest.raises(ValueError, match=erro):
+        _treino_curto(tmp_path, treinado, experiencia=yaml_path)
+    _nada_gravado(tmp_path)
 
 
 # --- Critério 8: no pod, antes de treinar, confirma-se que o torch vê a GPU ---
@@ -525,3 +607,104 @@ def test_pastas_por_defeito_ficam_em_models_fora_do_git():
     ck, pt = tb.default_dirs(Path("metrics") / "bert" / "bertimbau")
     assert ck == tb.RAIZ / "models" / "bert" / "bertimbau" / "checkpoints"
     assert pt == tb.RAIZ / "models" / "bert" / "bertimbau" / "pontuacoes"
+
+
+# --- E5-T3: o treino minúsculo, copiado para outra pasta (como do pod para o portátil), regista-se no MLflow ---
+
+def test_treino_minusculo_copiado_fica_registado_no_mlflow_com_todos_os_campos_e_a_curva(treinado, tmp_path):
+    from mlflow import MlflowClient
+
+    import registo_bert as rb
+
+    copia = tmp_path / "copiada" / "bertimbau_teste"
+    shutil.copytree(treinado["saida"], copia)  # o rsync da --saida do pod para o portátil
+    tracking = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    run_id = rb.log_training(copia, treinado["validacao"], tracking_uri=tracking, experiencia="e5_t3")
+    client = MlflowClient(tracking)
+    run = client.get_run(run_id)
+    p, resumo = run.data.params, treinado["resumo"]
+
+    # Hiperparâmetros, commit e impressões digitais dos ficheiros, tal como o treino os gravou
+    for k in ("taxa_aprendizagem", "lote", "epocas", "aquecimento", "decaimento_pesos", "semente", "n_min",
+              "max_length"):
+        assert p[k] == str(resumo[k]), k
+    assert p["git_commit"] == GIT_FALSO["commit"]
+    assert p["treino_sha256"] == tb.file_sha256(treinado["treino"])
+    assert p["validacao_sha256"] == tb.file_sha256(treinado["validacao"])
+    assert p["experiencia_ficheiro"] == "nenhum" and run.data.tags["experiencia_yaml"] == "nenhum"
+
+    # A curva: uma entrada por época, com o passo = a época
+    for m in mg.METRICAS:
+        historia = sorted(client.get_metric_history(run_id, m), key=lambda x: x.step)
+        assert [h.step for h in historia] == list(range(1, EPOCAS + 1)), m
+    # A última época é exatamente o que o portão mede nas sugestões da raiz
+    bloco, _ = mg.evaluate_run(copia, treinado["validacao"])
+    for m, v in bloco["metricas"].items():
+        assert run.data.metrics[m] == pytest.approx(v), m
+
+    # Correr outra vez não duplica
+    assert rb.log_training(copia, treinado["validacao"], tracking_uri=tracking, experiencia="e5_t3") is None
+    assert len(client.search_runs([client.get_experiment_by_name("e5_t3").experiment_id])) == 1
+
+
+def test_commit_e_o_do_inicio_do_treino_mesmo_que_o_codigo_mude_a_meio(treinado, tmp_path, monkeypatch):
+    # Um rsync de código novo durante as horas de treino não pode mudar o commit gravado
+    agora = {"commit": "a" * 40, "alteracoes_por_gravar": False}
+    monkeypatch.setattr(tb, "git_info", lambda: dict(agora))
+    treinar = bert.train
+
+    def treino_durante_o_qual_o_codigo_muda(*args, **kw):
+        agora["commit"] = "b" * 40
+        return treinar(*args, **kw)
+
+    monkeypatch.setattr(tb.bert, "train", treino_durante_o_qual_o_codigo_muda)
+    _treino_curto(tmp_path, treinado)
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert r["git"]["commit"] == "a" * 40
+
+
+def test_treino_com_yaml_copiado_fica_no_mlflow_com_o_texto_do_yaml(treinado, tmp_path):
+    from mlflow import MlflowClient
+
+    import registo_bert as rb
+
+    texto = "# E5-T4\nmodelo: bertimbau\ntaxa_aprendizagem: 2.0e-5\n"
+    yaml_path = tmp_path / "e5_t4.yaml"
+    yaml_path.write_text(texto, encoding="utf-8")
+    _treino_curto(tmp_path, treinado, experiencia=yaml_path)
+    copia = tmp_path / "copiada" / "com_yaml"
+    shutil.copytree(tmp_path / "saida", copia)
+    tracking = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    run = MlflowClient(tracking).get_run(rb.log_training(copia, treinado["validacao"], tracking_uri=tracking,
+                                                         experiencia="e5_t3_yaml"))
+    assert run.data.tags["experiencia_yaml"] == texto
+    assert run.data.params["experiencia_sha256"] == tb.file_sha256(yaml_path)
+    assert run.data.params["experiencia_ficheiro"] == str(yaml_path.resolve())
+
+
+def test_sem_commit_avisa_logo_no_inicio_mas_treina(treinado, tmp_path, monkeypatch, capsys):
+    # No pod o git pode falhar (por exemplo "dubious ownership"): o registo ficava sem commit sem ninguém saber
+    monkeypatch.setattr(tb, "git_info", lambda: {"commit": None, "alteracoes_por_gravar": None})
+    _treino_curto(tmp_path, treinado)
+    assert "AVISO: não se leu o commit" in capsys.readouterr().err
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert r["git"] == {"commit": None, "alteracoes_por_gravar": None}
+
+
+@pytest.mark.parametrize("sem", ["experiencia", "commit"])
+def test_na_gpu_sem_yaml_ou_sem_commit_recusa_antes_de_treinar(treinado, tmp_path, monkeypatch, sem):
+    # Um treino pago à hora que o registo não consegue identificar: recusa-se no primeiro segundo
+    yaml_ok = tmp_path / "e.yaml"
+    yaml_ok.write_text("modelo: bertimbau\n", encoding="utf-8")
+    monkeypatch.setattr(tb.bert, "check_gpu", lambda: "GPU fingida")
+    if sem == "commit":
+        monkeypatch.setattr(tb, "git_info", lambda: {"commit": None, "alteracoes_por_gravar": None})
+
+    def nao_treina(*a, **k):
+        raise AssertionError("treinou")
+    monkeypatch.setattr(tb.bert, "train", nao_treina)
+    kw = {} if sem == "experiencia" else {"experiencia": yaml_ok}
+    with pytest.raises(ValueError, match="obrigatório"):
+        _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"],
+                 **{**TREINO_RAPIDO, "dispositivo": "cuda", **kw})
+    assert not (tmp_path / "saida").exists()

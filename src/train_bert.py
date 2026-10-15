@@ -19,7 +19,10 @@ Com `--dispositivo cuda` (o que se usa no pod), antes disso confirma que o `torc
    do TF-IDF (`sugestoes_validacao.parquet` com τ = 0 e `sugestoes_validacao_tau0.25.parquet`),
    que a avaliação (E4-T1) e o portão (E4-T5) leem sem mudanças;
 4. grava `treino.json` (as chaves que o portão lê, como no TF-IDF, mais os hiperparâmetros, o
-   modelo e a sua revisão, os tempos e as versões, e uma entrada por época).
+   modelo e a sua revisão, os tempos e as versões, e uma entrada por época) e, para o registo no
+   MLflow feito depois no portátil (E5-T3), o que só se sabe no pod: o SHA-256 do treino e da
+   validação (`sha256`), o commit do código e se havia alterações por gravar (`git`) e o YAML da
+   experiência, se foi dado com `--experiencia` (`experiencia`: caminho, SHA-256 e texto).
 
 A `<saida>` é pequena (vai para o portátil e para o git); os checkpoints e as pontuações são
 grandes e ficam no pod. Para não misturar treinos, o treino recusa pastas de checkpoints ou de
@@ -40,16 +43,20 @@ import json
 import os
 import platform
 import shutil
+import subprocess
+import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
+import yaml
 
 import bert
 import bert_models
 import tfidf
+from cpv_data import MAX_YAML, file_sha256
 from labels import DEFAULT_N_MIN
 from train_tfidf import RESUMO, TREINO, VALIDACAO, _date_range, check_inputs, peak_rss_mb, suggestions_file
 
@@ -75,6 +82,62 @@ def default_dirs(out_dir):
     return base / "checkpoints", base / "pontuacoes"
 
 
+def read_git(raiz, run=subprocess.run):
+    """O commit do código em `raiz` e se tem alterações por gravar.
+
+    O código chega ao pod por rsync, com a pasta .git: o commit diz que código treinou, e
+    `alteracoes_por_gravar` (True se o `git status --porcelain` não vier vazio) avisa que esse
+    código não é exatamente o do commit. Só contam os ficheiros que o git segue
+    (`--untracked-files=no`, como o `is_dirty` do GitPython): a pasta `--saida` (`metrics/bert/...`)
+    não é seguida e aparece a meio do treino; se contasse, a retoma depois de uma queda era sempre
+    recusada (as alterações passavam de False a True). Sem git, ou se o git der erro (por exemplo, a pasta não é
+    um repositório), devolve Nones em vez de parar o treino. `run`: para os testes.
+    """
+    try:
+        commit = run(["git", "rev-parse", "HEAD"], cwd=raiz, capture_output=True, text=True)
+        estado = run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=raiz, capture_output=True,
+                     text=True)
+    except FileNotFoundError:
+        return {"commit": None, "alteracoes_por_gravar": None}
+    if commit.returncode != 0 or estado.returncode != 0:
+        return {"commit": None, "alteracoes_por_gravar": None}
+    return {"commit": commit.stdout.strip(), "alteracoes_por_gravar": estado.stdout.strip() != ""}
+
+
+def git_info():
+    """`read_git` na raiz do projeto (os testes substituem esta função, para não correrem o git)."""
+    return read_git(RAIZ)
+
+
+def read_experiment(path):
+    """O YAML da experiência (`--experiencia`): caminho, SHA-256 e texto, para o treino.json.
+
+    Tem de existir e ser um dicionário YAML; senão `ValueError`, antes de ler os dados. O caminho
+    fica relativo à raiz do projeto se estiver dentro dela (é o mesmo no pod e no portátil).
+    """
+    path = Path(path)
+    if not path.is_file():
+        raise ValueError(f"{path}: o YAML da experiência (--experiencia) não existe")
+    conteudo = path.read_text(encoding="utf-8")
+    if len(conteudo) > MAX_YAML:
+        # Recusado ao registar seria só depois de pagar o treino na GPU
+        raise ValueError(f"{path}: o YAML da experiência tem {len(conteudo)} carateres; o registo no MLflow "
+                         f"leva até {MAX_YAML}")
+    try:
+        lido = yaml.safe_load(conteudo)
+    except yaml.YAMLError as e:
+        raise ValueError(f"{path}: o YAML da experiência não se consegue ler: {e}") from e
+    if not isinstance(lido, dict):
+        raise ValueError(f"{path}: o YAML da experiência tem de ser um dicionário (chave: valor), "
+                         f"não {type(lido).__name__}")
+    absoluto = path.resolve()
+    try:
+        ficheiro = absoluto.relative_to(RAIZ.resolve())
+    except ValueError:  # fora da raiz do projeto
+        ficheiro = absoluto
+    return {"ficheiro": str(ficheiro), "sha256": file_sha256(path), "conteudo": conteudo}
+
+
 def _check_empty(path, o_que, apagar):
     path = Path(path)
     if path.exists() and any(path.iterdir()):
@@ -95,7 +158,7 @@ def _versions():
 def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, taus=(0.0, tfidf.TAU),
         max_length=None, taxa_aprendizagem=bert.TAXA_APRENDIZAGEM, lote=bert.LOTE, epocas=bert.EPOCAS,
         aquecimento=bert.AQUECIMENTO, decaimento_pesos=bert.DECAIMENTO_PESOS, semente=bert.SEMENTE,
-        dispositivo="cuda", checkpoints_dir=None, pontuacoes_dir=None, retomar=False):
+        dispositivo="cuda", checkpoints_dir=None, pontuacoes_dir=None, retomar=False, experiencia=None):
     """Tuna o `modelo`, grava as pontuações e as sugestões de cada época e o resumo.
 
     `modelo`: "bertimbau", "albertina" (`bert_models.MODELOS`) ou a pasta de um modelo gravado
@@ -104,12 +167,29 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     (`bert.py`). `dispositivo`: "cuda" (no pod; verifica primeiro que há GPU) ou "cpu" (testes).
     `checkpoints_dir` e `pontuacoes_dir`: por defeito em `models/bert/<nome da saída>/`.
     `retomar`: continua um treino interrompido do seu último checkpoint, com as mesmas pastas e
-    os mesmos argumentos (ver a descrição do módulo).
+    os mesmos argumentos (ver a descrição do módulo). `experiencia`: o caminho do YAML da
+    experiência, gravado no treino.json para o registo no MLflow; obrigatório na GPU, onde também
+    se recusa o treino se não se ler o commit do git (no processador só se avisa).
     Devolve o dicionário do `bert.train`.
     """
     bert.check_dispositivo(dispositivo)
     gpu = bert.check_gpu() if dispositivo == "cuda" else None  # antes de ler qualquer ficheiro
+    # Na GPU (paga à hora) um treino sem YAML ou sem commit não se consegue repetir com certeza:
+    # recusa-se no primeiro segundo, não depois de horas a pagar
+    if dispositivo == "cuda" and experiencia is None:
+        raise ValueError("na GPU o YAML da experiência é obrigatório (--experiencia experiencias/<item>.yaml), "
+                         "para o registo no MLflow dizer com que configuração se treinou")
     check_inputs(train_path, val_path)
+    experiencia = read_experiment(experiencia) if experiencia is not None else None
+    git = git_info()  # no início: o código que treina é o de agora, mesmo que mude durante o treino
+    if git["commit"] is None:
+        if dispositivo == "cuda":
+            raise ValueError("não se leu o commit do git (sem git, ou \"dubious ownership\": ver o "
+                             "docs/maquina_runpod.md, secção 7); na GPU o commit é obrigatório")
+        print("AVISO: não se leu o commit do git (sem git, ou \"dubious ownership\": ver o "
+              "docs/maquina_runpod.md, secção 7); o treino.json fica sem commit", file=sys.stderr)
+    # Para o registo mostrar que o treino e a validação do pod são os do portátil
+    sha256 = {"treino": file_sha256(train_path), "validacao": file_sha256(val_path)}
     if any(t < 0 for t in taus):
         raise ValueError(f"τ tem de ser >= 0: {list(taus)}")
     out_dir = Path(out_dir)
@@ -127,7 +207,15 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
                   "n_min": n_min, "taus": [float(t) for t in taus],
                   "max_length": bert.model_max_length(modelo, max_length),
                   "taxa_aprendizagem": taxa_aprendizagem, "lote": lote, "epocas": epocas, "aquecimento": aquecimento,
-                  "decaimento_pesos": decaimento_pesos, "semente": semente}
+                  "decaimento_pesos": decaimento_pesos, "semente": semente,
+                  # Retomar com outro YAML misturava duas experiências no mesmo treino
+                  "experiencia_sha256": experiencia["sha256"] if experiencia else None,
+                  # Retomar com outros dados (preparados outra vez no mesmo caminho) ou outro código
+                  # (um rsync depois da queda) dava um treino feito com duas versões, e o treino.json
+                  # e o MLflow diziam que era todo da última. Com alterações por gravar nas duas vezes,
+                  # o commit não mostra se o código mudou: fica só o aviso no treino.json.
+                  "treino_sha256": sha256["treino"], "validacao_sha256": sha256["validacao"],
+                  "git_commit": git["commit"], "git_alteracoes_por_gravar": git["alteracoes_por_gravar"]}
     apagar = f"apague {out_dir}, {checkpoints_dir} e {pontuacoes_dir} e treine de novo"
     if retomar:
         ultimo = bert.last_checkpoint(checkpoints_dir)
@@ -239,6 +327,10 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         "pico_rss_mb": round(peak_rss_mb()),
         "nucleos": os.cpu_count(),
         "versoes": _versions(),
+        # Para o registo no MLflow (E5-T3), feito no portátil: o que só se sabe aqui, no pod
+        "sha256": sha256,
+        "git": git,
+        "experiencia": experiencia,
     }
     with open(out_dir / RESUMO, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=1)
@@ -271,6 +363,9 @@ def main(argv=None):
     p.add_argument("--semente", type=int, default=bert.SEMENTE, help="semente aleatória")
     p.add_argument("--retomar", action="store_true",
                    help="continua um treino interrompido do último checkpoint (mesmas pastas e argumentos)")
+    p.add_argument("--experiencia", default=None,
+                   help="YAML da experiência (por exemplo experiencias/e5_t4.yaml); o caminho, o SHA-256 e o "
+                        "texto ficam no treino.json, para o registo no MLflow")
     p.add_argument("--dispositivo", choices=bert.DISPOSITIVOS, default="cuda",
                    help="cuda (no pod; confirma primeiro que o torch vê a GPU) ou cpu")
     a = p.parse_args(argv)
@@ -278,7 +373,8 @@ def main(argv=None):
     run(a.treino, a.validacao, saida, modelo=a.modelo, n_min=a.n_min, taus=a.taus, max_length=a.max_length,
         taxa_aprendizagem=a.taxa_aprendizagem, lote=a.lote, epocas=a.epocas, aquecimento=a.aquecimento,
         decaimento_pesos=a.decaimento_pesos, semente=a.semente, dispositivo=a.dispositivo,
-        checkpoints_dir=a.checkpoints, pontuacoes_dir=a.pontuacoes, retomar=a.retomar)
+        checkpoints_dir=a.checkpoints, pontuacoes_dir=a.pontuacoes, retomar=a.retomar,
+        experiencia=a.experiencia)
     print("Gravado:", saida)
 
 

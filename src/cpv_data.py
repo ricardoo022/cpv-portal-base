@@ -4,6 +4,7 @@ Usadas pelo notebook de exploração e pelo script de preparação, para as duas
 aplicarem exatamente as mesmas regras.
 """
 
+import hashlib
 from pathlib import Path
 
 import pandas as pd
@@ -85,3 +86,20 @@ def period(data, train_start=None):
     out[(data >= VAL_START) & (data < TEST_START)] = "validação"
     out[(data >= TEST_START) & (data < YEAR_END)] = "teste"
     return out
+
+
+# Treinos no pod e registo no portátil (E5-T3): aqui e não no train_bert, para o registo não carregar o torch
+MAX_YAML = 8000  # carateres: o YAML da experiência vai inteiro para uma tag do MLflow, que leva até 8000
+
+
+def file_sha256(path):
+    """Impressão digital (SHA-256) do conteúdo de um ficheiro, em hexadecimal.
+
+    Mostra que o treino e a validação no pod são os mesmos ficheiros do portátil: um só byte
+    diferente dá outra impressão digital.
+    """
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for bloco in iter(lambda: f.read(1 << 20), b""):
+            h.update(bloco)
+    return h.hexdigest()

@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert test-bert
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert registar-bert test-bert
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -47,8 +47,8 @@ test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, p
 test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
-test-bert: ## Testes do BERT (E5-T2) com modelos minúsculos de pesos aleatórios, só no processador
-	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py
+test-bert: ## Testes do BERT (E5-T2 e E5-T3) com modelos minúsculos de pesos aleatórios, só no processador
+	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py
 
 test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
 	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py tests/integration/test_tfidf_dados_reais.py
@@ -67,6 +67,9 @@ treinar-bert: ## Treina o BERT na GPU (E5-T2): make treinar-bert MODELO=bertimba
 
 portao: ## Portão de qualidade: avalia na validação o treino de PASTA (por defeito metrics/tfidf) e só o grava como campeão (metrics/validacao.json) se nenhum top-5 descer; regista no MLflow
 	$(PY) src/model_gate.py --pasta $(or $(PASTA),metrics/tfidf)
+
+registar-bert: ## Regista no MLflow (experiência treinos_bert) um treino do BERT: make registar-bert PASTA=metrics/bert/... ARGS="outras opções"; corre no portátil depois de copiar a pasta --saida do pod, com o treino.parquet e o validacao.parquet que foram para o pod (confirma o SHA-256; não duplica)
+	$(PY) src/registo_bert.py --pasta $(PASTA) $(ARGS)
 
 historico: ## Regista no MLflow (experiência historico_e4) todos os treinos guardados em metrics/, a régua e a curva do E4-S5 (precisa de "make preparar"; não duplica)
 	$(PY) scripts/registar_historico.py
