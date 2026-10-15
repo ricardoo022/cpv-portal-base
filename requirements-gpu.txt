@@ -1,0 +1,5 @@
+# Bibliotecas do projeto + torch para GPU (E5-T2): é o que o pod da Runpod instala para treinar o BERT.
+# O torch do PyPI para Linux já traz as bibliotecas CUDA. Mesmas versões do requirements-cpu.txt.
+-r requirements.txt
+torch==2.14.1
+accelerate==1.15.0

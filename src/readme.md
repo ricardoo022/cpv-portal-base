@@ -18,6 +18,8 @@ data/raw/*.xlsx → convert_to_parquet.py → prepare.py → treino / validaçã
 | [`baselines.py`](baselines.py) | Régua "códigos mais comuns": sugere sempre as 5 etiquetas mais frequentes do treino, sem ler o texto. É o mínimo que qualquer modelo tem de bater. | é importado |
 | [`comparison.py`](comparison.py) | Decide entre dois modelos: bootstrap emparelhado e a regra de escolha do E4. | é importado |
 | [`bert_models.py`](bert_models.py) | Os dois modelos do E5: o nome no Hugging Face, a revisão fixa e o comprimento máximo em *tokens* escolhido no notebook 11 (E5-T1). O treino lê-os daqui. | é importado |
+| [`bert.py`](bert.py) | O BERT do E5 (E5-T2): afinar o BERTimbau ou o Albertina como classificador das etiquetas CPV e dar 5 sugestões; `check_gpu()` confirma que o `torch` vê a GPU. | é importado; `make verificar-gpu` |
+| [`train_bert.py`](train_bert.py) | Treina o BERT no pod com GPU (E5-T2): recusa o teste (`check_inputs`), grava em `--saida` as sugestões com τ = 0 e τ = 0,25 por época e o `treino.json`, e em `models/bert/` (fica no pod) as pontuações de cada época e um *checkpoint* por época. | `make treinar-bert MODELO=bertimbau` |
 | [`model_gate.py`](model_gate.py) | Portão de qualidade (E4-T5): avalia na validação as sugestões de um treino e só o aceita como campeão (`metrics/validacao.json`) se nenhum top-5 descer face ao campeão anterior. Regista cada avaliação no MLflow (`mlflow.db`). | `make portao PASTA=...`, `make mlflow` |
 
 Testes destes ficheiros: [`tests/`](../tests/).

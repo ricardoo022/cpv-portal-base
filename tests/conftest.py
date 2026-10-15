@@ -112,3 +112,53 @@ TEMAS_DECORAR = {
 @pytest.fixture(scope="session")
 def temas_decorar():
     return TEMAS_DECORAR
+
+
+# E5-T2: modelos minúsculos de pesos aleatórios, construídos localmente (nunca se descarrega o
+# modelo verdadeiro: o CI não tem acesso fiável ao Hugging Face). Mesmas arquiteturas e mesmas
+# classes de tokenizador dos modelos do E5: BERT com `BertTokenizer` (WordPiece, como o BERTimbau)
+# e DeBERTa (v1) com `DebertaTokenizer` (BPE ao nível do byte, como o Albertina).
+ESPECIAIS = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]
+# Pesos iniciais maiores do que os 0,02 do BERT e sem dropout: com 32 dimensões e pesos de 0,02 o
+# modelo dava quase a mesma saída a todos os textos e não decorava 5 exemplos em 20 épocas.
+CONFIG_MINUSCULA = dict(hidden_size=32, num_hidden_layers=2, num_attention_heads=2, intermediate_size=64,
+                        max_position_embeddings=64, initializer_range=0.2, hidden_dropout_prob=0.0,
+                        attention_probs_dropout_prob=0.0)
+
+
+def make_tiny_model(pasta, textos, arquitetura="bert", dtype=None):
+    """Grava em `pasta` um tokenizador feito com as palavras de `textos` e um modelo minúsculo.
+
+    "bert": vocabulário de palavras inteiras (uma palavra = um token; as outras dão [UNK]).
+    "deberta": BPE treinado com a biblioteca `tokenizers` sobre os `textos`. `dtype` (por exemplo
+    torch.bfloat16) grava os pesos nesse tipo, como o Albertina está gravado no Hugging Face.
+    Devolve a pasta, para passar como `modelo` ao treino.
+    """
+    import torch
+    from transformers import (BertConfig, BertModel, BertTokenizer, DebertaConfig, DebertaModel,
+                              DebertaTokenizer)
+
+    pasta.mkdir(parents=True, exist_ok=True)
+    torch.manual_seed(0)
+    if arquitetura == "bert":
+        palavras = sorted({p for t in textos for p in t.split()})
+        tok = BertTokenizer(vocab={p: i for i, p in enumerate(ESPECIAIS + palavras)}, do_lower_case=False)
+        model = BertModel(BertConfig(vocab_size=len(tok), pad_token_id=tok.pad_token_id, **CONFIG_MINUSCULA))
+    elif arquitetura == "deberta":
+        from tokenizers import ByteLevelBPETokenizer
+        bpe = ByteLevelBPETokenizer()
+        bpe.train_from_iterator(list(textos), vocab_size=400, min_frequency=1, special_tokens=ESPECIAIS,
+                                show_progress=False)
+        bpe.save_model(str(pasta))
+        tok = DebertaTokenizer(vocab=str(pasta / "vocab.json"), merges=str(pasta / "merges.txt"))
+        # A atenção relativa do Albertina (config.json do modelo verdadeiro)
+        model = DebertaModel(DebertaConfig(vocab_size=len(tok), pad_token_id=tok.pad_token_id, relative_attention=True,
+                                           pos_att_type=["c2p", "p2c"], position_biased_input=False,
+                                           type_vocab_size=0, **CONFIG_MINUSCULA))
+    else:
+        raise ValueError(arquitetura)
+    if dtype is not None:
+        model = model.to(dtype)
+    tok.save_pretrained(pasta)
+    model.save_pretrained(pasta)
+    return pasta

@@ -152,12 +152,14 @@ cpv-portal-base/
   scripts/          download_data.py, ensaio_treino.py (o ensaio de custo do E4-S0)
   metrics/          resultados guardados no git (e4_*/: um por spike; validacao.json: o campeão do portão de qualidade)
   docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada) e prs/ (a descrição de cada PR)
-  requirements.txt  versões exatas das bibliotecas
+  requirements.txt  versões exatas das bibliotecas (sem torch)
+  requirements-cpu.txt  o requirements.txt + torch só para processador (portátil e CI)
+  requirements-gpu.txt  o requirements.txt + torch com CUDA (pod com GPU, para o BERT)
 ```
 
 Cada pasta tem um `readme.md` com o índice do que lá está.
 
-Ambiente: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` (Python 3.10).
+Ambiente: `make setup` no portátil (`python3 -m venv .venv && .venv/bin/pip install -r requirements-cpu.txt`, Python 3.10); `make setup-gpu` no pod com GPU (instala o `requirements-gpu.txt`, ver a secção 7 do [`maquina_runpod.md`](docs/maquina_runpod.md)).
 
 Atalhos: `make help` mostra os comandos do projeto, cada um com uma frase a explicar o que faz (por exemplo `make preparar`, `make test`, `make test-avaliacao`).
 

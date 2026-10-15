@@ -1,0 +1,6 @@
+# Bibliotecas do projeto + torch só para processador (E5-T2): é o que o CI e o portátil instalam.
+# O torch para processador vem do índice do PyTorch (~200 MB, em vez de ~2 GB da versão para GPU).
+-r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+accelerate==1.15.0
