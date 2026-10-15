@@ -169,7 +169,7 @@ Não se aplica a este item: o código ainda não treinou com os dados reais, e p
 
 ### Revisão de código
 
-Revisão independente (um agente novo de cada vez, só com o id, a base e o topo do diff), quatro rondas:
+Revisão independente (um agente novo de cada vez, só com o id, a base e o topo do diff), cinco rondas:
 
 1. `603ab8c..89a69e2`: com correções. Nada crítico. O CI do mesmo commit falhou num teste (no CI não há `.venv`).
 2. `603ab8c..d00a748`: com correções. Três importantes: o `model.eval()` sem teste (os modelos minúsculos não tinham *dropout*), a retoma a comparar só o nome dos ficheiros, e o guia a pôr os *checkpoints* num disco que se apaga ao reiniciar o pod.
@@ -190,6 +190,6 @@ Revisão independente (um agente novo de cada vez, só com o id, a base e o topo
   - os 0,3 GB por época e o "3 vezes o modelo" são estimativas, escritas como tal → medem-se no E5-T4;
   - com várias GPUs o lote efetivo multiplica-se → fica registado (`n_gpus`), e o E5-T4 escolhe um pod com 1 GPU;
   - sem bf16 → decide-se no E5-T4;
-  - o `ignore_mismatched_sizes=True` pode recriar outra camada de tamanho diferente → com as revisões fixas não acontece;
+  - o `ignore_mismatched_sizes=True` pode recriar outra camada de tamanho diferente → com as revisões fixas não acontece.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
