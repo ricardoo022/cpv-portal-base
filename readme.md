@@ -47,7 +47,7 @@ O que isto nos diz:
 
 ## A tarefa, em termos de código
 
-- Entrada: `objectoContrato`, mais a `descContrato` quando é diferente, mais a `DescrAcordoQuadro` quando existe. É informação que o técnico tem quando escolhe o código. A entidade (`adjudicante`) entra só como experiência.
+- Entrada: `objectoContrato`, mais a `descContrato` quando é diferente, mais a `DescrAcordoQuadro` quando existe. É informação que o técnico tem quando escolhe o código. A entidade (`adjudicante`) foi testada no spike E4-S3 e ficou de fora (decisão 7 de [`docs/qualidade_dados.md`](docs/qualidade_dados.md)).
 - Saída: lista ordenada de códigos CPV (top-5).
 - Etiqueta: o primeiro código do `CPV` que cada entidade escolheu. No treino tiram-se os códigos ao nível da divisão, e os códigos raros sobem para a classe ou o grupo (decisões em [`docs/qualidade_dados.md`](docs/qualidade_dados.md)).
 - Avaliação ao nível em que o problema existe (`src/evaluation.py`):
@@ -146,12 +146,17 @@ Referências:
 cpv-portal-base/
   data/raw/         ficheiros .xlsx originais (fora do git)
   data/processed/   Parquet limpo e splits (fora do git)
-  notebooks/        exploração: 00_qualidade, 01_exploracao, 02_anos_treino, 03_regua
-  src/              pipeline: conversão, preparação, treino e avaliação
+  data/janelas/     preparações com outra data de início do treino (E4-S2, E4-S6; fora do git)
+  notebooks/        exploração e decisões, de 00_qualidade a 11_comprimento_tokens (um por pergunta)
+  src/              pipeline: conversão, preparação, TF-IDF, BERT, avaliação, portão de qualidade e registo no MLflow
   tests/            testes unitários e de integração (pytest)
-  scripts/          download_data.py, ensaio_treino.py (o ensaio de custo do E4-S0)
+  scripts/          download, ensaio de custo (E4-S0), curva por época, spikes no pod e registo do histórico no MLflow
+  experiencias/     as opções de cada spike, escritas antes de correr (um YAML por spike)
   metrics/          resultados guardados no git (e4_*/: um por spike; validacao.json: o campeão do portão de qualidade)
-  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada) e prs/ (a descrição de cada PR)
+  models/           modelos treinados (fora do git; no pod)
+  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada, com e sem GPU), como_funciona_tfidf.md (o TF-IDF passo a passo) e prs/ (a descrição de cada PR)
+  Makefile          atalhos dos comandos (make help)
+  mlflow.db         registo local do MLflow: portão, histórico e treinos do BERT (fora do git; make mlflow)
   requirements.txt  versões exatas das bibliotecas (sem torch)
   requirements-cpu.txt  o requirements.txt + torch só para processador (portátil e CI)
   requirements-gpu.txt  o requirements.txt + torch com CUDA (pod com GPU, para o BERT)
@@ -173,8 +178,8 @@ Pipeline e testes:
 ```
 
 - `tests/unit/`: cada função sozinha, com dados pequenos inventados.
-- `tests/integration/`: o pipeline inteiro (xlsx -> treino/validação/teste) com 15 contratos inventados, cada um a pôr à prova uma regra de `docs/qualidade_dados.md`.
-- Os testes foram verificados com erros introduzidos de propósito (mutation testing): apanharam os 9 que se tentaram (5 no pipeline, 4 nos códigos raros).
+- `tests/integration/`: várias peças juntas, com dados inventados: o pipeline inteiro (xlsx -> treino/validação/teste), cada contrato a pôr à prova uma regra de `docs/qualidade_dados.md`; o treino do TF-IDF e do BERT (um modelo minúsculo, no processador); o portão de qualidade e o registo no MLflow. Os `test_*_dados_reais.py` confirmam os números dos docs com os dados reais e saltam sem `data/processed/`.
+- Cada teste foi verificado com o erro que guarda introduzido de propósito (mutation testing).
 - CI: o GitHub Actions corre todos os testes em cada envio e em cada PR (`.github/workflows/testes.yml`). Não usa os dados reais.
 
 ## Estado

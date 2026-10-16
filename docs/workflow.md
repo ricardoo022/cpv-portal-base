@@ -69,15 +69,19 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Medir o comprimento dos textos em *tokens* com o tokenizador de cada modelo (E5-T1): 256 *tokens* para o BERTimbau e para o Albertina ([`qualidade_dados.md`](qualidade_dados.md), secção 20).
 - [x] Código de treino do BERT, testado no CI sem GPU (E5-T2): `src/bert.py` e `src/train_bert.py` tunam o BERTimbau ou o Albertina, recusam o teste, gravam por época as sugestões, as pontuações e o modelo, e retomam um treino interrompido. Os testes usam um modelo minúsculo de pesos aleatórios que decora 5 contratos. Guia do pod com GPU na secção 7 do [`maquina_runpod.md`](maquina_runpod.md).
 - [x] Registar cada treino do BERT no MLflow (E5-T3): o `treino.json` grava o SHA-256 do treino e da validação, o commit e o YAML da experiência; `make registar-bert` regista no portátil a pasta copiada do pod, com a curva do top-5 por época (`src/registo_bert.py`).
-- [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada.
+- [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada (E5-T4 e E5-T5; o E5-T4 é o próximo passo e espera pelo teto de gastos em GPU, decisão pendente 1 do E5).
 - [ ] Uma grelha de hiperparâmetros para cada um (taxa de aprendizagem × N × épocas × τ, 9 treinos por modelo), registados em MLflow (E5-S1 no [`backlog.md`](backlog.md)).
 - [ ] Escolher o melhor de cada pela validação.
 - [ ] Testes ao modelo: consegue decorar poucos exemplos (se não conseguir, há um erro no treino); só sugere códigos que existem; bate o "escolher sempre o código mais comum".
+  - [x] TF-IDF: decora contratos inventados no CI (E4-T3) e bate a régua na validação (E4-H1).
+  - [x] BERT com um modelo minúsculo, no CI: decora 5 contratos inventados e só sugere etiquetas do treino, nunca divisões (E5-T2).
+  - [ ] BERTimbau e Albertina a sério: decoram 100 contratos do treino e batem a régua na validação (os dois sinais de erro do E5-T4 e do E5-T5).
 - [x] Portão de qualidade (*quality gate*): o CI falha se um modelo ficar abaixo do limite. Feito no E4-T5 (decisão 8 do E4): a referência é o campeão, o melhor modelo até agora, e qualquer descida num top-5 recusa o modelo novo (`src/model_gate.py`, `metrics/validacao.json`, registo no MLflow).
   - O limite mede-se na **validação**, nunca no teste (senão o teste passa a servir para escolher, e deixa de ser uma medição honesta).
-  - O limite é relativo, não um número inventado: o TF-IDF tem de bater o "escolher sempre o código mais comum"; o BERTimbau e o Albertina têm de bater o TF-IDF; um modelo novo não pode ficar mais do que alguns pontos abaixo do melhor guardado. Os números definem-se depois dos primeiros resultados.
-  - O CI não treina os modelos (não tem GPU nem os dados reais). O treino a sério escreve as métricas da validação num ficheiro pequeno no git (por exemplo `metrics/validacao.json`), e um teste no CI lê esse ficheiro e falha se estiver abaixo do limite.
-  - No CI corre também um teste rápido de treino com dados inventados minúsculos.
+  - O limite é relativo, não um número inventado: o modelo novo não pode descer em nenhum dos 4 top-5 (código completo e classe, em todos os contratos e no texto novo) face ao campeão. O primeiro campeão é o TF-IDF do E4-S1 (78,35% e 84,11% no top-5 do código completo e da classe).
+  - O CI não treina os modelos (não tem GPU nem os dados reais). O portão escreve as métricas do campeão num ficheiro pequeno no git (`metrics/validacao.json`), e um teste no CI falha se algum top-5 do ramo estiver abaixo do do `main`.
+  - No CI correm também testes rápidos de treino com dados inventados minúsculos (TF-IDF e BERT).
+  - Por decidir antes da E5-T6: como o portão compara um modelo tunado, que varia com a semente (decisão pendente 4 do E5).
 
 ## 5. Avaliar
 
@@ -129,3 +133,9 @@ Vamos acrescentando à medida que aparecem.
 - **Top-1 e top-5:** se a resposta certa é a primeira sugestão (top-1) ou está entre as 5 primeiras (top-5).
 - **F1 macro:** o F1 mede, para cada etiqueta, um equilíbrio entre não dar falsos positivos e não falhar casos verdadeiros. O "macro" faz a média entre todas as etiquetas com o mesmo peso, por isso as etiquetas raras contam tanto como as frequentes. Explicamos em detalhe na fase 5.
 - **Tunar (fine-tuning):** pegar num modelo já treinado (que já sabe português) e continuar a treiná-lo com os nossos dados para uma tarefa específica.
+- **Época:** uma passagem completa por todos os exemplos de treino. Com 24 épocas, o modelo vê cada um dos 478 384 exemplos 24 vezes.
+- **Campeão e desafiante:** o campeão é o melhor modelo até agora (guardado em `metrics/validacao.json`); um modelo novo (o desafiante) só o substitui se não descer em nenhuma métrica do portão e subir em pelo menos uma.
+- **Token:** o pedaço de texto que o BERT lê. As palavras raras partem-se em vários pedaços: "nitrilo" pode dar `nit` + `##rilo`. O mesmo texto dá números de *tokens* diferentes no BERTimbau e no Albertina.
+- **Checkpoint:** uma cópia do modelo gravada no fim de uma época. Se o pod cair a meio, o treino continua do último *checkpoint* (`--retomar`) em vez de recomeçar e pagar outra vez.
+- **MLflow:** um caderno de registo dos treinos. Guarda os parâmetros e as métricas de cada treino e mostra-os lado a lado numa página no browser (`make mlflow`).
+- **SHA-256:** uma impressão digital de um ficheiro inteiro. Se o `validacao.parquet` do pod e o do portátil derem o mesmo SHA-256, são o mesmo ficheiro, byte a byte.

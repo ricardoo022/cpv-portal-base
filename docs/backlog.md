@@ -7,8 +7,8 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E1 · Saber que problema resolvemos | 1 | feito |
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
-| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | em curso (E4-T1, E4-T2, E4-S0, E4-H1, E4-S4, E4-T3, E4-S5, E4-S1, E4-S3, E4-T4, E4-S2 e E4-S6 feitos) |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 e E5-T2 feitos) |
+| E4 · Primeiras sugestões de CPV com um modelo simples | 4 | feito |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1, E5-T2 e E5-T3 feitos; a seguir o E5-T4) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -201,7 +201,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 
 ---
 
-## E4 · Primeiras sugestões de CPV com um modelo simples (próximo)
+## E4 · Primeiras sugestões de CPV com um modelo simples (feito)
 
 **Objetivo:** o técnico de contratação dá a descrição de uma compra e recebe 5 códigos CPV, nenhum ao nível da divisão, e sabemos, com números da validação, quanto valem essas sugestões. Esses números servem de régua para o BERTimbau e o Albertina. Com o mesmo modelo, fecham-se as duas decisões que ficaram em aberto: o N dos códigos raros e a janela de treino.
 
@@ -458,7 +458,7 @@ As duas fazem-se numa só ida ao pod.
 - **A curva época a época** (aproximação, só para ver) fica quase plana da época 15 à 24.
 - **Custo:** um pod `cpu3g` de 32 processadores, 4 treinos ao mesmo tempo, cerca de 44 minutos a 1,28 $/h: cerca de 0,95 $ (`metrics/e4_s5/pod_info.json`).
 
-### E4-S1 · Spike: que N, épocas e τ usar nos códigos raros? (timebox: 1 dia)
+### E4-S1 · Spike: que N, épocas e τ usar nos códigos raros? (timebox: 1 dia, feito)
 
 **Pergunta:** que combinação de N (5, 10 ou 20, decisão 9), de épocas (a regra por defeito ou um número fixo de 3, 6, 12, 18 ou 24) e de τ (0, 0,25 ou 0,5) dá melhor resultado na validação?
 
@@ -491,7 +491,7 @@ As duas fazem-se numa só ida ao pod.
 - **Ferramenta:** o `scripts/correr_experiencia.py` ganhou o modo `grelha` (`modo: grelha` no YAML): o produto cartesiano dos eixos, um treino por (N, épocas) e um ficheiro de sugestões por τ.
 - **Custo:** um pod `cpu3g` de 32 processadores e 128 GB, ligado cerca de 80 minutos (15:36–16:56 UTC; os 18 treinos correram das 15:41 às 16:54): cerca de 1,66 $ (`metrics/e4_s1/pod_info.json`).
 
-### E4-S3 · Spike: a entidade compradora ajuda o modelo? (timebox: 1 dia)
+### E4-S3 · Spike: a entidade compradora ajuda o modelo? (timebox: 1 dia, feito)
 
 **Pergunta:** juntar a entidade (`adjudicante`) ao texto de entrada melhora as sugestões, ou faz o modelo aprender os hábitos de cada entidade, incluindo os códigos genéricos? (decisão 7)
 
@@ -596,7 +596,7 @@ Se mudar, o `readme.md` e este ficheiro são atualizados, a preparação volta a
 - **Limitação:** a grelha de épocas na janela desde 2019 não se correu. Ficou decidido não a correr, porque a diferença é pequena e cada treino custa quase o dobro.
 - **Custo do spike:** um pod `cpu3g` de 8 processadores e 32 GB (não havia stock com 16), ligado cerca de 63 minutos a 0,32 $/h: cerca de 0,34 $ (`metrics/e4_s6/pod_info.json`).
 
-### E4-T5 · Tarefa: portão de qualidade no CI (P)
+### E4-T5 · Tarefa: portão de qualidade no CI (P, feito)
 
 **Porque é precisa:** impede que uma mudança futura piore o modelo, ou passe a usar o teste, sem ninguém reparar.
 
@@ -870,7 +870,8 @@ E5-T1 ───────────────────────┴�
                                                                                                  └──> [um ganha] E5-H1
 ```
 
-- O E5-T1 não depende de nada nem de GPU, e pode avançar já. O E5-T2 espera pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 espera pelo E5-T2, porque regista os treinos desse código.
+- O E5-T1, o E5-T2 e o E5-T3 estão feitos. O próximo é o E5-T4, que precisa da decisão pendente 1 (teto de gastos) antes do treino completo.
+- O E5-T1 não dependia de nada nem de GPU. O E5-T2 esperou pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 pelo E5-T2, porque regista os treinos desse código.
 - O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
 - O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.
 - O E5-S2 volta à E5-T6 no máximo uma vez.

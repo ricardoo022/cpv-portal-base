@@ -1,6 +1,6 @@
 # tests/ · testes (pytest)
 
-Todos usam dados **inventados à mão**, com o resultado certo calculado no comentário de cada teste. Não precisam de `data/`, por isso correm no CI do GitHub em cada envio.
+Quase todos usam dados **inventados à mão**, com o resultado certo calculado no comentário de cada teste. Não precisam de `data/`, por isso correm no CI do GitHub em cada envio. A exceção são os `tests/integration/test_*_dados_reais.py` (marca `data`): leem o treino e a validação reais de `data/processed/` (nunca o teste) e saltam quando a pasta não existe, como no CI.
 
 | Pasta | O que testa | Como se corre |
 |---|---|---|
