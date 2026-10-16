@@ -137,6 +137,19 @@ $E root@IP 'cd /workspace/projeto_CPV && git rev-parse HEAD'
 ```
 Tem de mostrar o commit do portátil. Ainda não foi experimentado no pod: o `rsync -a` mantém o dono dos ficheiros do portátil, e as versões recentes do git recusam um repositório de outro dono ("dubious ownership"). Se aparecer esse erro, `git config --global --add safe.directory /workspace/projeto_CPV` resolve-o. Sem commit, ou sem `--experiencia`, o treino na GPU recusa-se a arrancar logo no primeiro segundo ("na GPU o commit é obrigatório"): corrige-se e lança-se outra vez, sem ter pago um treino que o registo não conseguiria identificar.
 
+**Antes do treino completo (E5-T4): o ensaio de custo e o sinal de decorar.** Os dois correm no mesmo pod, antes do treino completo, e as pastas copiam-se para o portátil como a do treino.
+
+1. Ensaio de custo: um treino que pára ao fim de N passos (um passo = um lote), sem pontuar a validação nem gravar *checkpoints*:
+   ```bash
+   make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/ensaio_bertimbau ARGS="--experiencia experiencias/<item>.yaml --max-passos 200"
+   ```
+   Grava só o `treino.json`, com `"ensaio": true`, os `segundos_por_passo` (média sem o 1.º passo, que inclui o arranque), os `passos_por_epoca` (exemplos do treino a dividir pelo lote × o n.º de GPUs, arredondado para cima), a estimativa `segundos_por_epoca_estimados` (o produto dos dois) e o pico de memória da GPU (`memoria_gpu_mb`: a alocada e a reservada; a reservada é a que tem de caber na placa). O custo de uma época é essa estimativa, em horas, vezes o preço por hora lido na Runpod no dia. A estimativa conta só os passos de treino: pontuar a validação no fim de cada época e gravar o *checkpoint* ficam de fora (fração pequena, não medida no ensaio). Com o `--max-passos`, a taxa de aprendizagem sobe e desce ao longo desses N passos, mas isso não muda o tempo de cada passo. Um ensaio não se retoma (`--retomar` é recusado), não se regista no MLflow e não passa no portão; recusa uma pasta de saída que já tenha um `treino.json`.
+2. Sinal de erro 1 (decorar 100 contratos com as etiquetas do treino completo, até 30 épocas; critério: >= 95 certos no top-1), com a taxa de aprendizagem escrita no YAML antes de correr:
+   ```bash
+   make sinal-decorar MODELO=bertimbau TAXA=<a do YAML> ARGS="--experiencia experiencias/<item>.yaml"
+   ```
+   Grava `metrics/bert/sinal_decorar_bertimbau/sinal_decorar.json` (acertos, se passou, os acertos de cada época e os 100 contratos com a etiqueta e o top-1) e acaba com erro se o sinal falhar. Não grava *checkpoints*.
+
 **Treinar** (dentro do `tmux`, como no passo 4):
 ```bash
 make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="--experiencia experiencias/<item>.yaml ..."

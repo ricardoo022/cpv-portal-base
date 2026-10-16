@@ -459,7 +459,8 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
         "validacao", "exemplos_usados", "exemplos_saidos", "etiquetas", "taxa_aprendizagem", "lote", "epocas",
         "aquecimento", "decaimento_pesos", "semente", "dispositivo", "gpu", "n_gpus", "checkpoints", "pontuacoes", "por_epoca",
         "retomado_depois_da_epoca", "tempo_treinar_s", "pico_rss_mb", "nucleos", "versoes", "sha256", "git",
-        "experiencia"}
+        "experiencia", "ensaio", "max_passos", "passos", "segundos_por_passo", "lote_efetivo", "passos_por_epoca",
+        "segundos_por_epoca_estimados", "memoria_gpu_mb"}
     assert r["ficheiro_do_modelo_por_defeito"] == tt.suggestions_file(tfidf.TAU)
     assert r["ficheiros"] == {tt.SUGESTOES: 0.0, tt.suggestions_file(tfidf.TAU): tfidf.TAU}
     assert r["treino"] == {"ficheiro": "treino.parquet", "datas": ["2024-03-01", "2024-03-04"]}
@@ -471,6 +472,12 @@ def test_treino_json_tem_o_que_o_portao_e_a_comparacao_precisam(treinado):
     assert {"torch", "transformers", "accelerate", "tokenizers"} <= set(r["versoes"])
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
     assert r["retomado_depois_da_epoca"] is None
+    # O custo: 15 exemplos usados em lotes de 2 dão 8 passos por época (o último com 1 exemplo)
+    assert (r["ensaio"], r["max_passos"], r["memoria_gpu_mb"]) == (False, None, None)
+    assert (r["lote_efetivo"], r["passos_por_epoca"], r["passos"]) == (2, 8, 8 * EPOCAS)
+    assert r["passos"] == treinado["out"]["trainer"].state.global_step
+    assert r["segundos_por_passo"] > 0
+    assert r["segundos_por_epoca_estimados"] == pytest.approx(8 * r["segundos_por_passo"], abs=0.1)
     # Os argumentos que a retoma vai confirmar
     a = json.loads((treinado["saida"] / tb.ARGUMENTOS).read_text(encoding="utf-8"))
     assert (a["lote"], a["epocas"], a["semente"], a["n_min"], a["taus"]) == (2, EPOCAS, 0, N_MIN, [0.0, tfidf.TAU])
@@ -708,3 +715,76 @@ def test_na_gpu_sem_yaml_ou_sem_commit_recusa_antes_de_treinar(treinado, tmp_pat
         _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"],
                  **{**TREINO_RAPIDO, "dispositivo": "cuda", **kw})
     assert not (tmp_path / "saida").exists()
+
+
+# --- E5-T4: ensaio de custo (--max-passos), um treino curto que mede o tempo por passo ---
+
+def test_ensaio_para_no_numero_de_passos_e_grava_so_o_treino_json(treinado, tmp_path, monkeypatch):
+    # O ensaio não pontua a validação (custava tempo) nem grava checkpoints, pontuações ou sugestões
+    original, pontuadas = bert.predict_scores, []
+    monkeypatch.setattr(bert, "predict_scores", lambda *a, **kw: pontuadas.append(1) or original(*a, **kw))
+    out = _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], max_passos=3)
+    assert out["trainer"].state.global_step == 3  # parou a meio da 1.ª época (8 passos)
+    assert pontuadas == []
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert (r["ensaio"], r["max_passos"], r["passos"]) == (True, 3, 3)
+    # Os passos de uma época completa são os do treino inteiro, não os do ensaio
+    assert (r["lote_efetivo"], r["passos_por_epoca"]) == (2, 8)
+    assert r["segundos_por_passo"] > 0
+    assert r["segundos_por_epoca_estimados"] == pytest.approx(8 * r["segundos_por_passo"], abs=0.1)
+    assert r["memoria_gpu_mb"] is None  # no processador
+    assert r["ficheiros"] == {} and r["ficheiro_do_modelo_por_defeito"] is None and r["por_epoca"] == []
+    assert sorted(p.name for p in (tmp_path / "saida").iterdir()) == sorted([tt.RESUMO, tb.ARGUMENTOS])
+    assert not list((tmp_path / "checkpoints").glob("checkpoint-*")) and not (tmp_path / "pontuacoes").exists()
+
+
+def test_ensaio_nao_se_regista_no_mlflow_nem_passa_no_portao(treinado, tmp_path):
+    import registo_bert as rb
+
+    _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], max_passos=2)
+    copia = tmp_path / "copiada" / "ensaio"
+    shutil.copytree(tmp_path / "saida", copia)
+    with pytest.raises(rb.RegistoError, match="ensaio"):
+        rb.log_training(copia, treinado["validacao"], tracking_uri=f"sqlite:///{tmp_path / 'mlflow.db'}",
+                        experiencia="e5_t4_ensaio")
+    assert not (tmp_path / "mlflow.db").exists()
+    with pytest.raises(mg.GateError, match="modelo por defeito"):
+        mg.evaluate_run(copia, treinado["validacao"])
+
+
+def test_ensaio_com_retomar_e_recusado(treinado, tmp_path):
+    with pytest.raises(ValueError, match="não se retoma"):
+        _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], max_passos=2, retomar=True)
+    _nada_gravado(tmp_path)
+
+
+def test_ensaio_numa_saida_com_o_treino_json_de_outro_treino_e_recusado(treinado, tmp_path):
+    # O treino.json de um treino a sério ficava substituído pelo do ensaio
+    (tmp_path / "saida").mkdir()
+    shutil.copyfile(treinado["saida"] / tt.RESUMO, tmp_path / "saida" / tt.RESUMO)
+    with pytest.raises(ValueError, match="noutra pasta"):
+        _treinar(tmp_path, treinado["treino"], treinado["validacao"], treinado["modelo"], max_passos=2)
+    assert (tmp_path / "saida" / tt.RESUMO).read_bytes() == (treinado["saida"] / tt.RESUMO).read_bytes()
+
+
+def test_comando_com_max_passos_faz_um_ensaio(tmp_path, run_pipeline, contratos_regua):
+    # O comando só aceita N = 5, 10 ou 20: usa os contratos da régua, com etiquetas que chegam
+    run_pipeline(tmp_path, contratos_regua)
+    out = tmp_path / "out"
+    modelo = make_tiny_model(tmp_path / "modelo", pd.read_parquet(out / "treino.parquet")["texto"])
+    tb.main(["--treino", str(out / "treino.parquet"), "--validacao", str(out / "validacao.parquet"),
+             "--modelo", str(modelo), "--saida", str(tmp_path / "saida"),
+             "--checkpoints", str(tmp_path / "ck"), "--pontuacoes", str(tmp_path / "pt"),
+             "--n-min", "5", "--max-length", "16", "--lote", "1", "--max-passos", "4", "--dispositivo", "cpu"])
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert (r["ensaio"], r["max_passos"], r["passos"], r["lote"]) == (True, 4, 4, 1)
+
+
+def test_memoria_da_gpu_e_o_pico_da_placa_mais_cheia_em_mb(monkeypatch):
+    # Sem GPU nos testes: as funções do torch.cuda fingem duas placas
+    mb = 1024 * 1024
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    monkeypatch.setattr(torch.cuda, "max_memory_allocated", lambda i: [3000 * mb, 5000 * mb][i])
+    monkeypatch.setattr(torch.cuda, "max_memory_reserved", lambda i: [7000 * mb, 6000 * mb][i])
+    assert tb.gpu_memory_mb("cuda") == {"pico_alocada": 5000, "pico_reservada": 7000}
+    assert tb.gpu_memory_mb("cpu") is None

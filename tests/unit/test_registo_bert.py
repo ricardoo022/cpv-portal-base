@@ -178,6 +178,25 @@ def test_segundos_por_epoca_contam_desde_a_retoma(tmp_path):
     assert rb.training_cost(resumo)["treino_segundos_por_epoca"] == 100.0
 
 
+def test_custo_leva_o_tempo_por_passo_e_a_memoria_da_gpu(tmp_path):
+    # Campos do E5-T4; no processador a memória da GPU é None e não dá métrica
+    val = fazer_validacao(tmp_path / "dados")
+    custo = rb.training_cost(resumo_de(val, segundos_por_passo=0.25, passos_por_epoca=14931,
+                                       memoria_gpu_mb={"pico_alocada": 9000, "pico_reservada": 11000}))
+    assert {"treino_segundos_por_passo": 0.25, "treino_passos_por_epoca": 14931.0,
+            "treino_memoria_gpu_pico_alocada_mb": 9000.0,
+            "treino_memoria_gpu_pico_reservada_mb": 11000.0}.items() <= custo.items()
+    assert not any("memoria" in k for k in rb.training_cost(resumo_de(val, memoria_gpu_mb=None)))
+
+
+def test_ensaio_de_custo_recusa_sem_run(base, tmp_path):
+    # Um ensaio (--max-passos) na tabela dos treinos passaria por um treino a sério
+    pasta = fazer_treino(tmp_path / "ensaio", base["val"], ensaio=True)
+    with pytest.raises(rb.RegistoError, match="ensaio de custo"):
+        registar(base, pasta)
+    assert _runs(base["uri"], base["exp"]) == []
+
+
 # --- A curva por época ---
 
 def _historia(uri, run_id, metrica):
