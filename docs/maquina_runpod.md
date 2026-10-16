@@ -131,10 +131,17 @@ $E root@IP 'cd /workspace/projeto_CPV && make verificar-gpu'
 ```
 Mostra o nome da GPU, ou falha. Se falhar, não se lança o treino: sem GPU, o treino no processador demoraria dias e continuaria a cobrar. O `src/train_bert.py` usa `--dispositivo cuda` por defeito, por isso também para com erro em vez de cair no processador sem avisar.
 
+**Antes de treinar, confirmar que o git lê o commit** (vai para o `treino.json` e para o MLflow):
+```bash
+$E root@IP 'cd /workspace/projeto_CPV && git rev-parse HEAD'
+```
+Tem de mostrar o commit do portátil. Ainda não foi experimentado no pod: o `rsync -a` mantém o dono dos ficheiros do portátil, e as versões recentes do git recusam um repositório de outro dono ("dubious ownership"). Se aparecer esse erro, `git config --global --add safe.directory /workspace/projeto_CPV` resolve-o. Sem commit, ou sem `--experiencia`, o treino na GPU recusa-se a arrancar logo no primeiro segundo ("na GPU o commit é obrigatório"): corrige-se e lança-se outra vez, sem ter pago um treino que o registo não conseguiria identificar.
+
 **Treinar** (dentro do `tmux`, como no passo 4):
 ```bash
-make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="..."
+make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="--experiencia experiencias/<item>.yaml ..."
 ```
+O `--experiencia` não muda o treino: o caminho, o SHA-256 e o texto do YAML ficam no `treino.json`, para o registo no MLflow (E5-T3). O `treino.json` grava também o SHA-256 do treino e da validação e o commit do código (`git rev-parse HEAD`, e se havia alterações por gravar: o `rsync` copia a pasta `.git`). Grave o código num commit antes de treinar: com alterações por gravar no arranque e na retoma, o treino não consegue ver se elas mudaram entre as duas.
 
 **O que fica no pod e o que vem para o portátil:**
 
@@ -143,6 +150,13 @@ make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/bertimbau ARGS="..."
 | a pasta do `--saida` (`metrics/bert/...`) | sugestões com τ = 0 e τ = 0,25 por época e da última época, `treino.json` | **portátil** (pequenos; `rsync` como no passo 4) |
 | `models/bert/...` | pontuações de todas as etiquetas por época (~0,3 GB por época: estimativa, 24 mil contratos × 3 000 etiquetas × 4 bytes; mede-se no E5-T4) e um *checkpoint* por época (o modelo e o estado do otimizador, cerca de 3 vezes o modelo: estimativa, o otimizador AdamW guarda 2 números por peso; mede-se no E5-T4) | **fica no pod** (grandes, fora do git) |
 
+**Registar no MLflow, no portátil** (E5-T3), depois de copiar a pasta do `--saida`:
+```bash
+make registar-bert PASTA=metrics/bert/bertimbau
+make mlflow   # http://localhost:5000, experiência treinos_bert: um treino por linha, e em cada um o gráfico do top-5 por época
+```
+Não se copia o `mlflow.db` do pod: por cima do do portátil, apagava os registos do portão e do histórico. O registo refaz-se a partir da pasta copiada, e recusa-se se o `validacao.parquet` ou o `treino.parquet` do portátil tiverem outro SHA-256 que os do pod (não seriam os mesmos contratos). Registar outra vez a mesma pasta não duplica.
+
 Se um *checkpoint* ou as pontuações forem precisos depois de apagar o pod (por exemplo o da época escolhida no E5-S1), têm de ser guardados antes, num volume de rede ou noutro sítio: o volume `/workspace` apaga-se quando o pod é apagado. O `teste.parquet` nunca vai para o pod.
 
-**Se o treino parar a meio** (o pod parou ou reiniciou, ou o processo caiu): corre-se o mesmo comando com `--retomar`, por exemplo `make treinar-bert MODELO=bertimbau ARGS="--retomar"`, com os mesmos argumentos do treino interrompido (o treino recusa-se a retomar com outros: confirma-os no `argumentos.json` da pasta de saída). Cada *checkpoint* leva o estado do otimizador, da taxa de aprendizagem e dos geradores aleatórios, por isso o treino continua da última época gravada e só se pagam as épocas que faltam. Nos testes, um treino retomado dá as mesmas pontuações que um treino que nunca parou. Isto só funciona porque o projeto está em `/workspace`: no disco do contentor, os *checkpoints* perdiam-se ao reiniciar. Se o pod foi apagado, o volume foi com ele e não há nada para retomar.
+**Se o treino parar a meio** (o pod parou ou reiniciou, ou o processo caiu): corre-se o mesmo comando com `--retomar`, por exemplo `make treinar-bert MODELO=bertimbau ARGS="--experiencia experiencias/<item>.yaml --retomar"`, com os mesmos argumentos do treino interrompido (o `--experiencia` também) (o treino recusa-se a retomar com outros: confirma-os no `argumentos.json` da pasta de saída). Recusa também se, entretanto, o código mudou de commit (um `rsync` depois da queda) ou o `treino.parquet` ou o `validacao.parquet` mudaram (outro SHA-256): as épocas seguintes seriam de outro treino. Cada *checkpoint* leva o estado do otimizador, da taxa de aprendizagem e dos geradores aleatórios, por isso o treino continua da última época gravada e só se pagam as épocas que faltam. Nos testes, um treino retomado dá as mesmas pontuações que um treino que nunca parou. Isto só funciona porque o projeto está em `/workspace`: no disco do contentor, os *checkpoints* perdiam-se ao reiniciar. Se o pod foi apagado, o volume foi com ele e não há nada para retomar.

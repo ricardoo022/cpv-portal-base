@@ -726,7 +726,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Resultado:** [`src/bert.py`](../src/bert.py) e [`src/train_bert.py`](../src/train_bert.py), com os testes em `tests/unit/test_bert.py` e `tests/integration/test_bert_pipeline.py` (cada um falhou com o erro que guarda injetado de propósito), mais `tests/unit/test_requisitos.py` (as versões fixas) e `tests/integration/test_makefile_bert.py` (os atalhos do Makefile). Decisão do utilizador (15 de outubro de 2026): cada *checkpoint* grava também o estado do otimizador (cerca de 3 vezes o modelo), para um treino interrompido continuar da última época gravada (`--retomar`) em vez de se pagar outra vez; um teste confirma que o treino retomado dá as mesmas pontuações. Os hiperparâmetros por defeito são os do artigo do BERT (Devlin et al., 2019); os do E5-T4 escrevem-se num YAML. O Albertina é um DeBERTa v1 (`model_type: "deberta"`), não v2, por isso o segundo modelo minúsculo dos testes é um `DebertaConfig`. Tempo do CI completo (instalar e testar), lido com `gh run view` em cada commit do ramo: 3 min 56 s no primeiro (`89a69e2`, com um teste a falhar), depois 2 min 42 s, 2 min 59 s, 3 min 28 s e 3 min 4 s (`3e9c87a`, 78 s de testes), sempre abaixo dos 5 minutos. Um *checkpoint* gravado só a meio (o pod caiu enquanto gravava) é saltado ao retomar.
 
-### E5-T3 · Tarefa: registar cada treino no MLflow (P)
+### E5-T3 · Tarefa: registar cada treino no MLflow (P) · feito
 
 **Porque é precisa:** o E5-S1 tem 18 treinos, cada um com uma curva por época. Comparar isso à mão, em pastas e notebooks, como no E4, é lento e dá erros. O MLflow é um caderno de registo dos treinos: cada treino fica gravado com os parâmetros e as métricas, e uma página no browser mostra-os lado a lado.
 
@@ -738,11 +738,13 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Critérios de aceitação:**
 
-- [ ] Cada treino do BERT fica registado com: os hiperparâmetros, o top-5 no código completo e na classe na validação no fim de cada época, o YAML da experiência, o commit do git e a impressão digital (SHA-256) dos ficheiros de treino e de validação.
+- [x] Cada treino do BERT fica registado com: os hiperparâmetros, o top-5 no código completo e na classe na validação no fim de cada época, o YAML da experiência, o commit do git e a impressão digital (SHA-256) dos ficheiros de treino e de validação.
 - [ ] Depois de copiar a pasta do pod, a página do MLflow abre no portátil e mostra todos os treinos de uma experiência numa só tabela.
-- [ ] Um teste no CI confirma que um treino minúsculo deixa um registo com todos os campos acima.
+- [x] Um teste no CI confirma que um treino minúsculo deixa um registo com todos os campos acima.
 - [x] A versão do MLflow fica fixa no `requirements.txt` (feito no E4-T5).
 - [ ] A página mostra, para cada treino, a curva do top-5 por época.
+
+**Resultado:** [`src/registo_bert.py`](../src/registo_bert.py) (`make registar-bert PASTA=...`) regista a pasta `--saida` de um treino como um run da experiência `treinos_bert`, com o top-1 e o top-5 de cada época (o passo do MLflow é a época, o que dá a curva). Para isso, o [`src/train_bert.py`](../src/train_bert.py) grava no `treino.json` o SHA-256 do treino e da validação, o commit do git (e se havia alterações por gravar) e o YAML dado com `--experiencia`. **Mudança à decisão acima, decisão do utilizador (15 de outubro de 2026):** não se copia o `mlflow.db` do pod, porque copiado por cima do do portátil apagava os registos do portão e do histórico; copia-se só a pasta `--saida`, como no TF-IDF, e o registo refaz-se no portátil a partir dela. Antes de registar, confirma que o `validacao.parquet` do portátil tem o mesmo SHA-256 que o do pod (é também a verificação do E5-T4). Testes: `tests/unit/test_registo_bert.py`, `tests/unit/test_train_bert_git.py` e, de ponta a ponta, o treino minúsculo do `tests/integration/test_bert_pipeline.py`, copiado para outra pasta e registado (cada teste falhou com o erro que guarda injetado de propósito). Nenhum teste corre o git verdadeiro (o commit real só se vê no pod, no E5-T4). O segundo e o último critério (a página abre no portátil com todos os treinos numa tabela, e com a curva do top-5) estão verificados nos testes com a pesquisa do MLflow (`search_runs` e o histórico de cada métrica, com o passo = a época), não com a página aberta: confirma-se com o primeiro treino real, num critério do E5-T4. Depois da revisão: retomar (`--retomar`) com outro commit, outras alterações por gravar ou outro treino ou validação (outro SHA-256) é recusado, para um treino não ficar feito com duas versões do código ou dos dados. As alterações por gravar contam só os ficheiros que o git segue: a pasta `--saida` não é seguida e aparece a meio do treino, e se contasse a retoma era sempre recusada. O registo confirma também o SHA-256 do `treino.parquet` do portátil, e um YAML com mais de 8000 carateres é recusado antes de treinar. **Decisão do utilizador (15 de outubro de 2026), depois da terceira revisão:** na GPU (`--dispositivo cuda`) o treino recusa-se a arrancar sem `--experiencia` ou sem commit do git, logo no primeiro segundo, porque um treino pago que o registo não consegue identificar só se corrige treinando outra vez; no processador (testes) só avisa.
 
 ### E5-T4 · Tarefa: primeiro treino do BERTimbau (M)
 
@@ -760,6 +762,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 - [ ] **Sinal de erro 2:** o treino completo tem top-5 no código completo acima de 26,3% na validação.
 - [ ] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos deste modelo, nenhum ao nível da divisão.
 - [ ] Os ficheiros de treino e de validação no pod têm a mesma impressão digital (SHA-256) que no portátil, e nenhum caminho aponta para o teste.
+- [ ] Depois de copiar a pasta do `--saida` e de `make registar-bert`, a página do MLflow (`make mlflow`) mostra o treino na tabela da experiência `treinos_bert`, com a curva do top-5 por época, e o commit gravado é o do código que treinou (critério 2 do E5-T3, que só se vê com um treino real).
 - [ ] O tempo, a memória da GPU e o custo do treino ficam num ficheiro em `metrics/`, e o pod é terminado logo a seguir a copiar os resultados.
 
 ### E5-T5 · Tarefa: primeiro treino do Albertina (M)

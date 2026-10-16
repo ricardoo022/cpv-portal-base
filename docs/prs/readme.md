@@ -11,3 +11,4 @@ Cada ficheiro é o texto de um PR: porque foi feito, o que mudou (com o código)
 | [`pr_E4-T5.md`](pr_E4-T5.md) | E4-T5, portão de qualidade (o campeão) e registo no MLflow |
 | [`pr_E5-T1.md`](pr_E5-T1.md) | E5-T1, comprimento dos textos em *tokens* (256 nos dois modelos) |
 | [`pr_E5-T2.md`](pr_E5-T2.md) | E5-T2, código de treino do BERT testado no CI (modelo minúsculo, retoma de treinos interrompidos) |
+| [`pr_E5-T3.md`](pr_E5-T3.md) | E5-T3, cada treino do BERT registado no MLflow (commit, YAML, SHA-256 dos dados, curva por época) |

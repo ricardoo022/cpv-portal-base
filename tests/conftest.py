@@ -5,6 +5,7 @@ no formato do Portal BASE; `contratos_regua` são os contratos inventados com c�
 para o N por defeito (10) e 5 sugestões. Usam-nos o teste do pipeline e o do TF-IDF.
 """
 
+import sys
 from datetime import datetime
 
 import openpyxl
@@ -15,6 +16,29 @@ import convert_to_parquet as conv
 import prepare as pr
 
 COLS = pr.RAW_COLS + ["Ano"]
+
+# O commit falso que os treinos do BERT gravam nos testes (ver `sem_git_real`)
+GIT_FALSO = {"commit": "0" * 40, "alteracoes_por_gravar": False}
+
+
+@pytest.fixture(autouse=True, scope="session")
+def sem_git_real():
+    """Nenhum teste corre o git verdadeiro: o `train_bert.git_info` devolve `GIT_FALSO`.
+
+    Por sessão, por isso com um `MonkeyPatch` à mão (o `monkeypatch` do pytest é por teste). Só
+    substitui se algum ficheiro de testes já importou o `train_bert` (os ficheiros importam-se todos
+    antes de o 1.º teste correr): assim uma sessão só com testes do TF-IDF ou dos dados não carrega
+    o torch. Um teste que importe o `train_bert` só dentro da função tem de o importar também no
+    topo do ficheiro.
+    """
+    train_bert = sys.modules.get("train_bert")
+    if train_bert is None:
+        yield
+        return
+    m = pytest.MonkeyPatch()
+    m.setattr(train_bert, "git_info", lambda: dict(GIT_FALSO))
+    yield
+    m.undo()
 
 
 def write_xlsx(path, rows):
