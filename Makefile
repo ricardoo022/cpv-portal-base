@@ -11,9 +11,12 @@ JUPYTER := .venv/bin/jupyter
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
 
-setup: ## Cria o ambiente (.venv) no portátil: requirements-cpu.txt (o requirements.txt + torch só para processador)
-	python3 -m venv .venv
-	.venv/bin/pip install -r requirements-cpu.txt
+# No portátil tudo passa pelo uv: o Python 3.10 e as bibliotecas ficam no .venv e na cache do uv,
+# nada é instalado no sistema. "unsafe-best-match": o uv procura cada biblioteca nos dois índices
+# (PyPI e o do PyTorch) e escolhe a melhor versão, como o pip; sem isso só olharia para o do PyTorch.
+setup: ## Cria o ambiente (.venv) no portátil com o uv: Python 3.10 + requirements-cpu.txt (o requirements.txt + torch só para processador)
+	uv venv --clear --python 3.10 .venv
+	uv pip install --python .venv -r requirements-cpu.txt --index-strategy unsafe-best-match
 
 setup-gpu: ## Cria o ambiente (.venv) no pod com GPU: requirements-gpu.txt (o requirements.txt + torch com CUDA)
 	python3 -m venv .venv
