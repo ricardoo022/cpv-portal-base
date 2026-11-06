@@ -11,6 +11,7 @@ mesmas recusas do treino a sério (o teste, a GPU, o YAML).
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -93,6 +94,35 @@ def test_etiquetas_desalinhadas_dos_textos_fazem_o_sinal_falhar(dados, tmp_path,
     # Uma semente em que os 4 contratos sorteados têm etiquetas todas diferentes (rodar muda todas)
     r = _correr(dados, tmp_path / "saida", semente=_semente_com_etiquetas_diferentes(dados))
     assert not r["passou"] and r["acertos"] < r["criterio_acertos"]
+
+
+def _treino_fingido(acertar_por_epoca):
+    """Um `bert.train` sem modelo: em cada época, as pontuações acertam só nas épocas pedidas."""
+    def treino(textos, alvo, modelo, pasta, on_epoch=None, classes=None, **k):
+        classes = list(classes)
+        for epoca, acerta in enumerate(acertar_por_epoca, start=1):
+            pontuacoes = np.zeros((len(alvo), len(classes)), dtype=np.float32)
+            for linha, etiqueta in enumerate(alvo):
+                certa = classes.index(etiqueta)
+                pontuacoes[linha, certa if acerta else (certa + 1) % len(classes)] = 1.0
+            on_epoch(epoca, None, pontuacoes)
+        return {"trainer": SimpleNamespace(state=SimpleNamespace(log_history=[])),
+                "info": {"nome": "fingido", "revisao": None, "max_length": 16}}
+    return treino
+
+
+def test_passa_se_uma_epoca_cumprir_mesmo_que_a_ultima_desca(dados, tmp_path, monkeypatch):
+    # O YAML: "regista-se a primeira época que chega aos 95"; só há erro se nenhuma chegar
+    monkeypatch.setattr(sd.bert, "train", _treino_fingido([False, True, True, False]))
+    r = _correr(dados, tmp_path / "saida")
+    assert [e["acertos"] for e in r["por_epoca"]] == [0, N, N, 0]
+    assert (r["acertos"], r["primeira_epoca_criterio"], r["passou"]) == (0, 2, True)
+
+
+def test_nenhuma_epoca_a_cumprir_faz_o_sinal_falhar(dados, tmp_path, monkeypatch):
+    monkeypatch.setattr(sd.bert, "train", _treino_fingido([False, False]))
+    r = _correr(dados, tmp_path / "saida")
+    assert (r["primeira_epoca_criterio"], r["passou"]) == (None, False)
 
 
 def _semente_com_etiquetas_diferentes(dados):

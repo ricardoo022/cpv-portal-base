@@ -91,7 +91,7 @@ def test_comando_do_ensaio_mede_a_receita_do_treino_completo(exp, monkeypatch):
 
 def test_comando_do_sinal_decorar_passa_os_valores_do_yaml(exp, monkeypatch):
     s = exp["sinal_decorar"]
-    fingido = {"acertos": 100, "contratos": 100, "criterio_acertos": 95, "passou": True}
+    fingido = {"acertos": 100, "contratos": 100, "criterio_acertos": 95, "primeira_epoca_criterio": 7, "passou": True}
     _, kw = _argumentos_do_run(s["comando"], sinal_decorar, monkeypatch, devolve=fingido)
     assert kw["taxa_aprendizagem"] == s["taxa_aprendizagem"]
     assert (kw["n"], kw["epocas"]) == (s["n_contratos"], s["epocas_max"])

@@ -107,8 +107,8 @@ ensaio_custo:
   # validação nem grava checkpoints: esse tempo fica de fora e mede-se no treino completo.
   # Custo = horas x preço por hora. O padding é dinâmico (cada lote vai até ao texto mais longo,
   # com teto de 256), por isso os lotes medidos têm de ser sorteados ao acaso no treino.
-  gpu: null                  # a preencher no dia
-  preco_por_hora_usd: null   # a preencher no dia, lido na Runpod antes de criar o pod
+  gpu: NVIDIA GeForce RTX 4090  # 6 de novembro de 2026; as placas mais baratas estavam sem stock
+  preco_por_hora_usd: 0.89   # lido na Runpod antes de criar o pod (Secure, EU-RO-1)
   comando: >-
     make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_ensaio
     ARGS="--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1

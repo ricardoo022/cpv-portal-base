@@ -16,8 +16,10 @@ Passos:
    e no fim de cada época pontua os mesmos 100 textos (sem *dropout*) e conta os acertos no top-1
    (τ = 0: só a pontuação, sem a correção das etiquetas frequentes, que usa as frequências do
    treino completo e não é o que se testa aqui);
-4. grava `<saida>/sinal_decorar.json`: os acertos na última época, o critério e se passou, os
-   acertos de cada época, os 100 contratos (`idcontrato`, etiqueta e top-1 do modelo), a taxa de
+4. grava `<saida>/sinal_decorar.json`: os acertos na última época, o critério, a primeira época que
+   o cumpriu e se passou (passa se alguma época o cumprir, como está no YAML, mesmo que os acertos
+   desçam depois), os acertos de cada época, os 100 contratos (`idcontrato`, etiqueta e top-1 do
+   modelo na última época), a taxa de
    aprendizagem, as épocas, a semente, o número de etiquetas, o tempo e a memória da GPU, o
    SHA-256 do treino, o commit e o YAML da experiência.
 
@@ -72,6 +74,11 @@ def sample(etiqueta, n, semente=SEMENTE):
     return com[np.sort(escolhidos)]
 
 
+def first_epoch_meeting(por_epoca, criterio):
+    """A primeira época com pelo menos `criterio` acertos, ou None se nenhuma chegar lá."""
+    return next((e["epoca"] for e in por_epoca if e["acertos"] >= criterio), None)
+
+
 def run(train_path, out_dir, modelo="bertimbau", taxa_aprendizagem=None, n=N_CONTRATOS, epocas=EPOCAS,
         semente=SEMENTE, n_min=DEFAULT_N_MIN, max_length=None, lote=bert.LOTE, aquecimento=bert.AQUECIMENTO,
         decaimento_pesos=bert.DECAIMENTO_PESOS, dispositivo="cuda", experiencia=None):
@@ -119,6 +126,7 @@ def run(train_path, out_dir, modelo="bertimbau", taxa_aprendizagem=None, n=N_CON
 
     acertos = por_epoca[-1]["acertos"]
     criterio = math.ceil(CRITERIO * n)
+    primeira_epoca = first_epoch_meeting(por_epoca, criterio)
     info = out["info"]
     resultado = {
         "data": dt.datetime.now().isoformat(timespec="seconds"),
@@ -126,7 +134,8 @@ def run(train_path, out_dir, modelo="bertimbau", taxa_aprendizagem=None, n=N_CON
         "contratos": n,
         "top1": acertos / n,
         "criterio_acertos": criterio,
-        "passou": acertos >= criterio,
+        "primeira_epoca_criterio": primeira_epoca,
+        "passou": primeira_epoca is not None,
         "modelo": {"chave": modelo if modelo in bert_models.MODELOS else None, "nome": info["nome"],
                    "revisao": info["revisao"]},
         "max_length": info["max_length"],
@@ -184,7 +193,8 @@ def main(argv=None):
     r = run(a.treino, saida, modelo=a.modelo, taxa_aprendizagem=a.taxa_aprendizagem, n=a.n, epocas=a.epocas,
             semente=a.semente, n_min=a.n_min, max_length=a.max_length, lote=a.lote, aquecimento=a.aquecimento,
             decaimento_pesos=a.decaimento_pesos, dispositivo=a.dispositivo, experiencia=a.experiencia)
-    print(f"Decorou {r['acertos']} de {r['contratos']} no top-1 (critério: >= {r['criterio_acertos']}): "
+    print(f"Última época: {r['acertos']} de {r['contratos']} no top-1 (critério: >= {r['criterio_acertos']}); "
+          f"primeira época a cumprir: {r['primeira_epoca_criterio']}: "
           f"{'passou' if r['passou'] else 'FALHOU'}. Gravado: {Path(saida) / RESULTADO}")
     return 0 if r["passou"] else 1
 

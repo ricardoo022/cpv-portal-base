@@ -870,7 +870,7 @@ E5-T1 ───────────────────────┴�
                                                                                                  └──> [um ganha] E5-H1
 ```
 
-- O E5-T1, o E5-T2 e o E5-T3 estão feitos. O próximo é o E5-T4, que precisa da decisão pendente 1 (teto de gastos) antes do treino completo.
+- O E5-T1, o E5-T2 e o E5-T3 estão feitos. O próximo é o E5-T4; a decisão pendente 1 (teto de gastos) ficou fechada em 20 $.
 - O E5-T1 não dependia de nada nem de GPU. O E5-T2 esperou pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 pelo E5-T2, porque regista os treinos desse código.
 - O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
 - O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.
@@ -888,7 +888,7 @@ E5-T1 ───────────────────────┴�
 
 ### Decisões pendentes do E5
 
-1. **Teto de gastos em GPU** para o épico todo. Tem de estar fechado antes do treino completo do E5-T4.
+1. **Teto de gastos em GPU** para o épico todo. **Fechada, decisão do utilizador (6 de novembro de 2026): 20 $.** É um valor escolhido antes de medir o custo de uma época; o ensaio do E5-T4 diz se chega para o épico todo, e a regra do E5-S1 mantém-se (se a grelha não couber, encolhe-se).
 2. **Desempate entre o BERTimbau e o Albertina**, se os dois baterem o TF-IDF e empatarem entre si. Tem de estar fechado antes do E5-S1. Proposta: fica o que demora menos a treinar por época (medido no E5-T4 e no E5-T5).
 3. **Os valores da grelha** (taxas, N e τ; o E é o do primeiro treino): escrevem-se no E5-S1, com a fonte de cada um e o número de combinações, antes de criar o YAML.
 4. **Portão para os modelos tunados.** O portão do E4-T5 recusa qualquer descida, porque o TF-IDF dá sempre os mesmos números. O treino em GPU pode variar entre sementes, e a E5-T6 decide com 3 sementes e o bootstrap. Tem de ficar escrito, antes da E5-T6, como o portão compara um modelo tunado com o campeão (qualquer descida, ou a regra da E5-T6).

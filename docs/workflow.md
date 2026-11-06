@@ -69,7 +69,7 @@ Cuidado: separar os dados de teste antes de explorar a fundo. Se olharmos para o
 - [x] Medir o comprimento dos textos em *tokens* com o tokenizador de cada modelo (E5-T1): 256 *tokens* para o BERTimbau e para o Albertina ([`qualidade_dados.md`](qualidade_dados.md), secção 20).
 - [x] Código de treino do BERT, testado no CI sem GPU (E5-T2): `src/bert.py` e `src/train_bert.py` tunam o BERTimbau ou o Albertina, recusam o teste, gravam por época as sugestões, as pontuações e o modelo, e retomam um treino interrompido. Os testes usam um modelo minúsculo de pesos aleatórios que decora 5 contratos. Guia do pod com GPU na secção 7 do [`maquina_runpod.md`](maquina_runpod.md).
 - [x] Registar cada treino do BERT no MLflow (E5-T3): o `treino.json` grava o SHA-256 do treino e da validação, o commit e o YAML da experiência; `make registar-bert` regista no portátil a pasta copiada do pod, com a curva do top-5 por época (`src/registo_bert.py`).
-- [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada (E5-T4 e E5-T5; o E5-T4 é o próximo passo e espera pelo teto de gastos em GPU, decisão pendente 1 do E5).
+- [ ] Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, numa GPU alugada (E5-T4 e E5-T5; o E5-T4 é o próximo passo; o teto de gastos em GPU do épico é 20 $, decisão pendente 1 do E5, já fechada).
 - [ ] Uma grelha de hiperparâmetros para cada um (taxa de aprendizagem × N × épocas × τ, 9 treinos por modelo), registados em MLflow (E5-S1 no [`backlog.md`](backlog.md)).
 - [ ] Escolher o melhor de cada pela validação.
 - [ ] Testes ao modelo: consegue decorar poucos exemplos (se não conseguir, há um erro no treino); só sugere códigos que existem; bate o "escolher sempre o código mais comum".
