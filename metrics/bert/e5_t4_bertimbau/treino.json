@@ -1,0 +1,109 @@
+{
+ "data": "2026-11-06T20:18:11",
+ "modelo": {
+  "chave": "bertimbau",
+  "nome": "neuralmind/bert-base-portuguese-cased",
+  "revisao": "94d69c95f98f7d5b2a8700c420230ae10def0baa"
+ },
+ "max_length": 256,
+ "n_min": 10,
+ "taus": [
+  0.0,
+  0.25
+ ],
+ "ensaio": false,
+ "ficheiros": {
+  "sugestoes_validacao.parquet": 0.0,
+  "sugestoes_validacao_tau0.25.parquet": 0.25
+ },
+ "ficheiro_do_modelo_por_defeito": "sugestoes_validacao_tau0.25.parquet",
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "datas": [
+   "2022-01-01",
+   "2025-09-30"
+  ]
+ },
+ "validacao": {
+  "ficheiro": "validacao.parquet",
+  "datas": [
+   "2025-10-01",
+   "2025-10-31"
+  ],
+  "contratos": 23945
+ },
+ "exemplos_usados": 478234,
+ "exemplos_saidos": 150,
+ "etiquetas": 3000,
+ "taxa_aprendizagem": 2e-05,
+ "lote": 32,
+ "epocas": 3,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "dispositivo": "cuda",
+ "gpu": "NVIDIA GeForce RTX 4090",
+ "n_gpus": 1,
+ "checkpoints": "/workspace/projeto_CPV/models/bert/e5_t4_bertimbau/checkpoints",
+ "pontuacoes": "/workspace/projeto_CPV/models/bert/e5_t4_bertimbau/pontuacoes",
+ "por_epoca": [
+  {
+   "epoca": 1,
+   "checkpoint": "checkpoint-14945",
+   "pontuacoes": "epoca_1.npy",
+   "segundos_desde_o_inicio": 1128.96,
+   "perda_treino": 4.447058485279357
+  },
+  {
+   "epoca": 2,
+   "checkpoint": "checkpoint-29890",
+   "pontuacoes": "epoca_2.npy",
+   "segundos_desde_o_inicio": 2250.91,
+   "perda_treino": 2.8620449460521913
+  },
+  {
+   "epoca": 3,
+   "checkpoint": "checkpoint-44835",
+   "pontuacoes": "epoca_3.npy",
+   "segundos_desde_o_inicio": 3368.89,
+   "perda_treino": 2.5421360091167613
+  }
+ ],
+ "retomado_depois_da_epoca": null,
+ "tempo_treinar_s": 3370.85,
+ "max_passos": null,
+ "passos": 44835,
+ "segundos_por_passo": 0.0742,
+ "lote_efetivo": 32,
+ "passos_por_epoca": 14945,
+ "segundos_por_epoca_estimados": 1109.1,
+ "memoria_gpu_mb": {
+  "pico_alocada": 6403,
+  "pico_reservada": 10678
+ },
+ "pico_rss_mb": 4061,
+ "nucleos": 32,
+ "versoes": {
+  "python": "3.10.12",
+  "torch": "2.14.1+cu130",
+  "transformers": "5.17.0",
+  "accelerate": "1.15.0",
+  "tokenizers": "0.23.2",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "cuda": "13.0"
+ },
+ "sha256": {
+  "treino": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7",
+  "validacao": "f0cce1a06d532124feb25eaa963600b7ef2e8b24b0ae42c4955e6b438782b9c9"
+ },
+ "git": {
+  "commit": "840360652ab13667ffd09fde92d28a29278fd0a4",
+  "alteracoes_por_gravar": false
+ },
+ "experiencia": {
+  "ficheiro": "experiencias/e5_t4.yaml",
+  "sha256": "23acdfbfd4baa57232d16ab4da69b959b4524017ad8d4d57f4038ae6827d0667",
+  "conteudo": "# Tarefa E5-T4 (docs/backlog.md): primeiro treino do BERTimbau. Escrito ANTES de correr; não muda\n# depois de ver os resultados. Só REGISTA (passa-se com `--experiencia experiencias/e5_t4.yaml` e vai\n# para o treino.json e o MLflow); quem define os hiperparâmetros são as flags do src/train_bert.py,\n# que têm de ser as daqui (ver `comando`). Tem de ficar abaixo de 8000 carateres (MAX_YAML).\n# Números com ponto e expoente com ponto (2.0e-5): o PyYAML lê \"2e-5\" como texto.\n#\n# Fontes (verificadas a 16 de outubro de 2026):\n# - Artigo do BERTimbau (Souza, Nogueira e Lotufo, BRACIS 2020, doi 10.1007/978-3-030-61377-8_28):\n#   NÃO lido (a Springer e o ResearchGate recusaram o acesso). Avalia STS e RTE (ASSIN2) e NER;\n#   não tem classificação de frases com milhares de etiquetas.\n# - huggingface.co/neuralmind/bert-base-portuguese-cased e github.com/neuralmind-ai/portuguese-bert:\n#   sem hiperparâmetros de afinação.\n# - arxiv.org/abs/1909.10649 (mesmos autores, BERT-CRF), secção 4.2.2: receita só para NER (taxa\n#   5e-5, lote 16, decaimento 0,01, aquecimento 10% e descida linear). Outra tarefa: não se usa.\n# - Usa-se por isso a do BERT original, Devlin et al. (2019), arxiv.org/abs/1810.04805 (v2): A.3\n#   (\"Fine-tuning Procedure\") dá lote 16/32, taxa 5e-5/3e-5/2e-5, 2-4 épocas, dropout 0,1, e o resto\n#   igual ao pré-treino; A.2 (\"Pre-training Procedure\") dá Adam (β1 0,9, β2 0,999), decaimento L2\n#   0,01 e descida linear. O aquecimento de 10% na afinação não está no artigo: é o valor por\n#   defeito do código oficial (github.com/google-research/bert, run_classifier.py,\n#   warmup_proportion = 0.1; optimization.py desce a taxa linearmente até 0).\n\nitem: E5-T4\ndata: 2026-10-16\n\nmodelo:\n  nome_curto: bertimbau\n  nome: neuralmind/bert-base-portuguese-cased\n  revisao: 94d69c95f98f7d5b2a8700c420230ae10def0baa  # src/bert_models.py\n  max_length: 256   # E5-T1 (bert_models.COMPRIMENTO_MAXIMO, secção 20 do qualidade_dados.md)\n\ndados:\n  janela: 2022      # E4-S2 e E4-S6: TRAIN_START = 2022-01-01\n  treino: data/processed/treino.parquet\n  validacao: data/processed/validacao.parquet   # o teste não entra em nenhum passo\n\nn_min: 10           # E4-S1\ntaus: [0.0, 0.25]   # 0.25 = τ em vigor do TF-IDF (E4-S4); só reordena as pontuações gravadas\n\n# Treino completo: receita de Devlin et al. (2019). São também os valores por defeito de src/bert.py.\ntreino_completo:\n  taxa_aprendizagem: 2.0e-5  # A.3 (gama 5e-5/3e-5/2e-5). O 2e-5 dentro da gama é escolha nossa (o\n                             # artigo escolhe por tarefa); o E5-S1 testa outras taxas.\n  lote: 32                   # A.3 (16 ou 32); 32 dá metade dos passos. Lote efetivo = lote x n_gpus\n  epocas: 3                  # A.3 (2, 3 ou 4), o meio da gama; é o E máximo da grelha do E5-S1\n  aquecimento: 0.1           # run_classifier.py (warmup_proportion); não está no texto do artigo\n  descida_da_taxa: linear    # A.2; fixo em src/bert.py (lr_scheduler_type=\"linear\"), sem flag\n  decaimento_pesos: 0.01     # A.2 (A.3: fica o do pré-treino)\n  otimizador: adamw          # A.2 (Adam com decaimento separado); o do Trainer, sem flag\n  dropout: 0.1               # A.3; o da configuração do modelo, sem flag\n  precisao: fp32             # src/bert.py carrega em float32\n  semente: 0\n  comando: >-\n    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_bertimbau\n    ARGS=\"--n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32\n    --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0\n    --experiencia experiencias/e5_t4.yaml\"\n\n# Sinal de erro 1 (épico E5, \"Decorar poucos exemplos\"), antes do treino completo.\nsinal_decorar:\n  n_contratos: 100           # sorteados do treino.parquet\n  semente_amostra: 0\n  etiquetas: treino_completo # collapse_rare_codes com N = 10 contado no treino INTEIRO (cerca de\n                             # 3 000 etiquetas): a camada de saída tem o tamanho real. Contadas só\n                             # nos 100, quase todos os códigos teriam menos de 10 exemplos.\n  epocas_max: 30\n  taxa_aprendizagem: 1.0e-4\n  # Porquê 1e-4 e não 2e-5: com 100 exemplos e lote 32 há só 4 passos por época (120 em 30 épocas,\n  # 12 de aquecimento), e a camada de saída começa ao acaso com cerca de 3 000 saídas. Com 2e-5 o\n  # modelo pode não ter passos que cheguem para decorar, e o sinal falhava sem erro no código (o\n  # falso alarme que o épico quer evitar). 1e-4 é o dobro do máximo da gama de Devlin A.3 (5e-5) e\n  # a taxa do pré-treino do BERT (A.2): alta, mas não fora do que o modelo já viu. Mais alta\n  # arriscava divergir, e o sinal falhava por outra razão. É um juízo nosso, não de um artigo.\n  lote: 32                   # o resto igual ao treino completo: só a taxa e as épocas mudam\n  aquecimento: 0.1\n  decaimento_pesos: 0.01\n  semente: 0\n  avaliacao: os mesmos 100 contratos do treino (não a validação)\n  criterio: top-1 certo em pelo menos 95 dos 100 (etiqueta de treino, depois de collapse_rare_codes)\n  # Regista-se a primeira época que chega aos 95. Se nenhuma das 30 chegar, há um erro no código\n  # (por exemplo etiquetas desalinhadas dos textos): procura-se no máximo 1 dia (épico E5).\n  comando: >-\n    make sinal-decorar MODELO=bertimbau TAXA=1e-4 SAIDA=metrics/bert/e5_t4_sinal_decorar\n    ARGS=\"--n 100 --epocas 30 --semente 0 --n-min 10 --lote 32 --aquecimento 0.1\n    --decaimento-pesos 0.01 --max-length 256 --experiencia experiencias/e5_t4.yaml\"\n\n# Sinal de erro 2 (épico E5, \"Bater a régua\"), no treino completo.\nsinal_erro_2:\n  metrica: top-5 no código completo, todos os contratos da validação\n  epoca: ultima\n  tau: 0.25\n  limiar: 26.3               # %, tem de ficar ACIMA; régua \"códigos mais comuns\", secção 12 do\n                             # qualidade_dados.md (E4-T2)\n\n# Ensaio de custo (1.º critério do E5-T4), antes do treino completo: um treino curto mede o tempo\n# por lote e a memória da GPU, para estimar tempo e custo de uma época. Mostra-se e aprova-se antes\n# do treino completo (que precisa também da decisão pendente 1 do E5, o teto de gastos).\nensaio_custo:\n  passos: 200\n  passos_ignorados_no_inicio: 1    # o 1.º passo inclui o arranque (bert.StepTimer)\n  lote: 32                   # os mesmos do treino completo\n  max_length: 256\n  precisao: fp32\n  mede:\n    - segundos por lote (média)\n    - memória máxima da GPU (torch.cuda.max_memory_allocated e max_memory_reserved)\n  # Época = exemplos de treino / (lote x n_gpus) lotes x segundos por lote. O ensaio não pontua a\n  # validação nem grava checkpoints: esse tempo fica de fora e mede-se no treino completo.\n  # Custo = horas x preço por hora. O padding é dinâmico (cada lote vai até ao texto mais longo,\n  # com teto de 256), por isso os lotes medidos têm de ser sorteados ao acaso no treino.\n  gpu: NVIDIA GeForce RTX 4090  # 6 de novembro de 2026; as placas mais baratas estavam sem stock\n  preco_por_hora_usd: 0.89   # lido na Runpod antes de criar o pod (Secure, EU-RO-1)\n  comando: >-\n    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_ensaio\n    ARGS=\"--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1\n    --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t4.yaml\"\n"
+ }
+}

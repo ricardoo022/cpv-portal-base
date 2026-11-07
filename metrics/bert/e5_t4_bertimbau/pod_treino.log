@@ -1,0 +1,31 @@
+Fri Nov  6 19:20:43 UTC 2026
+.venv/bin/python src/train_bert.py --modelo bertimbau --saida metrics/bert/e5_t4_bertimbau --n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32 --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_t4.yaml
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+[transformers] [1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+classifier.bias                            | MISSING    | 
+classifier.weight                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+{'loss': '4.447', 'grad_norm': '12.81', 'learning_rate': '1.482e-05', 'epoch': '1'}
+
+{'loss': '2.862', 'grad_norm': '13.26', 'learning_rate': '7.408e-06', 'epoch': '2'}
+
+{'loss': '2.542', 'grad_norm': '8.944', 'learning_rate': '4.957e-10', 'epoch': '3'}
+
+{'train_runtime': '3363', 'train_samples_per_second': '426.6', 'train_steps_per_second': '13.33', 'train_loss': '3.284', 'epoch': '3'}
+Gravado: metrics/bert/e5_t4_bertimbau
+TREINO_FIM 0
+Fri Nov  6 20:18:14 UTC 2026

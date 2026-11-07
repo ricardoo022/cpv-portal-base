@@ -1,0 +1,25 @@
+{
+ "treino": "/workspace/projeto_CPV/data/processed/treino.parquet",
+ "validacao": "/workspace/projeto_CPV/data/processed/validacao.parquet",
+ "modelo": "bertimbau",
+ "checkpoints": "/workspace/projeto_CPV/models/bert/e5_t4_ensaio/checkpoints",
+ "pontuacoes": "/workspace/projeto_CPV/models/bert/e5_t4_ensaio/pontuacoes",
+ "n_min": 10,
+ "taus": [
+  0.0,
+  0.25
+ ],
+ "max_length": 256,
+ "taxa_aprendizagem": 2e-05,
+ "lote": 32,
+ "epocas": 3,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "max_passos": 200,
+ "experiencia_sha256": "23acdfbfd4baa57232d16ab4da69b959b4524017ad8d4d57f4038ae6827d0667",
+ "treino_sha256": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7",
+ "validacao_sha256": "f0cce1a06d532124feb25eaa963600b7ef2e8b24b0ae42c4955e6b438782b9c9",
+ "git_commit": "840360652ab13667ffd09fde92d28a29278fd0a4",
+ "git_alteracoes_por_gravar": false
+}

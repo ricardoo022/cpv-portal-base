@@ -81,7 +81,7 @@ sinal-decorar: ## Sinal de erro 1 do E5 na GPU: decora 100 contratos do treino c
 historico: ## Regista no MLflow (experiência historico_e4) todos os treinos guardados em metrics/, a régua e a curva do E4-S5 (precisa de "make preparar"; não duplica)
 	$(PY) scripts/registar_historico.py
 
-mlflow: ## Abre a página do MLflow (http://localhost:5000) com os runs registados em mlflow.db
+mlflow: ## Abre a página do MLflow (http://127.0.0.1:5000; neste Mac, localhost:5000 cai no AirPlay) com os runs registados em mlflow.db
 	.venv/bin/mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo de "make treinar-tfidf")

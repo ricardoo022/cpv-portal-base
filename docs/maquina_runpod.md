@@ -109,9 +109,15 @@ Fontes (documentação oficial da Runpod, além do que foi lido no próprio pod)
 
 ## 7. Pod com GPU para o BERT (E5-T2)
 
-Ainda não foi feito: escrito para o E5-T4. Os passos 1 a 5 valem na mesma (saldo, chave SSH, `rsync` do código e só do `treino.parquet` e do `validacao.parquet`, `tmux`, apagar no fim). Mudam o sítio do projeto no pod, a instalação, uma verificação antes de treinar e o que se traz de volta.
+Escrito para o E5-T4 e usado pela primeira vez a 6 de novembro de 2026. Os passos 1 a 5 valem na mesma (saldo, chave SSH, `rsync` do código e só do `treino.parquet` e do `validacao.parquet`, `tmux`, apagar no fim). Mudam o sítio do projeto no pod, a instalação, uma verificação antes de treinar e o que se traz de volta.
 
 **O projeto vai para `/workspace`, não para `/root`.** Segundo a Runpod (https://docs.runpod.io/pods/storage/types, lido a 15 de outubro de 2026), o disco do contentor "is cleared when the Pod stops" (perde-se quando o pod para ou reinicia), e o volume `/workspace` "survives Pod stops and restarts, but is deleted when the Pod is terminated". O treino do TF-IDF cabia numa sessão; o do BERT pode durar horas, e os *checkpoints* (em `models/bert/`, dentro do projeto) só servem para retomar se sobreviverem a um reinício. Por isso, nos passos 3 e 4, o destino do `rsync` é `root@IP:/workspace/projeto_CPV/` em vez de `/root/projeto_CPV/`, e o volume do pod tem de ter espaço para os *checkpoints* e as pontuações (ver a tabela abaixo). O preço por hora não está aqui: lê-se na Runpod no dia e o custo de um treino mede-se no E5-T4.
+
+**O que se aprendeu no primeiro pod com GPU (E5-T4, RTX 4090 em EU-RO-1):**
+- **Copiar sem o dono.** O `/workspace` desse pod é um disco de rede que recusa mudar o dono dos ficheiros, e o `rsync -a` acaba com o código 23. Usa-se `rsync -a --no-owner --no-group`. Copia-se também o `data/readme.md`: a exclusão de `data/` faz o git do pod vê-lo como apagado, e isso ficaria registado como alteração por gravar.
+- **Comparar os SHA-256 logo a seguir a copiar:** `sha256sum data/processed/*.parquet` no pod e `shasum -a 256 data/processed/*.parquet` no portátil.
+- **A instalação no disco de rede é lenta e paga-se:** o `make setup-gpu` demorou cerca de 25 minutos e cerca de 15 minutos não chegaram para os testes (interrompidos a mais de 31%). O `.venv` ocupa 12 GB. Instalar o `.venv` no disco do contentor deve ser mais rápido, mas perde-se quando o pod para. Não testado.
+- **O stock muda de minuto a minuto.** Lê-se imediatamente antes de criar, e decide-se antes qual a placa alternativa.
 
 **Instalar.** No pod usa-se `make setup-gpu` em vez de `make setup`:
 ```bash
@@ -166,7 +172,7 @@ O `--experiencia` não muda o treino: o caminho, o SHA-256 e o texto do YAML fic
 **Registar no MLflow, no portátil** (E5-T3), depois de copiar a pasta do `--saida`:
 ```bash
 make registar-bert PASTA=metrics/bert/bertimbau
-make mlflow   # http://localhost:5000, experiência treinos_bert: um treino por linha, e em cada um o gráfico do top-5 por época
+make mlflow   # http://127.0.0.1:5000 (neste Mac, localhost:5000 cai no AirPlay), experiência treinos_bert: um treino por linha, e em cada um o gráfico do top-5 por época
 ```
 Não se copia o `mlflow.db` do pod: por cima do do portátil, apagava os registos do portão e do histórico. O registo refaz-se a partir da pasta copiada, e recusa-se se o `validacao.parquet` ou o `treino.parquet` do portátil tiverem outro SHA-256 que os do pod (não seriam os mesmos contratos). Registar outra vez a mesma pasta não duplica.
 

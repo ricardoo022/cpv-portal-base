@@ -1,6 +1,6 @@
 # metrics/ · resultados guardados no git
 
-Ficheiros pequenos que os treinos no pod escreveram e que se copiaram para o portátil. São os números que os `docs/` citam, e os notebooks e os testes leem-nos. As pastas `e4_*/` são registos fixos: **nunca se escreve nelas**. Um treino novo do TF-IDF escreve em `metrics/tfidf/` (que o treino seguinte reescreve) e um do BERT em `metrics/bert/<modelo>/`.
+Ficheiros pequenos que os treinos no pod escreveram e que se copiaram para o portátil. São os números que os `docs/` citam, e os notebooks e os testes leem-nos. As pastas `e4_*/` e `bert/e5_t4_*/` são registos fixos: **nunca se escreve nelas** (as do E5-T4 guarda-as o `tests/integration/test_registo_e5_t4.py`). Um treino novo do TF-IDF escreve em `metrics/tfidf/` (que o treino seguinte reescreve) e um do BERT em `metrics/bert/<modelo>/`.
 
 Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.parquet`, um ficheiro por τ), o `treino.json` (parâmetros, tempo, memória e `ficheiro_do_modelo_por_defeito`) e, quando há, os logs do pod (`pod_*.log`) e o `pod_info.json` (máquina, preço e custo).
 
@@ -15,5 +15,8 @@ Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.par
 | `e4_s3/` | Spike E4-S3: o TF-IDF com a entidade compradora no texto (`com_entidade/`). | [`08_entidade.ipynb`](../notebooks/08_entidade.ipynb), secção 17 |
 | `e4_s2/` | Spike E4-S2: janelas desde 2019 e 2025, com a regra de paragem por defeito, e os logs e os md5 da preparação no pod. | [`09_janela.ipynb`](../notebooks/09_janela.ipynb), secção 18 |
 | `e4_s6/` | Spike E4-S6: a janela desde 2019 com 24 épocas. | [`10_janela_24_epocas.ipynb`](../notebooks/10_janela_24_epocas.ipynb), secção 19 |
+| `bert/e5_t4_ensaio/` | E5-T4: ensaio de custo de 200 passos do BERTimbau (tempo por lote e memória da GPU). | resultado do E5-T4 no [`backlog.md`](../docs/backlog.md) |
+| `bert/e5_t4_sinal_decorar/`, `bert/e5_t4_sinal_decorar_diag_100ep/` | E5-T4: sinal de decorar oficial (falhou) e o diagnóstico com 100 épocas. | secção 21 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t4_bertimbau/` | E5-T4: treino completo do BERTimbau, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. | `make registar-bert`, secção 22 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 
 Todos os treinos daqui estão também no MLflow, na experiência `historico_e4` (`make historico`, depois `make mlflow`).
