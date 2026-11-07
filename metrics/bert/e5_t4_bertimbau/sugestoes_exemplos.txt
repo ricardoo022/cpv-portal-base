@@ -1,3 +1,5 @@
+# make sugerir-bert CHECKPOINT=models/bert/e5_t4_bertimbau/checkpoints/checkpoint-44835 MODELO=bertimbau
+# (época 3, τ = 0,25 por defeito, processador do pod, 6 de novembro de 2026; o checkpoint perdeu-se com o pod)
 Descrição: serviços de limpeza de três escolas básicas durante 12 meses
   1. 90911200  (probabilidade 0.354)
   2. 90910000  (probabilidade 0.342)

@@ -150,7 +150,7 @@ Tem de mostrar o commit do portátil. Ainda não foi experimentado no pod: o `rs
    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/ensaio_bertimbau ARGS="--experiencia experiencias/<item>.yaml --max-passos 200"
    ```
    Grava só o `treino.json`, com `"ensaio": true`, os `segundos_por_passo` (média sem o 1.º passo, que inclui o arranque), os `passos_por_epoca` (exemplos do treino a dividir pelo lote × o n.º de GPUs, arredondado para cima), a estimativa `segundos_por_epoca_estimados` (o produto dos dois) e o pico de memória da GPU (`memoria_gpu_mb`: a alocada e a reservada; a reservada é a que tem de caber na placa). O custo de uma época é essa estimativa, em horas, vezes o preço por hora lido na Runpod no dia. A estimativa conta só os passos de treino: pontuar a validação no fim de cada época e gravar o *checkpoint* ficam de fora (fração pequena, não medida no ensaio). Com o `--max-passos`, a taxa de aprendizagem sobe e desce ao longo desses N passos, mas isso não muda o tempo de cada passo. Um ensaio não se retoma (`--retomar` é recusado), não se regista no MLflow e não passa no portão; recusa uma pasta de saída que já tenha um `treino.json`.
-2. Sinal de erro 1 (decorar 100 contratos com as etiquetas do treino completo, até 30 épocas; critério: >= 95 certos no top-1), com a taxa de aprendizagem escrita no YAML antes de correr:
+2. Sinal de erro 1 (decorar 100 contratos com as etiquetas do treino completo, até 30 épocas por defeito, e até 100 a partir do E5-T5 (`--epocas 100`, secção 21 do `qualidade_dados.md`); critério: >= 95 certos no top-1), com a taxa de aprendizagem escrita no YAML antes de correr:
    ```bash
    make sinal-decorar MODELO=bertimbau TAXA=<a do YAML> ARGS="--experiencia experiencias/<item>.yaml"
    ```

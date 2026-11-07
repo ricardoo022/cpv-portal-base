@@ -16,7 +16,7 @@ Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.par
 | `e4_s2/` | Spike E4-S2: janelas desde 2019 e 2025, com a regra de paragem por defeito, e os logs e os md5 da preparação no pod. | [`09_janela.ipynb`](../notebooks/09_janela.ipynb), secção 18 |
 | `e4_s6/` | Spike E4-S6: a janela desde 2019 com 24 épocas. | [`10_janela_24_epocas.ipynb`](../notebooks/10_janela_24_epocas.ipynb), secção 19 |
 | `bert/e5_t4_ensaio/` | E5-T4: ensaio de custo de 200 passos do BERTimbau (tempo por lote e memória da GPU). | resultado do E5-T4 no [`backlog.md`](../docs/backlog.md) |
-| `bert/e5_t4_sinal_decorar/`, `bert/e5_t4_sinal_decorar_diag_100ep/` | E5-T4: sinal de decorar oficial (falhou) e o diagnóstico com 100 épocas. | secção 21 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t4_sinal_decorar/`, `bert/e5_t4_sinal_decorar_diag_100ep/` | E5-T4: sinal de decorar oficial (falhou) e o diagnóstico com 100 épocas. O diagnóstico não foi pré-registado: grava como `experiencia` o `e5_t4.yaml`, cujo comando diz 30 épocas, só porque foi o YAML passado; correu-se depois de ver o falhanço. | secção 21 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 | `bert/e5_t4_bertimbau/` | E5-T4: treino completo do BERTimbau, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. | `make registar-bert`, secção 22 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 
 Todos os treinos daqui estão também no MLflow, na experiência `historico_e4` (`make historico`, depois `make mlflow`).
