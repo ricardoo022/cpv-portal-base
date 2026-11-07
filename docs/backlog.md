@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | feito |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1, E5-T2 e E5-T3 feitos; a seguir o E5-T4) |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 a E5-T3 feitos; o E5-T4 está a fechar, falta o utilizador ver a página do MLflow; a seguir o E5-T5) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -669,7 +669,7 @@ Nenhuma.
 
 **Sinais de erro, escritos antes de treinar:**
 
-1. **Decorar poucos exemplos:** antes do treino completo, treinado só com 100 contratos do treino, sorteados com uma semente fixa, com o mesmo número de etiquetas do treino completo (cerca de 3 000, para testar a ligação real) e até 30 épocas, o modelo acerta no top-1 em pelo menos 95 deles. A taxa de aprendizagem deste sinal pode ser mais alta do que a do primeiro treino, para não dar um falso alarme por aprender devagar; fica escrita no YAML antes de correr. Se não acertar, há um erro no código de treino (por exemplo, etiquetas desalinhadas dos textos).
+1. **Decorar poucos exemplos:** antes do treino completo, treinado só com 100 contratos do treino, sorteados com uma semente fixa, com o mesmo número de etiquetas do treino completo (cerca de 3 000, para testar a ligação real) e até 30 épocas, o modelo acerta no top-1 em pelo menos 95 deles. A taxa de aprendizagem deste sinal pode ser mais alta do que a do primeiro treino, para não dar um falso alarme por aprender devagar; fica escrita no YAML antes de correr. Se não acertar, há um erro no código de treino (por exemplo, etiquetas desalinhadas dos textos). **Mudança depois do E5-T4 (6 de novembro de 2026), feita depois de ver o resultado:** o sinal oficial do BERTimbau falhou com 86 de 100, porque 30 épocas de 4 lotes dão só 120 passos e a taxa desce até zero nesse tempo; com 100 épocas chegou a 100 de 100 (secção 21 do [`qualidade_dados.md`](qualidade_dados.md)). Para o Albertina (E5-T5) são até **100 épocas**, com o resto igual; o YAML do E5-T5 escreve-o e passa `--epocas 100`.
 2. **Bater a régua "códigos mais comuns":** top-5 no código completo acima de 26,3% na validação (secção 12 do [`qualidade_dados.md`](qualidade_dados.md)). Até sem ler o texto se chega lá.
 
 Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro durante no máximo 1 dia, e o resultado escreve-se no [`qualidade_dados.md`](qualidade_dados.md) (o erro encontrado e corrigido, ou "não encontrado", e nesse caso decide-se com o utilizador se o modelo sai do épico). Se passar os dois e nenhum modelo bater o TF-IDF, procura-se o erro só durante o spike E5-S2. Se não aparecer nada, a conclusão escrita é "não vale a pena", e o TF-IDF segue para a fase 5.
@@ -756,14 +756,16 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Critérios de aceitação:**
 
-- [ ] **Antes do treino completo:** um treino curto, de alguns minutos, mede o tempo por lote e a memória da GPU. Daí sai o tempo e o custo em dólares de uma época completa, ao preço por hora lido na Runpod no dia. Esses números são mostrados e aprovados antes de lançar o treino completo, e servem depois para calcular o custo da grelha do E5-S1.
-- [ ] O treino usa a janela de 2022, N = 10, o comprimento máximo do E5-T1, e a taxa de aprendizagem, as épocas e os restantes hiperparâmetros recomendados no artigo do BERTimbau. Se o artigo não der essa receita, usa-se a do artigo original do BERT (Devlin et al., 2019), e diz-se. Os valores ficam num YAML escrito antes de correr, com a fonte de cada um.
-- [ ] **Sinal de erro 1, antes do treino completo:** decora 100 contratos, nas condições escritas no épico, e a taxa usada fica registada.
-- [ ] **Sinal de erro 2:** o treino completo tem top-5 no código completo acima de 26,3% na validação.
-- [ ] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos deste modelo, nenhum ao nível da divisão.
-- [ ] Os ficheiros de treino e de validação no pod têm a mesma impressão digital (SHA-256) que no portátil, e nenhum caminho aponta para o teste.
+- [x] **Antes do treino completo:** um treino curto, de alguns minutos, mede o tempo por lote e a memória da GPU. Daí sai o tempo e o custo em dólares de uma época completa, ao preço por hora lido na Runpod no dia. Esses números são mostrados e aprovados antes de lançar o treino completo, e servem depois para calcular o custo da grelha do E5-S1.
+- [x] O treino usa a janela de 2022, N = 10, o comprimento máximo do E5-T1, e a taxa de aprendizagem, as épocas e os restantes hiperparâmetros recomendados no artigo do BERTimbau. Se o artigo não der essa receita, usa-se a do artigo original do BERT (Devlin et al., 2019), e diz-se. Os valores ficam num YAML escrito antes de correr, com a fonte de cada um.
+- [ ] **Sinal de erro 1, antes do treino completo:** decora 100 contratos, nas condições escritas no épico, e a taxa usada fica registada. **Não cumprido nas condições escritas:** 86 de 100 na última época. A causa foi medida à parte e o utilizador aceitou-a e mandou avançar (ver o resultado).
+- [x] **Sinal de erro 2:** o treino completo tem top-5 no código completo acima de 26,3% na validação.
+- [x] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos deste modelo, nenhum ao nível da divisão.
+- [x] Os ficheiros de treino e de validação no pod têm a mesma impressão digital (SHA-256) que no portátil, e nenhum caminho aponta para o teste.
 - [ ] Depois de copiar a pasta do `--saida` e de `make registar-bert`, a página do MLflow (`make mlflow`) mostra o treino na tabela da experiência `treinos_bert`, com a curva do top-5 por época, e o commit gravado é o do código que treinou (critério 2 do E5-T3, que só se vê com um treino real).
-- [ ] O tempo, a memória da GPU e o custo do treino ficam num ficheiro em `metrics/`, e o pod é terminado logo a seguir a copiar os resultados.
+- [x] O tempo, a memória da GPU e o custo do treino ficam num ficheiro em `metrics/`, e o pod é terminado logo a seguir a copiar os resultados.
+
+**Resultado:** treino completo com a receita de Devlin et al. (2019), porque o artigo do BERTimbau não dá uma receita para esta tarefa, no commit `8403606`, sem alterações por gravar. Top-5 no código completo de **73,39%**, acima da régua de 26,3%, e abaixo dos 78,35% do TF-IDF, sem comparação por bootstrap, que é da E5-T6 (secção 22 do [`qualidade_dados.md`](qualidade_dados.md)). Ensaio de 200 passos: cerca de 18 minutos por época. Treino completo: 3 370,85 s, 10 678 MB de pico reservado, cerca de 0,83 $ (ao preço de 0,89 $/h numa RTX 4090; as mais baratas estavam sem stock). O pod inteiro, com instalação e sinais, custou cerca de 1,86 $ por cálculo; a fatura lida logo a seguir a apagar mostrava 1,00 $, e essa diferença não está explicada ([`pod_info.json`](../metrics/bert/e5_t4_bertimbau/pod_info.json)). **O sinal de erro 1 falhou nas condições escritas** (secção 21): 86 de 100 em 30 épocas. O diagnóstico com 100 épocas chegou aos 95 na época 27 e acabou em 100 de 100, por isso a causa é o número de passos, e não um erro encontrado no código. O utilizador decidiu avançar a 6 de novembro de 2026; o E5-T5 usa 100 épocas, mudança feita depois de ver este resultado. O MLflow foi verificado com a página a responder e com a API (o run, o commit e a curva); falta o utilizador ver a página aberta, em `http://127.0.0.1:5000`, porque neste Mac `localhost:5000` cai no AirPlay e dá 403. Os checkpoints e as pontuações ficaram no pod e perderam-se com ele, como previsto: a grelha do E5-S1 repete esta configuração. **Custo que falta:** faltam 23 dos 24 treinos planeados, e a 0,83 $ dão cerca de 19,2 $, mais do que os cerca de 18,1 $ que sobram do teto, ainda sem instalação nem o Albertina medido. A grelha do E5-S1 vai ter de encolher, como o item já prevê; decide-se depois do ensaio de custo do E5-T5.
 
 ### E5-T5 · Tarefa: primeiro treino do Albertina (M)
 
@@ -773,7 +775,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Desbloqueia:** o E5-S1.
 
-**Critérios de aceitação:** os mesmos do E5-T4, para o Albertina, com os valores recomendados no artigo do Albertina (ou, na falta deles, os do artigo original do BERT, dito como tal) e o comprimento máximo que o E5-T1 escolheu para ele.
+**Critérios de aceitação:** os mesmos do E5-T4, para o Albertina, com os valores recomendados no artigo do Albertina (ou, na falta deles, os do artigo original do BERT, dito como tal) e o comprimento máximo que o E5-T1 escolheu para ele. O sinal de erro 1 é até 100 épocas, não 30 (mudança feita depois de ver o resultado do E5-T4, escrita no épico).
 
 ### E5-S1 · Spike: que combinação de taxa de aprendizagem, épocas, N e τ? (timebox: 2 dias de trabalho; GPU até ao teto de gastos)
 
@@ -870,7 +872,7 @@ E5-T1 ───────────────────────┴�
                                                                                                  └──> [um ganha] E5-H1
 ```
 
-- O E5-T1, o E5-T2 e o E5-T3 estão feitos. O próximo é o E5-T4, que precisa da decisão pendente 1 (teto de gastos) antes do treino completo.
+- O E5-T1, o E5-T2 e o E5-T3 estão feitos. O E5-T4 está a fechar: treinou, mas o sinal 1 falhou (aceite pelo utilizador) e falta o utilizador ver a página do MLflow. O próximo é o E5-T5; a decisão pendente 1 (teto de gastos) ficou fechada em 20 $.
 - O E5-T1 não dependia de nada nem de GPU. O E5-T2 esperou pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 pelo E5-T2, porque regista os treinos desse código.
 - O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
 - O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.
@@ -888,7 +890,7 @@ E5-T1 ───────────────────────┴�
 
 ### Decisões pendentes do E5
 
-1. **Teto de gastos em GPU** para o épico todo. Tem de estar fechado antes do treino completo do E5-T4.
+1. **Teto de gastos em GPU** para o épico todo. **Fechada, decisão do utilizador (6 de novembro de 2026): 20 $.** É um valor escolhido antes de medir o custo de uma época; o ensaio do E5-T4 diz se chega para o épico todo, e a regra do E5-S1 mantém-se (se a grelha não couber, encolhe-se).
 2. **Desempate entre o BERTimbau e o Albertina**, se os dois baterem o TF-IDF e empatarem entre si. Tem de estar fechado antes do E5-S1. Proposta: fica o que demora menos a treinar por época (medido no E5-T4 e no E5-T5).
 3. **Os valores da grelha** (taxas, N e τ; o E é o do primeiro treino): escrevem-se no E5-S1, com a fonte de cada um e o número de combinações, antes de criar o YAML.
 4. **Portão para os modelos tunados.** O portão do E4-T5 recusa qualquer descida, porque o TF-IDF dá sempre os mesmos números. O treino em GPU pode variar entre sementes, e a E5-T6 decide com 3 sementes e o bootstrap. Tem de ficar escrito, antes da E5-T6, como o portão compara um modelo tunado com o campeão (qualquer descida, ou a regra da E5-T6).

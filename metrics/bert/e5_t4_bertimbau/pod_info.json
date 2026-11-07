@@ -1,0 +1,22 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (create-pod, get-pod, delete-pod, list-pods) e dos carimbos de data e hora dos registos do pod, a 6 de novembro de 2026. Tempo do treino e memória: treino.json.",
+ "pod": {"id": "ymsfbq2lme8pzy", "nome": "cpv-e5-t4", "centro_de_dados": "EU-RO-1", "nuvem": "SECURE",
+  "gpu": "NVIDIA GeForce RTX 4090", "imagem": "runpod/base:1.0.2-ubuntu2204", "disco_gb": 20, "volume_gb": 30,
+  "preco_por_hora_usd": 0.89,
+  "criado_utc": "2026-11-06T18:17:01", "apagado_utc": "cerca de 2026-11-06T20:22:33"},
+ "tempos_utc": {
+  "ensaio_de_custo": ["19:00:57", "19:02:49"],
+  "sinal_de_decorar": ["19:02:49", "19:04:28"],
+  "treino_completo": ["19:20:43", "20:18:14"]},
+ "treino_completo": {
+  "tempo_treinar_s": 3370.85,
+  "memoria_gpu_pico_alocada_mb": 6403,
+  "memoria_gpu_pico_reservada_mb": 10678,
+  "custo_usd_calculado": 0.83,
+  "calculo": "3370,85 s / 3600 x 0,89 $/h; só o tempo do tempo_treinar_s, sem instalação nem cópias"},
+ "pod_completo": {
+  "segundos_de_vida": 7532,
+  "custo_usd_calculado": 1.86,
+  "calculo": "7532 s / 3600 x 0,89 $/h; inclui instalação, testes, ensaio, sinais e treino",
+  "nota_faturacao": "list-pod-billing, lido logo a seguir a apagar, mostrava 1,00 $ (GPU 0,99 $ e disco 0,01 $), menos do que o cálculo; a causa não foi verificada"}
+}

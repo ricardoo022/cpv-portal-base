@@ -1,0 +1,23 @@
+# make sugerir-bert CHECKPOINT=models/bert/e5_t4_bertimbau/checkpoints/checkpoint-44835 MODELO=bertimbau
+# (época 3, τ = 0,25 por defeito, processador do pod, 6 de novembro de 2026; o checkpoint perdeu-se com o pod)
+Descrição: serviços de limpeza de três escolas básicas durante 12 meses
+  1. 90911200  (probabilidade 0.354)
+  2. 90910000  (probabilidade 0.342)
+  3. 90911000  (probabilidade 0.069)
+  4. 90919300  (probabilidade 0.053)
+  5. 90919200  (probabilidade 0.035)
+
+Descrição: fornecimento de refeições escolares para os alunos do 1.º ciclo do concelho
+  1. 55524000  (probabilidade 0.356)
+  2. 15894210  (probabilidade 0.195)
+  3. 55500000  (probabilidade 0.108)
+  4. 55322000  (probabilidade 0.078)
+  5. 55523100  (probabilidade 0.041)
+
+Descrição: empreitada de repavimentação de estradas municipais
+  1. 45233220  (probabilidade 0.354)
+  2. 45233200  (probabilidade 0.158)
+  3. 45233252  (probabilidade 0.076)
+  4. 45233142  (probabilidade 0.067)
+  5. 45233140  (probabilidade 0.070)
+

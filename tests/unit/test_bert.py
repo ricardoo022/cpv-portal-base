@@ -248,3 +248,51 @@ def test_retomar_sem_checkpoint_no_train_da_erro(modelo_minusculo, tmp_path, pas
 def test_menos_etiquetas_do_que_sugestoes_da_erro():
     with pytest.raises(ValueError, match="só há 4 etiquetas"):
         bert.suggest_from_scores(np.zeros((2, 4), dtype=np.float32), CLASSES[:4])
+
+
+# --- E5-T4: ensaio de custo e etiquetas de outro treino ---
+
+def test_ensaio_para_ao_fim_dos_passos_e_sem_checkpoints(tmp_path):
+    a = bert.training_arguments(tmp_path, max_passos=5, gravar_checkpoints=False, dispositivo="cpu")
+    assert a.max_steps == 5 and str(a.save_strategy.value) == "no"
+    # Por defeito, as épocas decidem (max_steps = -1) e há um checkpoint por época
+    a = bert.training_arguments(tmp_path, dispositivo="cpu")
+    assert a.max_steps == -1 and str(a.save_strategy.value) == "epoch"
+
+
+@pytest.mark.parametrize("max_passos", [0, -3, 2.5, True])
+def test_max_passos_invalido_da_erro(tmp_path, max_passos):
+    with pytest.raises(ValueError, match="max_passos"):
+        bert.training_arguments(tmp_path, max_passos=max_passos, dispositivo="cpu")
+
+
+def test_segundos_por_passo_contam_depois_do_primeiro_passo(monkeypatch):
+    relogio, tempos = bert.StepTimer(), iter([100.0, 103.0, 104.0, 105.0])
+    monkeypatch.setattr(bert.time, "perf_counter", lambda: next(tempos))
+    args = type("A", (), {"device": torch.device("cpu")})()
+    relogio.on_step_end(args, None, None)
+    assert relogio.segundos_por_passo() is None  # com 1 passo só, não há intervalo
+    for _ in range(3):
+        relogio.on_step_end(args, None, None)
+    # O tempo até ao fim do 1.º passo (o arranque) fica de fora: conta-se do fim do 1.º ao fim do último
+    assert relogio.passos == 4 and relogio.segundos_por_passo() == pytest.approx((105.0 - 100.0) / 3)
+
+
+@pytest.mark.parametrize("classes, msg", [(["30192000", "15800000", "33600000", "45233200", "90911200"], "crescente"),
+                                          (["15800000", "30192000", "33600000", "45233200"], "não estão")])
+def test_classes_de_outro_treino_invalidas_dao_erro(modelo_minusculo, tmp_path, classes, msg):
+    with pytest.raises(ValueError, match=msg):
+        bert.train(TEXTO, CODIGO, modelo_minusculo, tmp_path / "ck", max_length=16, dispositivo="cpu",
+                   classes=classes)
+    assert not (tmp_path / "ck").exists()
+
+
+def test_classes_de_outro_treino_dao_uma_saida_por_etiqueta_sem_regra_dos_raros(modelo_minusculo, tmp_path):
+    # 5 exemplos, um por etiqueta: com n_min = 10 a regra dos raros tirava-os todos; com as classes
+    # de outro treino (mais 2 etiquetas sem exemplos aqui) ficam todos, e o modelo tem 7 saídas
+    classes = sorted([*CODIGO, "03111000", "72212000"])
+    out = bert.train(TEXTO, CODIGO, modelo_minusculo, tmp_path / "ck", n_min=10, max_length=16, epocas=1,
+                     dispositivo="cpu", classes=classes, gravar_checkpoints=False)
+    assert list(out["classes"]) == classes and out["model"].config.num_labels == 7
+    assert (out["exemplos_usados"], out["exemplos_saidos"], out["log_prior"]) == (5, 0, None)
+    assert not list((tmp_path / "ck").glob("checkpoint-*"))

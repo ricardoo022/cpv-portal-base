@@ -15,10 +15,26 @@ RAIZ = Path(__file__).resolve().parents[2]
 NOVAS = ("torch", "accelerate")
 
 
-def _pins(nome):
-    """{biblioteca: versão} das linhas `nome==versão` de um ficheiro de requisitos."""
+PLATAFORMAS = ("linux", "darwin")  # CI e pod (Linux), portátil (Mac)
+LINHA = re.compile(r'([A-Za-z0-9_.-]+)==(\S+)(?:\s*;\s*sys_platform\s*==\s*"(\w+)")?$')
+
+
+def _pins(nome, plataforma="linux"):
+    """{biblioteca: versão} das linhas `nome==versão` que o pip instala em `plataforma`.
+
+    Uma linha com o marcador `; sys_platform == "x"` só conta na plataforma x; sem marcador,
+    conta em todas.
+    """
     linhas = (RAIZ / nome).read_text(encoding="utf-8").splitlines()
-    return dict(re.match(r"([A-Za-z0-9_.-]+)==(\S+)$", l).groups() for l in linhas if "==" in l)
+    pins = {}
+    for l in linhas:
+        if "==" not in l or l.startswith("#"):
+            continue
+        biblioteca, versao, so_em = LINHA.match(l.strip()).groups()
+        if so_em is None or so_em == plataforma:
+            assert biblioteca not in pins, f"{biblioteca} fixado duas vezes para {plataforma}"
+            pins[biblioteca] = versao
+    return pins
 
 
 def _linhas(nome):
@@ -33,14 +49,19 @@ def test_requirements_txt_nao_tem_torch_e_tudo_tem_versao_fixa():
 
 
 def test_listas_cpu_e_gpu_incluem_o_requirements_e_fixam_as_mesmas_versoes():
-    cpu, gpu = _pins("requirements-cpu.txt"), _pins("requirements-gpu.txt")
+    gpu = _pins("requirements-gpu.txt")
     for nome in ("requirements-cpu.txt", "requirements-gpu.txt"):
         assert "-r requirements.txt" in _linhas(nome)
         # Cada linha que instala alguma coisa tem a versão fixa
         assert all("==" in l for l in _linhas(nome) if not l.startswith("-"))
-    assert set(cpu) == set(gpu) == set(NOVAS)
-    assert cpu["torch"] == gpu["torch"] + "+cpu"  # o mesmo torch, só muda a variante
-    assert cpu["accelerate"] == gpu["accelerate"]
+    # Em cada plataforma a lista do processador instala o torch e o accelerate, uma vez cada
+    for plataforma in PLATAFORMAS:
+        cpu = _pins("requirements-cpu.txt", plataforma)
+        assert set(cpu) == set(gpu) == set(NOVAS)
+        assert cpu["accelerate"] == gpu["accelerate"]
+    # O mesmo torch, só muda a variante: "+cpu" no Linux; no Mac não há variante "+cpu"
+    assert _pins("requirements-cpu.txt", "linux")["torch"] == gpu["torch"] + "+cpu"
+    assert _pins("requirements-cpu.txt", "darwin")["torch"] == gpu["torch"]
 
 
 def test_torch_do_processador_vem_do_indice_do_pytorch():

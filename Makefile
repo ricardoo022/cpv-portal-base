@@ -6,14 +6,17 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert registar-bert test-bert
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert registar-bert sugerir-bert test-bert sinal-decorar
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
 
-setup: ## Cria o ambiente (.venv) no portátil: requirements-cpu.txt (o requirements.txt + torch só para processador)
-	python3 -m venv .venv
-	.venv/bin/pip install -r requirements-cpu.txt
+# No portátil tudo passa pelo uv: o Python 3.10 e as bibliotecas ficam no .venv e na cache do uv,
+# nada é instalado no sistema. "unsafe-best-match": o uv procura cada biblioteca nos dois índices
+# (PyPI e o do PyTorch) e escolhe a melhor versão, como o pip; sem isso só olharia para o do PyTorch.
+setup: ## Cria o ambiente (.venv) no portátil com o uv: Python 3.10 + requirements-cpu.txt (o requirements.txt + torch só para processador)
+	uv venv --clear --python 3.10 .venv
+	uv pip install --python .venv -r requirements-cpu.txt --index-strategy unsafe-best-match
 
 setup-gpu: ## Cria o ambiente (.venv) no pod com GPU: requirements-gpu.txt (o requirements.txt + torch com CUDA)
 	python3 -m venv .venv
@@ -47,8 +50,8 @@ test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, p
 test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
-test-bert: ## Testes do BERT (E5-T2 e E5-T3) com modelos minúsculos de pesos aleatórios, só no processador
-	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py
+test-bert: ## Testes do BERT (E5-T2 a E5-T4) com modelos minúsculos de pesos aleatórios, só no processador
+	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py tests/integration/test_suggest_bert.py tests/integration/test_sinal_decorar.py tests/integration/test_experiencia_e5_t4.py
 
 test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
 	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py tests/integration/test_tfidf_dados_reais.py
@@ -71,14 +74,21 @@ portao: ## Portão de qualidade: avalia na validação o treino de PASTA (por de
 registar-bert: ## Regista no MLflow (experiência treinos_bert) um treino do BERT: make registar-bert PASTA=metrics/bert/... ARGS="outras opções"; corre no portátil depois de copiar a pasta --saida do pod, com o treino.parquet e o validacao.parquet que foram para o pod (confirma o SHA-256; não duplica)
 	$(PY) src/registo_bert.py --pasta $(PASTA) $(ARGS)
 
+sinal-decorar: ## Sinal de erro 1 do E5 na GPU: decora 100 contratos do treino com as etiquetas do treino completo? make sinal-decorar MODELO=bertimbau|albertina TAXA=1e-4 (obrigatória, a do YAML) SAIDA=... (por defeito metrics/bert/sinal_decorar_MODELO) ARGS="--experiencia experiencias/<item>.yaml ..."
+	$(if $(TAXA),,$(error falta TAXA=<taxa de aprendizagem escrita no YAML>))
+	$(PY) scripts/sinal_decorar.py --modelo $(or $(MODELO),bertimbau) --saida $(or $(SAIDA),metrics/bert/sinal_decorar_$(or $(MODELO),bertimbau)) --taxa-aprendizagem $(TAXA) $(ARGS)
+
 historico: ## Regista no MLflow (experiência historico_e4) todos os treinos guardados em metrics/, a régua e a curva do E4-S5 (precisa de "make preparar"; não duplica)
 	$(PY) scripts/registar_historico.py
 
-mlflow: ## Abre a página do MLflow (http://localhost:5000) com os runs registados em mlflow.db
+mlflow: ## Abre a página do MLflow (http://127.0.0.1:5000; neste Mac, localhost:5000 cai no AirPlay) com os runs registados em mlflow.db
 	.venv/bin/mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 sugerir: ## Mostra 5 códigos para 3 descrições de exemplo (precisa do modelo de "make treinar-tfidf")
 	$(PY) src/suggest.py --modelo models/tfidf_n10.joblib
+
+sugerir-bert: ## Mostra 5 códigos do BERT para 3 descrições de exemplo (E5-T4): make sugerir-bert CHECKPOINT=models/bert/.../checkpoints/checkpoint-PASSO MODELO=bertimbau|albertina (por defeito bertimbau) DISPOSITIVO=cpu|cuda (por defeito cpu) ARGS="descrições ou outras opções"
+	$(PY) src/suggest.py --bert $(CHECKPOINT) --base $(or $(MODELO),bertimbau) --dispositivo $(or $(DISPOSITIVO),cpu) $(ARGS)
 
 tfidf: ## Volta a correr o notebook do TF-IDF contra a régua (precisa de metrics/e4_h1/ e de "make preparar")
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 04_tfidf.ipynb

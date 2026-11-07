@@ -24,6 +24,9 @@ O run tem:
 
 Só parâmetros e métricas: nem dados, nem modelos, nem ficheiros (como no portão).
 
+Um ensaio de custo (`train_bert.py --max-passos`, `"ensaio": true` no `treino.json`) recusa-se:
+não tem sugestões, e na tabela dos treinos passaria por um treino a sério.
+
 Correr outra vez a mesma pasta não duplica: se já houver na experiência um run acabado (FINISHED)
 com o mesmo SHA-256 do `treino.json`, não regista. Um run que rebentou a meio não conta.
 
@@ -53,7 +56,8 @@ COLUNAS_VAL = ["idcontrato", "codigos", "visto_no_treino"]
 DIRETOS = ("max_length", "n_min", "taxa_aprendizagem", "lote", "epocas", "aquecimento", "decaimento_pesos",
            "semente", "dispositivo", "gpu", "n_gpus", "retomado_depois_da_epoca")
 # Custo do treino: métricas sem passo, `treino_<chave>`
-CUSTO = ("tempo_treinar_s", "pico_rss_mb", "exemplos_usados", "exemplos_saidos", "etiquetas")
+CUSTO = ("tempo_treinar_s", "pico_rss_mb", "exemplos_usados", "exemplos_saidos", "etiquetas", "segundos_por_passo",
+         "passos_por_epoca")
 
 
 class RegistoError(Exception):
@@ -127,6 +131,8 @@ def training_cost(resumo):
     """Custo do treino (métricas sem passo). Os segundos por época contam desde o início do treino,
     ou desde a retoma: com `--retomar`, os segundos das épocas seguintes começam do zero."""
     out = {f"treino_{k}": float(resumo[k]) for k in CUSTO if resumo.get(k) is not None}
+    for k, v in (resumo.get("memoria_gpu_mb") or {}).items():  # None no processador
+        out[f"treino_memoria_gpu_{k}_mb"] = float(v)
     por_epoca = resumo["por_epoca"]
     feitas = len(por_epoca) - (resumo.get("retomado_depois_da_epoca") or 0)
     if feitas > 0 and por_epoca[-1].get("segundos_desde_o_inicio") is not None:
@@ -177,6 +183,8 @@ def log_training(pasta, val_path=VALIDACAO, tracking_uri=mg.TRACKING, experienci
     if not path.is_file():
         raise RegistoError(f"falta {path}: a pasta não é a saída de um treino")
     resumo = json.loads(path.read_text(encoding="utf-8"))
+    if resumo.get("ensaio"):
+        raise RegistoError(f"{path}: é um ensaio de custo (--max-passos), não um treino; não se regista no MLflow")
     _check(pasta, resumo, val_path)
 
     mlflow.set_tracking_uri(tracking_uri)

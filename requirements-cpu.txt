@@ -1,6 +1,9 @@
 # Bibliotecas do projeto + torch só para processador (E5-T2): é o que o CI e o portátil instalam.
 # O torch para processador vem do índice do PyTorch (~200 MB, em vez de ~2 GB da versão para GPU).
+# No Linux (CI) a variante chama-se "+cpu"; no Mac o torch normal já é só para processador e não
+# há "+cpu", por isso cada linha do torch tem um marcador de ambiente (a parte depois do ";").
 -r requirements.txt
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.14.1+cpu
+torch==2.14.1+cpu ; sys_platform == "linux"
+torch==2.14.1 ; sys_platform == "darwin"
 accelerate==1.15.0

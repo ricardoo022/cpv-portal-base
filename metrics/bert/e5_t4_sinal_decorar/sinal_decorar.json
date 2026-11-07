@@ -1,0 +1,698 @@
+{
+ "data": "2026-11-06T19:04:25",
+ "acertos": 86,
+ "contratos": 100,
+ "top1": 0.86,
+ "criterio_acertos": 95,
+ "primeira_epoca_criterio": null,
+ "passou": false,
+ "modelo": {
+  "chave": "bertimbau",
+  "nome": "neuralmind/bert-base-portuguese-cased",
+  "revisao": "94d69c95f98f7d5b2a8700c420230ae10def0baa"
+ },
+ "max_length": 256,
+ "n_min": 10,
+ "etiquetas": 3000,
+ "etiquetas_nos_contratos": 83,
+ "taxa_aprendizagem": 0.0001,
+ "epocas": 30,
+ "lote": 32,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "dispositivo": "cuda",
+ "gpu": "NVIDIA GeForce RTX 4090",
+ "por_epoca": [
+  {
+   "epoca": 1,
+   "acertos": 0,
+   "perda_treino": 8.011639595031738
+  },
+  {
+   "epoca": 2,
+   "acertos": 1,
+   "perda_treino": 7.923258304595947
+  },
+  {
+   "epoca": 3,
+   "acertos": 2,
+   "perda_treino": 7.780534267425537
+  },
+  {
+   "epoca": 4,
+   "acertos": 10,
+   "perda_treino": 7.545818328857422
+  },
+  {
+   "epoca": 5,
+   "acertos": 8,
+   "perda_treino": 7.268657684326172
+  },
+  {
+   "epoca": 6,
+   "acertos": 13,
+   "perda_treino": 6.828405380249023
+  },
+  {
+   "epoca": 7,
+   "acertos": 13,
+   "perda_treino": 6.434887409210205
+  },
+  {
+   "epoca": 8,
+   "acertos": 13,
+   "perda_treino": 6.098893642425537
+  },
+  {
+   "epoca": 9,
+   "acertos": 14,
+   "perda_treino": 5.766162395477295
+  },
+  {
+   "epoca": 10,
+   "acertos": 14,
+   "perda_treino": 5.445967197418213
+  },
+  {
+   "epoca": 11,
+   "acertos": 14,
+   "perda_treino": 5.248704433441162
+  },
+  {
+   "epoca": 12,
+   "acertos": 17,
+   "perda_treino": 4.973033905029297
+  },
+  {
+   "epoca": 13,
+   "acertos": 18,
+   "perda_treino": 4.769072532653809
+  },
+  {
+   "epoca": 14,
+   "acertos": 28,
+   "perda_treino": 4.336181163787842
+  },
+  {
+   "epoca": 15,
+   "acertos": 33,
+   "perda_treino": 4.143196105957031
+  },
+  {
+   "epoca": 16,
+   "acertos": 35,
+   "perda_treino": 3.960157871246338
+  },
+  {
+   "epoca": 17,
+   "acertos": 42,
+   "perda_treino": 3.900721788406372
+  },
+  {
+   "epoca": 18,
+   "acertos": 50,
+   "perda_treino": 3.8914337158203125
+  },
+  {
+   "epoca": 19,
+   "acertos": 49,
+   "perda_treino": 3.819110870361328
+  },
+  {
+   "epoca": 20,
+   "acertos": 58,
+   "perda_treino": 3.408721446990967
+  },
+  {
+   "epoca": 21,
+   "acertos": 61,
+   "perda_treino": 3.4641032218933105
+  },
+  {
+   "epoca": 22,
+   "acertos": 60,
+   "perda_treino": 3.453876495361328
+  },
+  {
+   "epoca": 23,
+   "acertos": 69,
+   "perda_treino": 3.1710362434387207
+  },
+  {
+   "epoca": 24,
+   "acertos": 77,
+   "perda_treino": 3.1375551223754883
+  },
+  {
+   "epoca": 25,
+   "acertos": 78,
+   "perda_treino": 3.1836605072021484
+  },
+  {
+   "epoca": 26,
+   "acertos": 79,
+   "perda_treino": 3.0990920066833496
+  },
+  {
+   "epoca": 27,
+   "acertos": 80,
+   "perda_treino": 3.2087337970733643
+  },
+  {
+   "epoca": 28,
+   "acertos": 84,
+   "perda_treino": 3.152966260910034
+  },
+  {
+   "epoca": 29,
+   "acertos": 86,
+   "perda_treino": 3.0968995094299316
+  },
+  {
+   "epoca": 30,
+   "acertos": 86,
+   "perda_treino": 3.090160846710205
+  }
+ ],
+ "contratos_sorteados": [
+  {
+   "idcontrato": "8618132",
+   "etiqueta": "39130000",
+   "top1": "39130000"
+  },
+  {
+   "idcontrato": "8663799",
+   "etiqueta": "60100000",
+   "top1": "60100000"
+  },
+  {
+   "idcontrato": "8723292",
+   "etiqueta": "15500000",
+   "top1": "15500000"
+  },
+  {
+   "idcontrato": "8821763",
+   "etiqueta": "45454000",
+   "top1": "45454000"
+  },
+  {
+   "idcontrato": "8874348",
+   "etiqueta": "15810000",
+   "top1": "15810000"
+  },
+  {
+   "idcontrato": "8923766",
+   "etiqueta": "90911200",
+   "top1": "90911200"
+  },
+  {
+   "idcontrato": "8976258",
+   "etiqueta": "71600000",
+   "top1": "71600000"
+  },
+  {
+   "idcontrato": "9048209",
+   "etiqueta": "44110000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9124525",
+   "etiqueta": "22200000",
+   "top1": "22200000"
+  },
+  {
+   "idcontrato": "9198906",
+   "etiqueta": "44100000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9206687",
+   "etiqueta": "30190000",
+   "top1": "30190000"
+  },
+  {
+   "idcontrato": "9219449",
+   "etiqueta": "79953000",
+   "top1": "79953000"
+  },
+  {
+   "idcontrato": "9250352",
+   "etiqueta": "45233252",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "9263740",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9347454",
+   "etiqueta": "33760000",
+   "top1": "33760000"
+  },
+  {
+   "idcontrato": "9390739",
+   "etiqueta": "39800000",
+   "top1": "39800000"
+  },
+  {
+   "idcontrato": "9487196",
+   "etiqueta": "44167000",
+   "top1": "44167000"
+  },
+  {
+   "idcontrato": "9489195",
+   "etiqueta": "51112100",
+   "top1": "51112100"
+  },
+  {
+   "idcontrato": "9652902",
+   "etiqueta": "79992000",
+   "top1": "79992000"
+  },
+  {
+   "idcontrato": "9806920",
+   "etiqueta": "71311200",
+   "top1": "71311200"
+  },
+  {
+   "idcontrato": "9813401",
+   "etiqueta": "60100000",
+   "top1": "60100000"
+  },
+  {
+   "idcontrato": "9834154",
+   "etiqueta": "45300000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9855549",
+   "etiqueta": "34351100",
+   "top1": "34351100"
+  },
+  {
+   "idcontrato": "9874661",
+   "etiqueta": "72590000",
+   "top1": "72590000"
+  },
+  {
+   "idcontrato": "9944534",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9963732",
+   "etiqueta": "45262690",
+   "top1": "45262690"
+  },
+  {
+   "idcontrato": "9975265",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10012217",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10042679",
+   "etiqueta": "15810000",
+   "top1": "15810000"
+  },
+  {
+   "idcontrato": "10070257",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "10113600",
+   "etiqueta": "92312110",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10169777",
+   "etiqueta": "79521000",
+   "top1": "79521000"
+  },
+  {
+   "idcontrato": "10174532",
+   "etiqueta": "18222000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10180221",
+   "etiqueta": "45113000",
+   "top1": "45113000"
+  },
+  {
+   "idcontrato": "10187564",
+   "etiqueta": "90920000",
+   "top1": "90920000"
+  },
+  {
+   "idcontrato": "10204610",
+   "etiqueta": "72212000",
+   "top1": "72212000"
+  },
+  {
+   "idcontrato": "10209359",
+   "etiqueta": "33698000",
+   "top1": "33698000"
+  },
+  {
+   "idcontrato": "10218182",
+   "etiqueta": "55120000",
+   "top1": "55120000"
+  },
+  {
+   "idcontrato": "10238070",
+   "etiqueta": "34920000",
+   "top1": "34920000"
+  },
+  {
+   "idcontrato": "10289849",
+   "etiqueta": "60130000",
+   "top1": "60130000"
+  },
+  {
+   "idcontrato": "10293832",
+   "etiqueta": "80500000",
+   "top1": "80500000"
+  },
+  {
+   "idcontrato": "10381993",
+   "etiqueta": "35125000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10431178",
+   "etiqueta": "45212100",
+   "top1": "45212100"
+  },
+  {
+   "idcontrato": "10447669",
+   "etiqueta": "45233251",
+   "top1": "45233251"
+  },
+  {
+   "idcontrato": "10540017",
+   "etiqueta": "71356000",
+   "top1": "71356000"
+  },
+  {
+   "idcontrato": "10542400",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "10564811",
+   "etiqueta": "90910000",
+   "top1": "90910000"
+  },
+  {
+   "idcontrato": "10602502",
+   "etiqueta": "79820000",
+   "top1": "79820000"
+  },
+  {
+   "idcontrato": "10602220",
+   "etiqueta": "79952000",
+   "top1": "79952000"
+  },
+  {
+   "idcontrato": "10615749",
+   "etiqueta": "98311000",
+   "top1": "98311000"
+  },
+  {
+   "idcontrato": "10642504",
+   "etiqueta": "30197643",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10647435",
+   "etiqueta": "71300000",
+   "top1": "71300000"
+  },
+  {
+   "idcontrato": "10669107",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10684531",
+   "etiqueta": "44510000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10709252",
+   "etiqueta": "33690000",
+   "top1": "33690000"
+  },
+  {
+   "idcontrato": "10723849",
+   "etiqueta": "34134200",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10758075",
+   "etiqueta": "77211300",
+   "top1": "77211300"
+  },
+  {
+   "idcontrato": "10787380",
+   "etiqueta": "85200000",
+   "top1": "85200000"
+  },
+  {
+   "idcontrato": "10806724",
+   "etiqueta": "33183100",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10819810",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10837146",
+   "etiqueta": "39100000",
+   "top1": "39100000"
+  },
+  {
+   "idcontrato": "10846809",
+   "etiqueta": "80530000",
+   "top1": "80530000"
+  },
+  {
+   "idcontrato": "10868955",
+   "etiqueta": "71241000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10874362",
+   "etiqueta": "45113000",
+   "top1": "45113000"
+  },
+  {
+   "idcontrato": "10878439",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10922819",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10922073",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10928608",
+   "etiqueta": "50114100",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10955289",
+   "etiqueta": "03100000",
+   "top1": "03100000"
+  },
+  {
+   "idcontrato": "10958884",
+   "etiqueta": "33696000",
+   "top1": "33696000"
+  },
+  {
+   "idcontrato": "10999725",
+   "etiqueta": "63515000",
+   "top1": "63515000"
+  },
+  {
+   "idcontrato": "11022073",
+   "etiqueta": "66171000",
+   "top1": "66171000"
+  },
+  {
+   "idcontrato": "11034258",
+   "etiqueta": "92111200",
+   "top1": "92111200"
+  },
+  {
+   "idcontrato": "11035904",
+   "etiqueta": "43325000",
+   "top1": "43325000"
+  },
+  {
+   "idcontrato": "11041460",
+   "etiqueta": "34920000",
+   "top1": "34920000"
+  },
+  {
+   "idcontrato": "11059890",
+   "etiqueta": "77211300",
+   "top1": "77211300"
+  },
+  {
+   "idcontrato": "11059799",
+   "etiqueta": "30213100",
+   "top1": "30213100"
+  },
+  {
+   "idcontrato": "11141015",
+   "etiqueta": "75200000",
+   "top1": "75200000"
+  },
+  {
+   "idcontrato": "11154334",
+   "etiqueta": "79961000",
+   "top1": "79961000"
+  },
+  {
+   "idcontrato": "11156068",
+   "etiqueta": "09310000",
+   "top1": "09310000"
+  },
+  {
+   "idcontrato": "11258772",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "11279109",
+   "etiqueta": "72200000",
+   "top1": "72200000"
+  },
+  {
+   "idcontrato": "11283533",
+   "etiqueta": "85147000",
+   "top1": "85147000"
+  },
+  {
+   "idcontrato": "11319989",
+   "etiqueta": "66150000",
+   "top1": "66150000"
+  },
+  {
+   "idcontrato": "11338190",
+   "etiqueta": "77310000",
+   "top1": "77310000"
+  },
+  {
+   "idcontrato": "11345161",
+   "etiqueta": "71530000",
+   "top1": "71530000"
+  },
+  {
+   "idcontrato": "11347119",
+   "etiqueta": "50800000",
+   "top1": "50800000"
+  },
+  {
+   "idcontrato": "11366593",
+   "etiqueta": "44212000",
+   "top1": "44212000"
+  },
+  {
+   "idcontrato": "11388388",
+   "etiqueta": "77211500",
+   "top1": "77211500"
+  },
+  {
+   "idcontrato": "11406355",
+   "etiqueta": "72246000",
+   "top1": "72246000"
+  },
+  {
+   "idcontrato": "11452017",
+   "etiqueta": "64200000",
+   "top1": "64200000"
+  },
+  {
+   "idcontrato": "11477619",
+   "etiqueta": "75252000",
+   "top1": "75252000"
+  },
+  {
+   "idcontrato": "11478591",
+   "etiqueta": "90910000",
+   "top1": "90910000"
+  },
+  {
+   "idcontrato": "11541738",
+   "etiqueta": "98300000",
+   "top1": "98300000"
+  },
+  {
+   "idcontrato": "11592824",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "11595140",
+   "etiqueta": "44912000",
+   "top1": "44912000"
+  },
+  {
+   "idcontrato": "11624210",
+   "etiqueta": "80521000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "11668658",
+   "etiqueta": "63515000",
+   "top1": "63515000"
+  },
+  {
+   "idcontrato": "11714641",
+   "etiqueta": "71520000",
+   "top1": "71520000"
+  },
+  {
+   "idcontrato": "11751154",
+   "etiqueta": "31640000",
+   "top1": "31640000"
+  }
+ ],
+ "tempo_s": 11.07,
+ "memoria_gpu_mb": {
+  "pico_alocada": 3711,
+  "pico_reservada": 4198
+ },
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "sha256": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7"
+ },
+ "git": {
+  "commit": "840360652ab13667ffd09fde92d28a29278fd0a4",
+  "alteracoes_por_gravar": false
+ },
+ "experiencia": {
+  "ficheiro": "experiencias/e5_t4.yaml",
+  "sha256": "23acdfbfd4baa57232d16ab4da69b959b4524017ad8d4d57f4038ae6827d0667",
+  "conteudo": "# Tarefa E5-T4 (docs/backlog.md): primeiro treino do BERTimbau. Escrito ANTES de correr; não muda\n# depois de ver os resultados. Só REGISTA (passa-se com `--experiencia experiencias/e5_t4.yaml` e vai\n# para o treino.json e o MLflow); quem define os hiperparâmetros são as flags do src/train_bert.py,\n# que têm de ser as daqui (ver `comando`). Tem de ficar abaixo de 8000 carateres (MAX_YAML).\n# Números com ponto e expoente com ponto (2.0e-5): o PyYAML lê \"2e-5\" como texto.\n#\n# Fontes (verificadas a 16 de outubro de 2026):\n# - Artigo do BERTimbau (Souza, Nogueira e Lotufo, BRACIS 2020, doi 10.1007/978-3-030-61377-8_28):\n#   NÃO lido (a Springer e o ResearchGate recusaram o acesso). Avalia STS e RTE (ASSIN2) e NER;\n#   não tem classificação de frases com milhares de etiquetas.\n# - huggingface.co/neuralmind/bert-base-portuguese-cased e github.com/neuralmind-ai/portuguese-bert:\n#   sem hiperparâmetros de afinação.\n# - arxiv.org/abs/1909.10649 (mesmos autores, BERT-CRF), secção 4.2.2: receita só para NER (taxa\n#   5e-5, lote 16, decaimento 0,01, aquecimento 10% e descida linear). Outra tarefa: não se usa.\n# - Usa-se por isso a do BERT original, Devlin et al. (2019), arxiv.org/abs/1810.04805 (v2): A.3\n#   (\"Fine-tuning Procedure\") dá lote 16/32, taxa 5e-5/3e-5/2e-5, 2-4 épocas, dropout 0,1, e o resto\n#   igual ao pré-treino; A.2 (\"Pre-training Procedure\") dá Adam (β1 0,9, β2 0,999), decaimento L2\n#   0,01 e descida linear. O aquecimento de 10% na afinação não está no artigo: é o valor por\n#   defeito do código oficial (github.com/google-research/bert, run_classifier.py,\n#   warmup_proportion = 0.1; optimization.py desce a taxa linearmente até 0).\n\nitem: E5-T4\ndata: 2026-10-16\n\nmodelo:\n  nome_curto: bertimbau\n  nome: neuralmind/bert-base-portuguese-cased\n  revisao: 94d69c95f98f7d5b2a8700c420230ae10def0baa  # src/bert_models.py\n  max_length: 256   # E5-T1 (bert_models.COMPRIMENTO_MAXIMO, secção 20 do qualidade_dados.md)\n\ndados:\n  janela: 2022      # E4-S2 e E4-S6: TRAIN_START = 2022-01-01\n  treino: data/processed/treino.parquet\n  validacao: data/processed/validacao.parquet   # o teste não entra em nenhum passo\n\nn_min: 10           # E4-S1\ntaus: [0.0, 0.25]   # 0.25 = τ em vigor do TF-IDF (E4-S4); só reordena as pontuações gravadas\n\n# Treino completo: receita de Devlin et al. (2019). São também os valores por defeito de src/bert.py.\ntreino_completo:\n  taxa_aprendizagem: 2.0e-5  # A.3 (gama 5e-5/3e-5/2e-5). O 2e-5 dentro da gama é escolha nossa (o\n                             # artigo escolhe por tarefa); o E5-S1 testa outras taxas.\n  lote: 32                   # A.3 (16 ou 32); 32 dá metade dos passos. Lote efetivo = lote x n_gpus\n  epocas: 3                  # A.3 (2, 3 ou 4), o meio da gama; é o E máximo da grelha do E5-S1\n  aquecimento: 0.1           # run_classifier.py (warmup_proportion); não está no texto do artigo\n  descida_da_taxa: linear    # A.2; fixo em src/bert.py (lr_scheduler_type=\"linear\"), sem flag\n  decaimento_pesos: 0.01     # A.2 (A.3: fica o do pré-treino)\n  otimizador: adamw          # A.2 (Adam com decaimento separado); o do Trainer, sem flag\n  dropout: 0.1               # A.3; o da configuração do modelo, sem flag\n  precisao: fp32             # src/bert.py carrega em float32\n  semente: 0\n  comando: >-\n    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_bertimbau\n    ARGS=\"--n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32\n    --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0\n    --experiencia experiencias/e5_t4.yaml\"\n\n# Sinal de erro 1 (épico E5, \"Decorar poucos exemplos\"), antes do treino completo.\nsinal_decorar:\n  n_contratos: 100           # sorteados do treino.parquet\n  semente_amostra: 0\n  etiquetas: treino_completo # collapse_rare_codes com N = 10 contado no treino INTEIRO (cerca de\n                             # 3 000 etiquetas): a camada de saída tem o tamanho real. Contadas só\n                             # nos 100, quase todos os códigos teriam menos de 10 exemplos.\n  epocas_max: 30\n  taxa_aprendizagem: 1.0e-4\n  # Porquê 1e-4 e não 2e-5: com 100 exemplos e lote 32 há só 4 passos por época (120 em 30 épocas,\n  # 12 de aquecimento), e a camada de saída começa ao acaso com cerca de 3 000 saídas. Com 2e-5 o\n  # modelo pode não ter passos que cheguem para decorar, e o sinal falhava sem erro no código (o\n  # falso alarme que o épico quer evitar). 1e-4 é o dobro do máximo da gama de Devlin A.3 (5e-5) e\n  # a taxa do pré-treino do BERT (A.2): alta, mas não fora do que o modelo já viu. Mais alta\n  # arriscava divergir, e o sinal falhava por outra razão. É um juízo nosso, não de um artigo.\n  lote: 32                   # o resto igual ao treino completo: só a taxa e as épocas mudam\n  aquecimento: 0.1\n  decaimento_pesos: 0.01\n  semente: 0\n  avaliacao: os mesmos 100 contratos do treino (não a validação)\n  criterio: top-1 certo em pelo menos 95 dos 100 (etiqueta de treino, depois de collapse_rare_codes)\n  # Regista-se a primeira época que chega aos 95. Se nenhuma das 30 chegar, há um erro no código\n  # (por exemplo etiquetas desalinhadas dos textos): procura-se no máximo 1 dia (épico E5).\n  comando: >-\n    make sinal-decorar MODELO=bertimbau TAXA=1e-4 SAIDA=metrics/bert/e5_t4_sinal_decorar\n    ARGS=\"--n 100 --epocas 30 --semente 0 --n-min 10 --lote 32 --aquecimento 0.1\n    --decaimento-pesos 0.01 --max-length 256 --experiencia experiencias/e5_t4.yaml\"\n\n# Sinal de erro 2 (épico E5, \"Bater a régua\"), no treino completo.\nsinal_erro_2:\n  metrica: top-5 no código completo, todos os contratos da validação\n  epoca: ultima\n  tau: 0.25\n  limiar: 26.3               # %, tem de ficar ACIMA; régua \"códigos mais comuns\", secção 12 do\n                             # qualidade_dados.md (E4-T2)\n\n# Ensaio de custo (1.º critério do E5-T4), antes do treino completo: um treino curto mede o tempo\n# por lote e a memória da GPU, para estimar tempo e custo de uma época. Mostra-se e aprova-se antes\n# do treino completo (que precisa também da decisão pendente 1 do E5, o teto de gastos).\nensaio_custo:\n  passos: 200\n  passos_ignorados_no_inicio: 1    # o 1.º passo inclui o arranque (bert.StepTimer)\n  lote: 32                   # os mesmos do treino completo\n  max_length: 256\n  precisao: fp32\n  mede:\n    - segundos por lote (média)\n    - memória máxima da GPU (torch.cuda.max_memory_allocated e max_memory_reserved)\n  # Época = exemplos de treino / (lote x n_gpus) lotes x segundos por lote. O ensaio não pontua a\n  # validação nem grava checkpoints: esse tempo fica de fora e mede-se no treino completo.\n  # Custo = horas x preço por hora. O padding é dinâmico (cada lote vai até ao texto mais longo,\n  # com teto de 256), por isso os lotes medidos têm de ser sorteados ao acaso no treino.\n  gpu: NVIDIA GeForce RTX 4090  # 6 de novembro de 2026; as placas mais baratas estavam sem stock\n  preco_por_hora_usd: 0.89   # lido na Runpod antes de criar o pod (Secure, EU-RO-1)\n  comando: >-\n    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_ensaio\n    ARGS=\"--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1\n    --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t4.yaml\"\n"
+ }
+}

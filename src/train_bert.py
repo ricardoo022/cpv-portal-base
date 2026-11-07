@@ -33,6 +33,17 @@ com `--retomar`. O treino continua do último checkpoint (que leva o estado do o
 correm as épocas que faltam; as épocas já feitas ficam como estavam, e as que tinham começado
 depois do último checkpoint voltam a gravar-se por cima.
 
+Ensaio de custo (`--max-passos N`, E5-T4): um treino curto que pára ao fim de N passos (lotes),
+para medir o tempo por passo e a memória da GPU antes de pagar o treino completo. Não pontua a
+validação nem grava checkpoints, pontuações ou sugestões: grava só o `treino.json`, com
+`"ensaio": true`, os segundos por passo, os passos de uma época completa e a estimativa do tempo de
+uma época (`segundos_por_epoca_estimados` = passos por época × segundos por passo). Essa estimativa
+conta só os passos de treino; pontuar a validação no fim de cada época e gravar o checkpoint ficam
+de fora (a validação tem ~5% dos contratos do treino e só se calcula a saída, sem mudar os pesos:
+uma fração pequena da época, não medida aqui; o primeiro treino completo mostra o tempo real). Um
+ensaio não se retoma, não se regista no MLflow (`registo_bert.py` recusa-o) e não passa no portão
+(não tem ficheiro de sugestões). Todos os treinos gravam também o pico de memória da GPU.
+
 Exemplo (no pod, da raiz do projeto):
     .venv/bin/python src/train_bert.py --modelo bertimbau --saida metrics/bert/bertimbau
 """
@@ -145,6 +156,22 @@ def _check_empty(path, o_que, apagar):
                          f"ou --retomar se o treino caiu a meio, ou {apagar}")
 
 
+def gpu_memory_mb(dispositivo):
+    """Pico de memória da GPU desde o arranque do processo, em MB (None no processador).
+
+    "pico_alocada": a que os tensores ocuparam (`torch.cuda.max_memory_allocated`);
+    "pico_reservada": a que o `torch` pediu à placa (`max_memory_reserved`), sempre >= à alocada:
+    o `torch` guarda memória livre para a reutilizar. A reservada é a que tem de caber na placa.
+    Com várias GPUs, a maior das placas.
+    """
+    if dispositivo != "cuda":
+        return None
+    n = torch.cuda.device_count()
+    mb = 1024 * 1024
+    return {"pico_alocada": round(max(torch.cuda.max_memory_allocated(i) for i in range(n)) / mb),
+            "pico_reservada": round(max(torch.cuda.max_memory_reserved(i) for i in range(n)) / mb)}
+
+
 def _versions():
     import accelerate
     import torch
@@ -158,7 +185,8 @@ def _versions():
 def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, taus=(0.0, tfidf.TAU),
         max_length=None, taxa_aprendizagem=bert.TAXA_APRENDIZAGEM, lote=bert.LOTE, epocas=bert.EPOCAS,
         aquecimento=bert.AQUECIMENTO, decaimento_pesos=bert.DECAIMENTO_PESOS, semente=bert.SEMENTE,
-        dispositivo="cuda", checkpoints_dir=None, pontuacoes_dir=None, retomar=False, experiencia=None):
+        dispositivo="cuda", checkpoints_dir=None, pontuacoes_dir=None, retomar=False, experiencia=None,
+        max_passos=None):
     """Tuna o `modelo`, grava as pontuações e as sugestões de cada época e o resumo.
 
     `modelo`: "bertimbau", "albertina" (`bert_models.MODELOS`) ou a pasta de um modelo gravado
@@ -170,9 +198,15 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     os mesmos argumentos (ver a descrição do módulo). `experiencia`: o caminho do YAML da
     experiência, gravado no treino.json para o registo no MLflow; obrigatório na GPU, onde também
     se recusa o treino se não se ler o commit do git (no processador só se avisa).
+    `max_passos`: ensaio de custo, pára ao fim desse número de passos e grava só o treino.json
+    (ver a descrição do módulo).
     Devolve o dicionário do `bert.train`.
     """
     bert.check_dispositivo(dispositivo)
+    ensaio = max_passos is not None
+    if ensaio and retomar:
+        raise ValueError("um ensaio de custo (--max-passos) não grava checkpoints, por isso não se retoma: "
+                         "corra-o outra vez")
     gpu = bert.check_gpu() if dispositivo == "cuda" else None  # antes de ler qualquer ficheiro
     # Na GPU (paga à hora) um treino sem YAML ou sem commit não se consegue repetir com certeza:
     # recusa-se no primeiro segundo, não depois de horas a pagar
@@ -207,7 +241,7 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
                   "n_min": n_min, "taus": [float(t) for t in taus],
                   "max_length": bert.model_max_length(modelo, max_length),
                   "taxa_aprendizagem": taxa_aprendizagem, "lote": lote, "epocas": epocas, "aquecimento": aquecimento,
-                  "decaimento_pesos": decaimento_pesos, "semente": semente,
+                  "decaimento_pesos": decaimento_pesos, "semente": semente, "max_passos": max_passos,
                   # Retomar com outro YAML misturava duas experiências no mesmo treino
                   "experiencia_sha256": experiencia["sha256"] if experiencia else None,
                   # Retomar com outros dados (preparados outra vez no mesmo caminho) ou outro código
@@ -239,8 +273,12 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         if out_dir.exists() and any(out_dir.glob("epoca_*")):
             raise ValueError(f"{out_dir}: já tem pastas epoca_* de outro treino; use outra pasta de saída, ou "
                              f"--retomar se o treino caiu a meio, ou {apagar}")
+        if ensaio and (out_dir / RESUMO).exists():
+            # O treino.json de um treino a sério ficava substituído pelo de um ensaio
+            raise ValueError(f"{out_dir}: já tem um {RESUMO}; o ensaio de custo grava-se noutra pasta de saída")
     out_dir.mkdir(parents=True, exist_ok=True)
-    pontuacoes_dir.mkdir(parents=True, exist_ok=True)
+    if not ensaio:
+        pontuacoes_dir.mkdir(parents=True, exist_ok=True)
     if not retomar:
         (out_dir / ARGUMENTOS).write_text(json.dumps(argumentos, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -271,16 +309,20 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         epocas_info.append(info)
 
     t0 = time.perf_counter()
-    out = bert.train(treino["texto"], treino["codigo"], modelo, checkpoints_dir, textos_val=val["texto"],
-                     on_epoch=on_epoch, n_min=n_min, max_length=max_length, taxa_aprendizagem=taxa_aprendizagem,
+    # O ensaio não pontua a validação (custava tempo e não é o que se mede) nem grava checkpoints
+    out = bert.train(treino["texto"], treino["codigo"], modelo, checkpoints_dir,
+                     textos_val=None if ensaio else val["texto"], on_epoch=None if ensaio else on_epoch,
+                     n_min=n_min, max_length=max_length, taxa_aprendizagem=taxa_aprendizagem,
                      lote=lote, epocas=epocas, aquecimento=aquecimento, decaimento_pesos=decaimento_pesos,
-                     semente=semente, dispositivo=dispositivo, retomar=retomar)
+                     semente=semente, dispositivo=dispositivo, retomar=retomar, max_passos=max_passos,
+                     gravar_checkpoints=not ensaio)
     t_treinar = time.perf_counter() - t0
     if list(out["classes"]) != list(classes) or not np.array_equal(out["log_prior"], prior):
         raise RuntimeError("as etiquetas das pontuações não são as do modelo treinado")
-    np.save(pontuacoes_dir / LOG_PRIOR, out["log_prior"])
-    with open(pontuacoes_dir / ETIQUETAS, "w", encoding="utf-8") as f:
-        json.dump([str(c) for c in classes], f)
+    if not ensaio:
+        np.save(pontuacoes_dir / LOG_PRIOR, out["log_prior"])
+        with open(pontuacoes_dir / ETIQUETAS, "w", encoding="utf-8") as f:
+            json.dump([str(c) for c in classes], f)
 
     # A perda média de cada época, do registo do Trainer (logging_strategy="epoch")
     perdas = {int(round(h["epoch"])): h["loss"] for h in out["trainer"].state.log_history if "loss" in h}
@@ -288,9 +330,11 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         e["perda_treino"] = perdas.get(e["epoca"])
 
     # As sugestões da última época ficam também na raiz da saída, com os nomes do TF-IDF
-    ultima = out_dir / epoch_dir(epocas_info[-1]["epoca"])
-    for tau in taus:
-        shutil.copyfile(ultima / suggestions_file(tau), out_dir / suggestions_file(tau))
+    if not ensaio:
+        ultima = out_dir / epoch_dir(epocas_info[-1]["epoca"])
+        for tau in taus:
+            shutil.copyfile(ultima / suggestions_file(tau), out_dir / suggestions_file(tau))
+    seg_passo = out["segundos_por_passo"]
 
     info = out["info"]
     resumo = {
@@ -300,8 +344,10 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         "max_length": info["max_length"],
         "n_min": n_min,
         "taus": list(taus),
-        "ficheiros": {suggestions_file(t): t for t in taus},
-        "ficheiro_do_modelo_por_defeito": suggestions_file(tfidf.TAU) if tfidf.TAU in taus else None,
+        # Um ensaio de custo não tem sugestões: nem o portão nem o registo no MLflow o aceitam
+        "ensaio": ensaio,
+        "ficheiros": {} if ensaio else {suggestions_file(t): t for t in taus},
+        "ficheiro_do_modelo_por_defeito": suggestions_file(tfidf.TAU) if tfidf.TAU in taus and not ensaio else None,
         "treino": {"ficheiro": Path(train_path).name, "datas": datas_treino},
         "validacao": {"ficheiro": Path(val_path).name, "datas": datas_val, "contratos": len(ids)},
         "exemplos_usados": out["exemplos_usados"],
@@ -324,6 +370,16 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         # épocas seguintes contam só a partir da retoma
         "retomado_depois_da_epoca": retomado,
         "tempo_treinar_s": round(t_treinar, 2),
+        # O custo de uma época: os passos desta execução, o tempo médio de cada um (sem o 1.º, ver
+        # bert.StepTimer; num treino completo inclui o fim de cada época, pontuar e gravar), os
+        # passos de uma época completa e o produto dos dois. Com `max_passos`, o ensaio parou aí.
+        "max_passos": max_passos,
+        "passos": out["passos"],
+        "segundos_por_passo": None if seg_passo is None else round(seg_passo, 4),
+        "lote_efetivo": out["lote_efetivo"],
+        "passos_por_epoca": out["passos_por_epoca"],
+        "segundos_por_epoca_estimados": None if seg_passo is None else round(seg_passo * out["passos_por_epoca"], 1),
+        "memoria_gpu_mb": gpu_memory_mb(dispositivo),
         "pico_rss_mb": round(peak_rss_mb()),
         "nucleos": os.cpu_count(),
         "versoes": _versions(),
@@ -366,6 +422,9 @@ def main(argv=None):
     p.add_argument("--experiencia", default=None,
                    help="YAML da experiência (por exemplo experiencias/e5_t4.yaml); o caminho, o SHA-256 e o "
                         "texto ficam no treino.json, para o registo no MLflow")
+    p.add_argument("--max-passos", type=int, default=None,
+                   help="ensaio de custo: pára ao fim deste número de passos (lotes), sem pontuar a validação nem "
+                        "gravar checkpoints, e grava só o treino.json com o tempo por passo e a memória da GPU")
     p.add_argument("--dispositivo", choices=bert.DISPOSITIVOS, default="cuda",
                    help="cuda (no pod; confirma primeiro que o torch vê a GPU) ou cpu")
     a = p.parse_args(argv)
@@ -374,7 +433,7 @@ def main(argv=None):
         taxa_aprendizagem=a.taxa_aprendizagem, lote=a.lote, epocas=a.epocas, aquecimento=a.aquecimento,
         decaimento_pesos=a.decaimento_pesos, semente=a.semente, dispositivo=a.dispositivo,
         checkpoints_dir=a.checkpoints, pontuacoes_dir=a.pontuacoes, retomar=a.retomar,
-        experiencia=a.experiencia)
+        experiencia=a.experiencia, max_passos=a.max_passos)
     print("Gravado:", saida)
 
 

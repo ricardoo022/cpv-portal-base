@@ -1,0 +1,115 @@
+# Tarefa E5-T4 (docs/backlog.md): primeiro treino do BERTimbau. Escrito ANTES de correr; não muda
+# depois de ver os resultados. Só REGISTA (passa-se com `--experiencia experiencias/e5_t4.yaml` e vai
+# para o treino.json e o MLflow); quem define os hiperparâmetros são as flags do src/train_bert.py,
+# que têm de ser as daqui (ver `comando`). Tem de ficar abaixo de 8000 carateres (MAX_YAML).
+# Números com ponto e expoente com ponto (2.0e-5): o PyYAML lê "2e-5" como texto.
+#
+# Fontes (verificadas a 16 de outubro de 2026):
+# - Artigo do BERTimbau (Souza, Nogueira e Lotufo, BRACIS 2020, doi 10.1007/978-3-030-61377-8_28):
+#   NÃO lido (a Springer e o ResearchGate recusaram o acesso). Avalia STS e RTE (ASSIN2) e NER;
+#   não tem classificação de frases com milhares de etiquetas.
+# - huggingface.co/neuralmind/bert-base-portuguese-cased e github.com/neuralmind-ai/portuguese-bert:
+#   sem hiperparâmetros de afinação.
+# - arxiv.org/abs/1909.10649 (mesmos autores, BERT-CRF), secção 4.2.2: receita só para NER (taxa
+#   5e-5, lote 16, decaimento 0,01, aquecimento 10% e descida linear). Outra tarefa: não se usa.
+# - Usa-se por isso a do BERT original, Devlin et al. (2019), arxiv.org/abs/1810.04805 (v2): A.3
+#   ("Fine-tuning Procedure") dá lote 16/32, taxa 5e-5/3e-5/2e-5, 2-4 épocas, dropout 0,1, e o resto
+#   igual ao pré-treino; A.2 ("Pre-training Procedure") dá Adam (β1 0,9, β2 0,999), decaimento L2
+#   0,01 e descida linear. O aquecimento de 10% na afinação não está no artigo: é o valor por
+#   defeito do código oficial (github.com/google-research/bert, run_classifier.py,
+#   warmup_proportion = 0.1; optimization.py desce a taxa linearmente até 0).
+
+item: E5-T4
+data: 2026-10-16
+
+modelo:
+  nome_curto: bertimbau
+  nome: neuralmind/bert-base-portuguese-cased
+  revisao: 94d69c95f98f7d5b2a8700c420230ae10def0baa  # src/bert_models.py
+  max_length: 256   # E5-T1 (bert_models.COMPRIMENTO_MAXIMO, secção 20 do qualidade_dados.md)
+
+dados:
+  janela: 2022      # E4-S2 e E4-S6: TRAIN_START = 2022-01-01
+  treino: data/processed/treino.parquet
+  validacao: data/processed/validacao.parquet   # o teste não entra em nenhum passo
+
+n_min: 10           # E4-S1
+taus: [0.0, 0.25]   # 0.25 = τ em vigor do TF-IDF (E4-S4); só reordena as pontuações gravadas
+
+# Treino completo: receita de Devlin et al. (2019). São também os valores por defeito de src/bert.py.
+treino_completo:
+  taxa_aprendizagem: 2.0e-5  # A.3 (gama 5e-5/3e-5/2e-5). O 2e-5 dentro da gama é escolha nossa (o
+                             # artigo escolhe por tarefa); o E5-S1 testa outras taxas.
+  lote: 32                   # A.3 (16 ou 32); 32 dá metade dos passos. Lote efetivo = lote x n_gpus
+  epocas: 3                  # A.3 (2, 3 ou 4), o meio da gama; é o E máximo da grelha do E5-S1
+  aquecimento: 0.1           # run_classifier.py (warmup_proportion); não está no texto do artigo
+  descida_da_taxa: linear    # A.2; fixo em src/bert.py (lr_scheduler_type="linear"), sem flag
+  decaimento_pesos: 0.01     # A.2 (A.3: fica o do pré-treino)
+  otimizador: adamw          # A.2 (Adam com decaimento separado); o do Trainer, sem flag
+  dropout: 0.1               # A.3; o da configuração do modelo, sem flag
+  precisao: fp32             # src/bert.py carrega em float32
+  semente: 0
+  comando: >-
+    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_bertimbau
+    ARGS="--n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32
+    --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0
+    --experiencia experiencias/e5_t4.yaml"
+
+# Sinal de erro 1 (épico E5, "Decorar poucos exemplos"), antes do treino completo.
+sinal_decorar:
+  n_contratos: 100           # sorteados do treino.parquet
+  semente_amostra: 0
+  etiquetas: treino_completo # collapse_rare_codes com N = 10 contado no treino INTEIRO (cerca de
+                             # 3 000 etiquetas): a camada de saída tem o tamanho real. Contadas só
+                             # nos 100, quase todos os códigos teriam menos de 10 exemplos.
+  epocas_max: 30
+  taxa_aprendizagem: 1.0e-4
+  # Porquê 1e-4 e não 2e-5: com 100 exemplos e lote 32 há só 4 passos por época (120 em 30 épocas,
+  # 12 de aquecimento), e a camada de saída começa ao acaso com cerca de 3 000 saídas. Com 2e-5 o
+  # modelo pode não ter passos que cheguem para decorar, e o sinal falhava sem erro no código (o
+  # falso alarme que o épico quer evitar). 1e-4 é o dobro do máximo da gama de Devlin A.3 (5e-5) e
+  # a taxa do pré-treino do BERT (A.2): alta, mas não fora do que o modelo já viu. Mais alta
+  # arriscava divergir, e o sinal falhava por outra razão. É um juízo nosso, não de um artigo.
+  lote: 32                   # o resto igual ao treino completo: só a taxa e as épocas mudam
+  aquecimento: 0.1
+  decaimento_pesos: 0.01
+  semente: 0
+  avaliacao: os mesmos 100 contratos do treino (não a validação)
+  criterio: top-1 certo em pelo menos 95 dos 100 (etiqueta de treino, depois de collapse_rare_codes)
+  # Regista-se a primeira época que chega aos 95. Se nenhuma das 30 chegar, há um erro no código
+  # (por exemplo etiquetas desalinhadas dos textos): procura-se no máximo 1 dia (épico E5).
+  comando: >-
+    make sinal-decorar MODELO=bertimbau TAXA=1e-4 SAIDA=metrics/bert/e5_t4_sinal_decorar
+    ARGS="--n 100 --epocas 30 --semente 0 --n-min 10 --lote 32 --aquecimento 0.1
+    --decaimento-pesos 0.01 --max-length 256 --experiencia experiencias/e5_t4.yaml"
+
+# Sinal de erro 2 (épico E5, "Bater a régua"), no treino completo.
+sinal_erro_2:
+  metrica: top-5 no código completo, todos os contratos da validação
+  epoca: ultima
+  tau: 0.25
+  limiar: 26.3               # %, tem de ficar ACIMA; régua "códigos mais comuns", secção 12 do
+                             # qualidade_dados.md (E4-T2)
+
+# Ensaio de custo (1.º critério do E5-T4), antes do treino completo: um treino curto mede o tempo
+# por lote e a memória da GPU, para estimar tempo e custo de uma época. Mostra-se e aprova-se antes
+# do treino completo (que precisa também da decisão pendente 1 do E5, o teto de gastos).
+ensaio_custo:
+  passos: 200
+  passos_ignorados_no_inicio: 1    # o 1.º passo inclui o arranque (bert.StepTimer)
+  lote: 32                   # os mesmos do treino completo
+  max_length: 256
+  precisao: fp32
+  mede:
+    - segundos por lote (média)
+    - memória máxima da GPU (torch.cuda.max_memory_allocated e max_memory_reserved)
+  # Época = exemplos de treino / (lote x n_gpus) lotes x segundos por lote. O ensaio não pontua a
+  # validação nem grava checkpoints: esse tempo fica de fora e mede-se no treino completo.
+  # Custo = horas x preço por hora. O padding é dinâmico (cada lote vai até ao texto mais longo,
+  # com teto de 256), por isso os lotes medidos têm de ser sorteados ao acaso no treino.
+  gpu: NVIDIA GeForce RTX 4090  # 6 de novembro de 2026; as placas mais baratas estavam sem stock
+  preco_por_hora_usd: 0.89   # lido na Runpod antes de criar o pod (Secure, EU-RO-1)
+  comando: >-
+    make treinar-bert MODELO=bertimbau SAIDA=metrics/bert/e5_t4_ensaio
+    ARGS="--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1
+    --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t4.yaml"

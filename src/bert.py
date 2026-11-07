@@ -22,6 +22,8 @@ Este módulo não lê nem grava ficheiros de dados: isso é do `train_bert.py`. 
 os *checkpoints* na pasta pedida.
 """
 
+import math
+import time
 from pathlib import Path
 
 import numpy as np
@@ -223,11 +225,50 @@ class EpochScores(TrainerCallback):
         self.on_epoch(int(round(state.epoch)), f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}", pontuacoes)
 
 
+class StepTimer(TrainerCallback):
+    """Mede o tempo dos passos de treino (um passo = um lote: calcular a perda e mudar os pesos).
+
+    Guarda o relógio no fim do 1.º passo e no fim do último desta execução: os segundos por passo
+    são o intervalo a dividir pelos passos que o separam. O 1.º passo fica de fora porque inclui
+    trabalho de arranque (por exemplo, a GPU a preparar as operações). Na GPU espera-se que ela
+    acabe o passo (`synchronize`): as operações da GPU correm em fila, e sem isto o relógio media
+    só o tempo de as pôr na fila.
+    """
+
+    def __init__(self):
+        self.primeiro = self.ultimo = None
+        self.passos = 0
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if torch.cuda.is_available() and args.device.type == "cuda":
+            torch.cuda.synchronize()
+        agora = time.perf_counter()
+        if self.primeiro is None:
+            self.primeiro = agora
+        self.ultimo = agora
+        self.passos += 1
+
+    def segundos_por_passo(self):
+        """Média dos passos depois do 1.º (None com menos de 2 passos)."""
+        if self.passos < 2:
+            return None
+        return (self.ultimo - self.primeiro) / (self.passos - 1)
+
+
 def training_arguments(checkpoints_dir, taxa_aprendizagem=TAXA_APRENDIZAGEM, lote=LOTE, epocas=EPOCAS,
                        aquecimento=AQUECIMENTO, decaimento_pesos=DECAIMENTO_PESOS, semente=SEMENTE,
-                       dispositivo="cuda"):
-    """Os `TrainingArguments` do treino (um sítio só, para os testes os poderem ler)."""
+                       dispositivo="cuda", max_passos=None, gravar_checkpoints=True):
+    """Os `TrainingArguments` do treino (um sítio só, para os testes os poderem ler).
+
+    `max_passos`: pára o treino ao fim desse número de passos (lotes), mesmo a meio de uma época
+    (`max_steps` do Trainer); o ensaio de custo do E5-T4. A taxa de aprendizagem sobe e desce ao
+    longo desses passos, não das épocas. `gravar_checkpoints=False`: nenhum checkpoint (o ensaio e
+    o sinal de decorar, que não se retomam nem se usam depois).
+    """
     check_dispositivo(dispositivo)
+    if max_passos is not None and (isinstance(max_passos, bool) or not isinstance(max_passos, (int, np.integer))
+                                   or max_passos < 1):
+        raise ValueError(f"max_passos tem de ser um inteiro >= 1: {max_passos!r}")
     if not 0 <= aquecimento < 1:
         # No transformers 5, warmup_steps < 1 é a fração dos passos; >= 1 seria um número de passos
         raise ValueError(f"aquecimento é uma fração dos passos, em [0, 1): {aquecimento!r}")
@@ -238,6 +279,7 @@ def training_arguments(checkpoints_dir, taxa_aprendizagem=TAXA_APRENDIZAGEM, lot
         learning_rate=taxa_aprendizagem,
         per_device_train_batch_size=lote,
         num_train_epochs=epocas,
+        max_steps=-1 if max_passos is None else int(max_passos),  # -1: o número de épocas decide
         warmup_steps=aquecimento,
         lr_scheduler_type="linear",
         weight_decay=decaimento_pesos,
@@ -248,7 +290,7 @@ def training_arguments(checkpoints_dir, taxa_aprendizagem=TAXA_APRENDIZAGEM, lot
         # escalonador da taxa e dos geradores aleatórios (save_only_model=False, o normal do
         # Trainer): ocupa cerca de 3 vezes o modelo, mas um treino interrompido (o pod caiu)
         # continua da última época gravada (`retomar`) em vez de se pagar outra vez desde o início.
-        save_strategy="epoch",
+        save_strategy="epoch" if gravar_checkpoints else "no",
         save_only_model=False,
         eval_strategy="no",  # a validação pontua-se no EpochScores, com todas as etiquetas
         logging_strategy="epoch",  # a perda média de cada época vai para o treino.json
@@ -277,26 +319,46 @@ def last_checkpoint(checkpoints_dir):
 def train(texto, codigo, modelo, checkpoints_dir, textos_val=None, on_epoch=None, n_min=DEFAULT_N_MIN,
           max_length=None, taxa_aprendizagem=TAXA_APRENDIZAGEM, lote=LOTE, epocas=EPOCAS,
           aquecimento=AQUECIMENTO, decaimento_pesos=DECAIMENTO_PESOS, semente=SEMENTE, dispositivo="cuda",
-          retomar=False):
+          retomar=False, classes=None, max_passos=None, gravar_checkpoints=True):
     """Tuna o `modelo` com o treino (`texto` e `codigo`, com o mesmo índice).
 
     A etiqueta de cada exemplo é `collapse_rare_codes(codigo, n_min)`; os exemplos que saem (NaN)
-    não entram no treino. No fim de cada época o `Trainer` grava um checkpoint em
-    `checkpoints_dir` e, se houver `textos_val`, chama `on_epoch(epoca, checkpoint, pontuacoes)`
+    não entram no treino.
+    `classes`: a lista de etiquetas de outro treino, por ordem crescente (o sinal de erro 1 do E5:
+    100 contratos com as ~3 000 etiquetas do treino completo). Então `codigo` já é a etiqueta de
+    cada exemplo, contada nesse outro treino: não se aplica a regra dos códigos raros (o `n_min`
+    não conta), cada etiqueta tem de estar em `classes`, e o `log_prior` devolvido é None (as
+    frequências são as do outro treino).
+    `max_passos` e `gravar_checkpoints`: ver `training_arguments` (o ensaio de custo).
+    No fim de cada época o `Trainer` grava um checkpoint em `checkpoints_dir` (se
+    `gravar_checkpoints`) e, se houver `textos_val`, chama `on_epoch(epoca, checkpoint, pontuacoes)`
     com as pontuações desses textos (ver `EpochScores`).
     `retomar`: continua do último checkpoint de `checkpoints_dir` (pesos, otimizador, taxa e
     geradores aleatórios), com `resume_from_checkpoint` do Trainer; só correm as épocas que
     faltam, e só para essas se chama o `on_epoch`. Os argumentos têm de ser os do treino
     interrompido.
     Devolve um dicionário com "model", "tokenizer", "classes", "log_prior", "info" (nome,
-    revisão, max_length), "trainer", "exemplos_usados" e "exemplos_saidos".
+    revisão, max_length), "trainer", "exemplos_usados", "exemplos_saidos", "passos" (os passos
+    feitos nesta execução), "segundos_por_passo" (`StepTimer`), "lote_efetivo" (o lote × o n.º de
+    GPUs, se o Trainer usar várias) e "passos_por_epoca" (os exemplos usados a dividir pelo lote
+    efetivo, arredondado para cima: o último lote de cada época pode ser mais pequeno).
     """
     check_dispositivo(dispositivo)
     if not texto.index.equals(codigo.index):
         raise ValueError("`texto` e `codigo` têm índices diferentes")
     args = training_arguments(checkpoints_dir, taxa_aprendizagem, lote, epocas, aquecimento,
-                              decaimento_pesos, semente, dispositivo)
-    etiqueta, classes = training_labels(codigo, n_min)
+                              decaimento_pesos, semente, dispositivo, max_passos, gravar_checkpoints)
+    externas = classes is not None
+    if not externas:
+        etiqueta, classes = training_labels(codigo, n_min)
+    else:
+        classes = np.asarray(classes, dtype=object)
+        if list(classes) != sorted(set(classes)):
+            raise ValueError("as `classes` têm de estar por ordem crescente, sem repetidas")
+        fora = sorted(set(codigo) - set(classes))
+        if fora:
+            raise ValueError(f"etiquetas que não estão nas `classes`: {fora[:3]}")
+        etiqueta = codigo
     keep = etiqueta.notna()
     id_de = {c: i for i, c in enumerate(classes)}
 
@@ -311,15 +373,21 @@ def train(texto, codigo, modelo, checkpoints_dir, textos_val=None, on_epoch=None
             raise ValueError("com `textos_val` é preciso o `on_epoch`, que recebe as pontuações")
         callbacks.append(EpochScores(encode(tokenizer, textos_val, info["max_length"]),
                                      tokenizer.pad_token_id, on_epoch))
+    relogio = StepTimer()
+    callbacks.append(relogio)
     trainer = Trainer(model=model, args=args, train_dataset=treino, data_collator=Collator(tokenizer.pad_token_id),
                       processing_class=tokenizer, callbacks=callbacks)
     retomar_de = last_checkpoint(checkpoints_dir) if retomar else None
     if retomar and retomar_de is None:
         raise ValueError(f"{checkpoints_dir}: não há nenhum checkpoint para retomar")
     trainer.train(resume_from_checkpoint=retomar_de)
+    lote_efetivo = int(trainer.args.train_batch_size)
     return {"model": trainer.model, "tokenizer": tokenizer, "classes": classes,
-            "log_prior": tfidf.log_prior(codigo, classes, n_min=n_min), "info": info, "trainer": trainer,
-            "exemplos_usados": int(keep.sum()), "exemplos_saidos": int((~keep).sum())}
+            "log_prior": None if externas else tfidf.log_prior(codigo, classes, n_min=n_min),
+            "info": info, "trainer": trainer,
+            "exemplos_usados": int(keep.sum()), "exemplos_saidos": int((~keep).sum()),
+            "passos": relogio.passos, "segundos_por_passo": relogio.segundos_por_passo(),
+            "lote_efetivo": lote_efetivo, "passos_por_epoca": math.ceil(int(keep.sum()) / lote_efetivo)}
 
 
 def suggest_from_scores(pontuacoes, classes, log_prior=None, tau=0.0, k=TOP_K):

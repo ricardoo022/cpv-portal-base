@@ -164,7 +164,7 @@ cpv-portal-base/
 
 Cada pasta tem um `readme.md` com o índice do que lá está.
 
-Ambiente: `make setup` no portátil (`python3 -m venv .venv && .venv/bin/pip install -r requirements-cpu.txt`, Python 3.10); `make setup-gpu` no pod com GPU (instala o `requirements-gpu.txt`, ver a secção 7 do [`maquina_runpod.md`](docs/maquina_runpod.md)).
+Ambiente: `make setup` no portátil (o `uv` cria o `.venv` com Python 3.10 e instala o `requirements-cpu.txt`; nada é instalado no sistema); `make setup-gpu` no pod com GPU (instala o `requirements-gpu.txt`, ver a secção 7 do [`maquina_runpod.md`](docs/maquina_runpod.md)).
 
 Atalhos: `make help` mostra os comandos do projeto, cada um com uma frase a explicar o que faz (por exemplo `make preparar`, `make test`, `make test-avaliacao`).
 

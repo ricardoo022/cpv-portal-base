@@ -565,6 +565,35 @@ Como ler:
 - **Limitação:** o [cartão do Albertina](https://huggingface.co/PORTULAN/albertina-100m-portuguese-ptpt-encoder) diz que foi treinado "with a 128 token sequence truncation and dynamic padding" (cartão consultado a 14 de outubro de 2026; o artigo não foi lido), mas aceita até 512 posições (`max_position_embeddings`, célula dos tokenizadores), herdadas do DeBERTa original. Não se sabe se perde qualidade entre 128 e 256; a regra não olha para isso. Se o primeiro treino do Albertina (E5-T5) correr mal, é uma pista a ver.
 - Lição que generaliza: o comprimento de um texto mede-se com o tokenizador do modelo que o vai ler, não em palavras. Aqui, a mesma regra deu 256 nos dois modelos, mas 2,7 *tokens* por palavra no Albertina põem mais textos perto do limite do que os 2,05 do BERTimbau.
 
+### 21. Sinal de decorar do BERTimbau: falhou, e o erro não estava no código (E5-T4)
+
+Números de `metrics/bert/e5_t4_sinal_decorar/sinal_decorar.json` (oficial) e `metrics/bert/e5_t4_sinal_decorar_diag_100ep/sinal_decorar.json` (diagnóstico), commit `8403606`, RTX 4090.
+
+- **Resultado oficial, com a condição escrita antes de correr** (100 contratos, 3 000 etiquetas, 30 épocas, taxa 1e-4): **falhou.** Acertou 86 de 100 na última época, e nenhuma época chegou aos 95. A curva ainda subia: 28 na época 14, 58 na 20, 86 na 29 e na 30.
+- **Os 14 erros:** são todos contratos cuja etiqueta só aparece uma vez nos 100, e o modelo respondeu com uma etiqueta de outro dos 100 (13 vezes `33600000` ou `33140000`, as mais repetidas; contagem pela lista do ficheiro). Os 27 contratos com etiqueta repetida nos 100 estão todos certos.
+- **Diagnóstico, escrito depois de ver o falhanço** (o mesmo, mas 100 épocas): a primeira época com 95 ou mais é a **27**, e acaba em 100 de 100. Com 100 épocas, a taxa de aprendizagem desce mais devagar: na época 27 ainda vai a cerca de 81% do máximo, enquanto com 30 épocas já vai a cerca de 11%.
+- **Conclusão:** erro no código "não encontrado". As etiquetas estão ligadas aos textos certos, porque com etiquetas desalinhadas o modelo não chegaria a 100 de 100 contra as etiquetas verdadeiras. A causa é a condição que escolhemos: 30 épocas de 4 lotes dão 120 passos, e a taxa desce até zero nesse tempo. Foi um falso alarme por falta de passos, o mesmo risco que o YAML já descrevia para a taxa de 2e-5.
+- **Decisão do utilizador (6 de novembro de 2026):** o BERTimbau fica no épico e o treino completo avança. O sinal oficial continua a contar como falhado. Para o Albertina (E5-T5), a condição muda para 100 épocas, e diz-se que a mudança foi feita **depois** de ver este resultado.
+- Lição que generaliza: um teste de sanidade também pode estar mal calibrado. Quando falha, não se muda o limite às escondidas: regista-se o falhanço, mede-se a causa com uma experiência separada e escreve-se a nova regra como tal.
+
+### 22. Primeiro treino do BERTimbau (E5-T4)
+
+Números do run `e5_t4_bertimbau` da experiência `treinos_bert` no MLflow, feito de `metrics/bert/e5_t4_bertimbau/` (commit `8403606`, RTX 4090), e de `metrics/validacao.json` para o TF-IDF. Validação de outubro de 2025, 23 945 contratos, τ = 0,25, N = 10, 3 000 etiquetas.
+
+| Medida | Época 1 | Época 2 | Época 3 | TF-IDF em vigor |
+|---|---|---|---|---|
+| Top-5, código completo, todos | 68,03% | 72,37% | **73,39%** | 78,35% |
+| Top-5, classe, todos | 73,41% | 78,24% | 79,59% | 84,11% |
+| Top-5, código completo, texto novo | 65,05% | 69,30% | 70,36% | 75,14% |
+| Top-5, classe, texto novo | 71,44% | 76,27% | 77,76% | 82,18% |
+| Perda no treino | 4,447 | 2,862 | 2,542 | |
+
+- **Sinal de erro 2: passou.** 73,39% está bem acima da régua de 26,3%.
+- **Contra o TF-IDF:** esta configuração ficou cerca de 5 pontos abaixo no código completo, e cerca de 4,5 na classe. É um treino só, sem bootstrap, por isso não decide nada: a decisão é da E5-T6, depois da grelha do E5-S1.
+- **Não se sabe ainda se mais épocas ajudavam.** O ganho desce de 4,34 para 1,02 pontos da época 2 para a 3, mas a taxa de aprendizagem desce até zero no fim, por isso esta curva não mostra um limite do modelo.
+- **τ:** na última época, τ = 0 dá 73,52% e τ = 0,25 dá 73,39%. O τ que ajudou o TF-IDF quase não muda nada aqui; o E5-S1 testa-o na grelha.
+- Lição que generaliza: um modelo mais moderno e mais caro não ganha só por isso. Compara-se sempre com o modelo simples, nos mesmos dados e com a mesma regra.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):
