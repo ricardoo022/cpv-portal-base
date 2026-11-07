@@ -50,8 +50,8 @@ test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, p
 test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
 	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
 
-test-bert: ## Testes do BERT (E5-T2 a E5-T4) com modelos minúsculos de pesos aleatórios, só no processador
-	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py tests/integration/test_suggest_bert.py tests/integration/test_sinal_decorar.py tests/integration/test_experiencia_e5_t4.py
+test-bert: ## Testes do BERT (E5-T2 a E5-T5) com modelos minúsculos de pesos aleatórios, só no processador
+	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py tests/integration/test_suggest_bert.py tests/integration/test_sinal_decorar.py tests/integration/test_experiencias_bert.py
 
 test-tfidf: ## Testes do modelo TF-IDF, do treino e do comando de sugestões
 	$(PYTEST) -q tests/unit/test_tfidf.py tests/integration/test_tfidf_pipeline.py tests/integration/test_tfidf_dados_reais.py

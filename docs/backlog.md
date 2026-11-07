@@ -57,6 +57,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** sem ela não se sabe quando um modelo é bom o suficiente.
 
 **Critérios de aceitação:**
+
 - [x] O `readme.md` diz que a medida principal é o top-1 e o top-5 no código completo e na classe (4 dígitos).
 - [x] A divisão (2 dígitos) mede-se só para comparar com as réguas publicadas.
 - [x] O F1 macro reporta-se sempre, porque as classes são desequilibradas.
@@ -66,6 +67,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Pergunta:** criar um modelo de raiz ou tunar um que já sabe português? Quais?
 
 **Resultado:**
+
 - Tunar o BERTimbau base e o Albertina PT-PT 100M como classificadores, com o TF-IDF e a regressão logística como baseline.
 - AMALIA e Qwen ficam de fora.
 - Um só modelo para todos os códigos. Um modelo por divisão só se testa se o modelo único falhar muito dentro das divisões.
@@ -77,6 +79,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Objetivo:** saber o que os dados têm, que problemas trazem e que decisões isso obriga, sem espreitar o teste.
 
 **Medida de sucesso:**
+
 - Cada número do `qualidade_dados.md` sai de uma célula de notebook. ✅
 - Cada medição levou a uma decisão numerada. ✅
 - O teste (novembro e dezembro de 2025) não foi usado em nenhuma decisão. ✅
@@ -88,6 +91,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** sem dados não há nada.
 
 **Critérios de aceitação:**
+
 - [x] Os 15 ficheiros .xlsx do Portal BASE (2012 a 2026) estão em `data/raw/`, com as mesmas 39 colunas em todos.
 - [x] Voltar a correr o download não descarrega outra vez os ficheiros que não mudaram.
 - [x] Um download interrompido não deixa um ficheiro meio escrito com o nome final.
@@ -97,6 +101,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** ler um .xlsx demora cerca de 1 minuto; o Parquet lê-se em segundos.
 
 **Critérios de aceitação:**
+
 - [x] Cada ficheiro .xlsx dá um Parquet com as mesmas linhas e as mesmas 39 colunas, todas como texto.
 - [x] As datas em número de série do Excel aparecem como datas normais.
 
@@ -105,6 +110,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** é preciso saber que colunas podem entrar no modelo sem fuga de dados.
 
 **Critérios de aceitação:**
+
 - [x] O [`dados.md`](dados.md) diz, para cada coluna, o que é, quanto está preenchida, exemplos, se existe quando o técnico escolhe o código e se a usamos.
 
 ### E2-S1 · Spike: os dados têm problemas técnicos? (feito)
@@ -112,6 +118,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Pergunta:** há campos vazios, contratos repetidos, vários códigos na mesma célula, textos duplicados?
 
 **Resultado:** secções 1 a 6 do `qualidade_dados.md` e decisões 2 a 4:
+
 - tirar os contratos sem CPV;
 - uma só cópia de cada `idcontrato`;
 - treinar com o primeiro código e avaliar com todos.
@@ -121,6 +128,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Pergunta:** que colunas ajudam os textos vagos? O mesmo texto tem sempre o mesmo código? A que nível da árvore se escolhem os códigos? Quantos exemplos tem cada código?
 
 **Resultado:** secções 7 a 10 do `qualidade_dados.md`, medidas com o treino final, e decisões 5 a 8:
+
 - o texto de entrada junta a descrição do acordo-quadro;
 - a `adjudicante` fica só como experiência;
 - no treino, um exemplo por texto, com o código mais comum;
@@ -139,6 +147,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Objetivo:** três conjuntos separados por data, criados por um script que se pode voltar a correr, que para sozinho se uma regra for violada, e com testes que provam que as regras se cumprem.
 
 **Medida de sucesso:**
+
 - A preparação cria treino (478 384 exemplos), validação (23 945 contratos) e teste (37 361 contratos). ✅
 - 70 testes passam no CI em cada envio. ✅
 - Os testes apanharam os 9 erros introduzidos de propósito (a lista dos erros não ficou guardada no repositório). ✅
@@ -150,6 +159,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** o modelo vai ser usado com contratos futuros, por isso avalia-se com contratos mais recentes do que os do treino.
 
 **Critérios de aceitação:**
+
 - [x] O treino só tem contratos publicados de janeiro de 2022 a setembro de 2025; a validação, de outubro de 2025; o teste, de novembro e dezembro de 2025.
 - [x] Nenhum contrato aparece em mais do que uma parte.
 
@@ -158,6 +168,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** é o que o modelo lê e o que aprende a responder (decisões 4 e 5).
 
 **Critérios de aceitação:**
+
 - [x] O texto junta o objeto, a descrição (só se for diferente) e a descrição do acordo-quadro (só se existir).
 - [x] A etiqueta é o primeiro código; os restantes ficam guardados para a avaliação.
 - [x] Campos vazios nunca aparecem escritos como "None" ou "nan" no texto.
@@ -167,6 +178,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** o treino não deve ter contradições nem códigos genéricos; a avaliação tem de refletir a realidade (decisões 6 e 8).
 
 **Critérios de aceitação:**
+
 - [x] No treino não há códigos ao nível da divisão nem textos repetidos. Cada texto tem o seu código mais comum (empate: o menor código).
 - [x] Na validação e no teste ficam todos os contratos, marcados quando o texto também aparece no treino.
 
@@ -175,6 +187,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** um erro nos dados não dá erro nenhum sozinho; só dá um modelo pior.
 
 **Critérios de aceitação:**
+
 - [x] A preparação para com erro se houver contratos repetidos entre partes, datas fora do período, códigos ao nível da divisão no treino, textos repetidos no treino ou códigos mal formados.
 - [x] As verificações não se desligam com o modo otimizado do Python (`-O`).
 
@@ -183,6 +196,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** um modelo não aprende um código com 1 ou 2 exemplos (decisão 9).
 
 **Critérios de aceitação:**
+
 - [x] Um código com menos de N exemplos no treino sobe para a classe; se a classe também for rara, para o grupo; se o grupo também for raro, o exemplo sai.
 - [x] Nunca se sobe até à divisão.
 - [x] As contagens fazem-se só com o treino.
@@ -193,6 +207,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** para mudar o código sem medo de partir uma regra sem dar por isso.
 
 **Critérios de aceitação:**
+
 - [x] Cada regra das tarefas E3-T1 a E3-T5 tem pelo menos um teste.
 - [x] Um teste de integração corre o pipeline inteiro, de .xlsx a treino/validação/teste, com 15 linhas inventadas (14 contratos: um aparece em dois ficheiros, de propósito), e verifica onde acaba cada um.
 - [x] Correr duas vezes dá exatamente os mesmos ficheiros.
@@ -313,21 +328,20 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
    - a `LogisticRegression` treina um só modelo para todas as etiquetas;
    - o SGD treina um modelo "sim/não" por etiqueta (um contra todos), ajustando os pesos exemplo a exemplo, com a regularização `alpha` = 0,0001 (o valor por defeito).
 
-   Decisão 5 do E4: o TF-IDF usa o `SGDClassifier(loss="log_loss")`. Escolheu-se pela velocidade, sem medir a qualidade. Confirmada no E4-H1: bateu a régua na validação.
+    Decisão 5 do E4: o TF-IDF usa o `SGDClassifier(loss="log_loss")`. Escolheu-se pela velocidade, sem medir a qualidade. Confirmada no E4-H1: bateu a régua na validação.
 2. **Treino completo no pod** (TF-IDF com palavras e pares de palavras, `min_df=2`, valores em float32; `SGDClassifier(loss="log_loss", n_jobs=-1)` num pod com 8 processadores):
-
    | | N = 10 | N = 5 |
-   |---|---|---|
-   | exemplos de treino | 478 234 | 478 334 |
-   | etiquetas | 3 000 | 3 848 |
-   | vocabulário | 402 084 | 402 154 |
-   | vetorizar | 7,9 s | 8,8 s |
-   | treinar | 462 s (7,7 min) | 616 s (10,3 min) |
-   | épocas até convergir | 6 | 6 |
-   | pesos do modelo | 4,8 GB | 6,2 GB |
-   | pico de memória do processo | 5,7 GB | 7,2 GB |
+    |---|---|---|
+    | exemplos de treino | 478 234 | 478 334 |
+    | etiquetas | 3 000 | 3 848 |
+    | vocabulário | 402 084 | 402 154 |
+    | vetorizar | 7,9 s | 8,8 s |
+    | treinar | 462 s (7,7 min) | 616 s (10,3 min) |
+    | épocas até convergir | 6 | 6 |
+    | pesos do modelo | 4,8 GB | 6,2 GB |
+    | pico de memória do processo | 5,7 GB | 7,2 GB |
 
-   Todas as memórias estão em GB (mil milhões de bytes). O pico do processo vem do `pico_rss_mb.final` do `pod.jsonl`, que está em MiB: por exemplo, 5 480 MiB × 1 048 576 bytes ≈ 5,7 GB. O pico de memória do pod inteiro (`memory.peak` do cgroup, em `pod_info.json`) foi 8,3 GB, de 32 GB. O campo `nucleos` do `pod.jsonl` diz 192, mas esse é o número de núcleos da máquina física; o pod tinha 8. Não ficou registado quantos núcleos o treino usou de facto.
+    Todas as memórias estão em GB (mil milhões de bytes). O pico do processo vem do `pico_rss_mb.final` do `pod.jsonl`, que está em MiB: por exemplo, 5 480 MiB × 1 048 576 bytes ≈ 5,7 GB. O pico de memória do pod inteiro (`memory.peak` do cgroup, em `pod_info.json`) foi 8,3 GB, de 32 GB. O campo `nucleos` do `pod.jsonl` diz 192, mas esse é o número de núcleos da máquina física; o pod tinha 8. Não ficou registado quantos núcleos o treino usou de facto.
 3. **Tipo de pod confirmado:** `cpu3g` (General Purpose) com 8 processadores e 32 GB, a 0,32 $/h. Os 32 GB chegam com folga, e o portátil (cerca de 5,8 GB) não chegava. Custo do ensaio, pelas horas do `pod_info.json`:
    - o pod esteve ligado das 09:54:30 às cerca de 10:15:30 (UTC), cerca de 21 minutos (0,35 h);
    - 0,35 h × 0,32 $/h ≈ 0,11 $;
@@ -415,14 +429,14 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 **Porque é precisa:** o TF-IDF vai ser a régua do BERTimbau e do Albertina. Ficaram duas coisas por medir que podem mudar o seu resultado:
 
 - **as épocas** (passagens completas pelo treino): hoje o treino para sozinho, pela regra por defeito do scikit-learn, quando o erro **no treino** não baixa pelo menos 0,001 em 5 épocas seguidas. Há um classificador por etiqueta e cada um para quando a regra lho diz; o mais lento parou ao fim de 6 épocas no E4-H1 e de 12 com o `alpha` do E4-S4 (`metrics/e4_s4/alpha_1e-7/treino.json` guarda só esse máximo). Nunca se mediu se outro número de épocas dá melhor resultado na **validação**;
-- **o `alpha`** = 0,00000001: o 0,0000001 ganhou no E4-S4 e é o extremo da lista testada (limitação da secção 14 do `qualidade_dados.md`).
+- **o** `alpha` = 0,00000001: o 0,0000001 ganhou no E4-S4 e é o extremo da lista testada (limitação da secção 14 do `qualidade_dados.md`).
 
 As duas fazem-se numa só ida ao pod.
 
 **Duas notas da revisão do E4-H1 por um agente juiz** (12 de outubro de 2026):
 
 - **Porque a paragem automática pode chegar cedo demais.** No scikit-learn 1.7.2, cada classificador para quando a soma do erro sobre **todos** os exemplos de treino não desce mais do que 0,001 × o número de exemplos (cerca de 478 numa soma sobre ~478 mil exemplos; `_sgd_fast.pyx.tp`, linha 571). Numa etiqueta rara, quase todos os exemplos são "não" e acerta-se neles depressa, por isso a soma pode ficar abaixo desse limite logo nas primeiras épocas, mesmo que os poucos exemplos "sim" ainda estejam mal aprendidos. É uma suspeita, não uma medição: é o passo 3 que a confirma ou não.
-- **O `alpha` não muda só a regularização.** O treino usa a taxa de aprendizagem por defeito, `learning_rate="optimal"`, em que o tamanho de cada passo é 1 / (`alpha` × (t + t0)). Um `alpha` mais pequeno dá passos maiores e pode mudar quando a paragem automática chega. Por isso, no passo 1 a comparação de `alpha` mistura três efeitos (regularização, tamanho do passo e número de épocas), e o mesmo vale para o ganho de 43% para 77% no E4-S4, que a secção 14 atribui à regularização. A conclusão sobre o `alpha` escreve-se com este aviso; separar os efeitos só é possível com épocas fixas (passo 3).
+- **O** `alpha` **não muda só a regularização.** O treino usa a taxa de aprendizagem por defeito, `learning_rate="optimal"`, em que o tamanho de cada passo é 1 / (`alpha` × (t + t0)). Um `alpha` mais pequeno dá passos maiores e pode mudar quando a paragem automática chega. Por isso, no passo 1 a comparação de `alpha` mistura três efeitos (regularização, tamanho do passo e número de épocas), e o mesmo vale para o ganho de 43% para 77% no E4-S4, que a secção 14 atribui à regularização. A conclusão sobre o `alpha` escreve-se com este aviso; separar os efeitos só é possível com épocas fixas (passo 3).
 
 **Pergunta:** um `alpha` de 0,00000001, ou parar o treino noutra época, melhoram as sugestões na validação?
 
@@ -430,7 +444,7 @@ As duas fazem-se numa só ida ao pod.
 
 **Como** (com o treino completo, no pod), em três passos, pela ordem:
 
-1. **`alpha`**, com τ = 0: o 0,00000001 contra o 0,0000001, que é a opção em vigor. Se o 0,00000001 ganhar, adota-se, e escreve-se que continua a ser o extremo da lista; não se acrescentam valores mais pequenos neste spike.
+1. `alpha`, com τ = 0: o 0,00000001 contra o 0,0000001, que é a opção em vigor. Se o 0,00000001 ganhar, adota-se, e escreve-se que continua a ser o extremo da lista; não se acrescentam valores mais pequenos neste spike.
 2. **τ**, só se o `alpha` mudar: volta a escolher-se o τ com o `alpha` novo, com a lista e a regra do E4-S4 (0, 0,25, 0,5 e 1, a começar em τ = 0).
 3. **Épocas**, com o `alpha` e o τ em vigor. A opção em vigor é a regra por defeito (cada etiqueta para sozinha). Os candidatos são um número fixo de épocas, igual para todas as etiquetas e sem paragem automática, desta lista curta, escrita antes de correr: 3, 6, 12, 18 e 24 épocas. Cada candidato compara-se com a opção em vigor, por esta ordem.
 
@@ -640,9 +654,7 @@ E4-T4 ────────────────────────�
 4. **A E4-H1 fica como história**, com uma nota a dizer que o técnico só a recebe quando houver interface.
 5. **Classificador do TF-IDF** (11 de outubro de 2026): `SGDClassifier(loss="log_loss")`, porque a `LogisticRegression` com o solver `saga` não treina em tempo útil com cerca de 3 000 etiquetas. Foi escolhida só pela velocidade e ficou confirmada no E4-H1, porque bateu a régua na validação (secção 13 do `qualidade_dados.md`). Ver o E4-S0.
 6. **Regularização e correção das etiquetas frequentes do TF-IDF** (11 de outubro de 2026, spike E4-S4): `alpha` = 0,0000001 (em vez do valor por defeito do scikit-learn, 0,0001) e τ = 0,25. Escolhidos na validação com a regra do E4-T1, escrita antes de correr. O `alpha` 0,0000001 foi acrescentado à lista depois de ver os resultados, porque o 0,000001 ganhou e era o extremo da lista. O 0,0000001 voltou a ganhar e continua no extremo; o 0,00000001 não foi testado (limitação escrita na secção 14 do `qualidade_dados.md`).
-
 7. **Épocas do TF-IDF** (12 de outubro de 2026, spike E4-S5): 24 épocas fixas, iguais para todas as etiquetas, sem a paragem automática do scikit-learn (`EPOCAS = 24` em `src/tfidf.py`). O `alpha` e o τ da decisão 6 mantêm-se: o `alpha` 0,00000001 perdeu. Escolhidos na validação com a regra do E4-T1 e a lista escrita antes de correr (`experiencias/e4_s5.yaml`). Só vale para N = 10 e o treino desde 2022. O E4-S2 continua a comparar as suas opções com a regra por defeito, e as épocas voltam a medir-se no fim, para o N e a janela escolhidos. O E4-S1 reabre as épocas dentro de uma grelha N × épocas × τ, porque o número ótimo de épocas depende do N (mudado a 13 de outubro de 2026 — ver o E4-S1). 24 é o extremo da lista testada (limitação escrita na secção 15 do `qualidade_dados.md`).
-
 8. **Portão de qualidade** (14 de outubro de 2026, E4-T5): a referência é o campeão (o melhor modelo até agora), não a régua, e qualquer descida num top-5 do portão recusa o modelo novo. Num empate o campeão não muda (o ficheiro aponta sempre para o registo fixo de quem ganhou primeiro); só uma subida sem nenhuma descida o troca. O MLflow faz a comparação (`validate_evaluation_results`) e regista cada avaliação num ficheiro local no portátil (`mlflow.db`), sem servidor na web. O CI não tem os dados: compara o `metrics/validacao.json` do ramo com o do `main`.
 
 ### Decisões pendentes do E4
@@ -762,7 +774,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 - [x] **Sinal de erro 2:** o treino completo tem top-5 no código completo acima de 26,3% na validação.
 - [x] Dada uma descrição de compra, o comando de sugestões devolve 5 códigos deste modelo, nenhum ao nível da divisão.
 - [x] Os ficheiros de treino e de validação no pod têm a mesma impressão digital (SHA-256) que no portátil, e nenhum caminho aponta para o teste.
-- [ ] Depois de copiar a pasta do `--saida` e de `make registar-bert`, a página do MLflow (`make mlflow`) mostra o treino na tabela da experiência `treinos_bert`, com a curva do top-5 por época, e o commit gravado é o do código que treinou (critério 2 do E5-T3, que só se vê com um treino real).
+- [x] Depois de copiar a pasta do `--saida` e de `make registar-bert`, a página do MLflow (`make mlflow`) mostra o treino na tabela da experiência `treinos_bert`, com a curva do top-5 por época, e o commit gravado é o do código que treinou (critério 2 do E5-T3, que só se vê com um treino real).
 - [x] O tempo, a memória da GPU e o custo do treino ficam num ficheiro em `metrics/`, e o pod é terminado logo a seguir a copiar os resultados.
 
 **Resultado:** treino completo com a receita de Devlin et al. (2019), porque o artigo do BERTimbau não dá uma receita para esta tarefa, no commit `8403606`, sem alterações por gravar. Top-5 no código completo de **73,39%**, acima da régua de 26,3%, e abaixo dos 78,35% do TF-IDF, sem comparação por bootstrap, que é da E5-T6 (secção 22 do [`qualidade_dados.md`](qualidade_dados.md)). Ensaio de 200 passos: cerca de 18 minutos por época. Treino completo: 3 370,85 s, 10 678 MB de pico reservado, cerca de 0,83 $ (ao preço de 0,89 $/h numa RTX 4090; as mais baratas estavam sem stock). O pod inteiro, com instalação e sinais, custou cerca de 1,86 $ por cálculo; a fatura lida logo a seguir a apagar mostrava 1,00 $, e essa diferença não está explicada ([`pod_info.json`](../metrics/bert/e5_t4_bertimbau/pod_info.json)). **O sinal de erro 1 falhou nas condições escritas** (secção 21): 86 de 100 em 30 épocas. O diagnóstico com 100 épocas chegou aos 95 na época 27 e acabou em 100 de 100, por isso a causa é o número de passos, e não um erro encontrado no código. O utilizador decidiu avançar a 6 de novembro de 2026; o E5-T5 usa 100 épocas, mudança feita depois de ver este resultado. O MLflow foi verificado com a página a responder e com a API (o run, o commit e a curva); falta o utilizador ver a página aberta, em `http://127.0.0.1:5000`, porque neste Mac `localhost:5000` cai no AirPlay e dá 403. Os checkpoints e as pontuações ficaram no pod e perderam-se com ele, como previsto: a grelha do E5-S1 repete esta configuração. **Custo que falta:** faltam 23 dos 24 treinos planeados, e a 0,83 $ dão cerca de 19,2 $, mais do que os cerca de 18,1 $ que sobram do teto, ainda sem instalação nem o Albertina medido. A grelha do E5-S1 vai ter de encolher, como o item já prevê; decide-se depois do ensaio de custo do E5-T5.
@@ -902,5 +914,4 @@ E5-T1 ───────────────────────┴�
 ## Ideias para depois (ainda não são épicos)
 
 - **Grelha de épocas na janela desde 2019** (14 de outubro de 2026, do E4-S6): no E4-S6, a janela desde 2019 empatou com a de 2022 usando as 24 épocas afinadas para 2022. Talvez tenha outro número ótimo de épocas. Correr a grelha de épocas (a regra por defeito, 3, 6, 12, 18 e 24) desde 2019 só vale a pena se o custo de GPU do E5 o justificar: cada treino desde 2019 custa quase o dobro.
-
 - **Interface por níveis da árvore** (proposta a 10 de outubro de 2026): em vez de uma lista de 5 códigos, o técnico escolhe a divisão, depois o grupo, depois a classe, com o modelo a ordenar as opções em cada passo. Ajudaria quando o técnico só sabe a área da compra. O projeto de Zwolle/Haskoning treinou um modelo por nível (ver `readme.md`). Fica para quando houver interface, que está fora do E4.
