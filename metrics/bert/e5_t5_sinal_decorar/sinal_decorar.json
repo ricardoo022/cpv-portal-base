@@ -1,0 +1,1048 @@
+{
+ "data": "2026-11-07T11:31:01",
+ "acertos": 100,
+ "contratos": 100,
+ "top1": 1.0,
+ "criterio_acertos": 95,
+ "primeira_epoca_criterio": 18,
+ "passou": true,
+ "modelo": {
+  "chave": "albertina",
+  "nome": "PORTULAN/albertina-100m-portuguese-ptpt-encoder",
+  "revisao": "d15e086005cdab26d746d9113984cc654439df2b"
+ },
+ "max_length": 256,
+ "n_min": 10,
+ "etiquetas": 3000,
+ "etiquetas_nos_contratos": 83,
+ "taxa_aprendizagem": 0.0001,
+ "epocas": 100,
+ "lote": 32,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "dispositivo": "cuda",
+ "gpu": "NVIDIA GeForce RTX 4090",
+ "por_epoca": [
+  {
+   "epoca": 1,
+   "acertos": 0,
+   "perda_treino": 8.012514114379883
+  },
+  {
+   "epoca": 2,
+   "acertos": 0,
+   "perda_treino": 7.982019901275635
+  },
+  {
+   "epoca": 3,
+   "acertos": 3,
+   "perda_treino": 7.905148983001709
+  },
+  {
+   "epoca": 4,
+   "acertos": 10,
+   "perda_treino": 7.697238922119141
+  },
+  {
+   "epoca": 5,
+   "acertos": 8,
+   "perda_treino": 7.545719146728516
+  },
+  {
+   "epoca": 6,
+   "acertos": 15,
+   "perda_treino": 7.203907489776611
+  },
+  {
+   "epoca": 7,
+   "acertos": 13,
+   "perda_treino": 6.991759300231934
+  },
+  {
+   "epoca": 8,
+   "acertos": 36,
+   "perda_treino": 6.634243011474609
+  },
+  {
+   "epoca": 9,
+   "acertos": 26,
+   "perda_treino": 6.23207426071167
+  },
+  {
+   "epoca": 10,
+   "acertos": 44,
+   "perda_treino": 5.77010440826416
+  },
+  {
+   "epoca": 11,
+   "acertos": 37,
+   "perda_treino": 5.296998023986816
+  },
+  {
+   "epoca": 12,
+   "acertos": 45,
+   "perda_treino": 4.8421735763549805
+  },
+  {
+   "epoca": 13,
+   "acertos": 57,
+   "perda_treino": 4.228470802307129
+  },
+  {
+   "epoca": 14,
+   "acertos": 77,
+   "perda_treino": 3.420255184173584
+  },
+  {
+   "epoca": 15,
+   "acertos": 77,
+   "perda_treino": 3.061901092529297
+  },
+  {
+   "epoca": 16,
+   "acertos": 94,
+   "perda_treino": 2.4891412258148193
+  },
+  {
+   "epoca": 17,
+   "acertos": 92,
+   "perda_treino": 2.0677127838134766
+  },
+  {
+   "epoca": 18,
+   "acertos": 99,
+   "perda_treino": 1.7951558828353882
+  },
+  {
+   "epoca": 19,
+   "acertos": 100,
+   "perda_treino": 1.514939308166504
+  },
+  {
+   "epoca": 20,
+   "acertos": 100,
+   "perda_treino": 1.0396603345870972
+  },
+  {
+   "epoca": 21,
+   "acertos": 100,
+   "perda_treino": 0.8641418814659119
+  },
+  {
+   "epoca": 22,
+   "acertos": 100,
+   "perda_treino": 0.7402399182319641
+  },
+  {
+   "epoca": 23,
+   "acertos": 100,
+   "perda_treino": 0.5187016129493713
+  },
+  {
+   "epoca": 24,
+   "acertos": 100,
+   "perda_treino": 0.41969630122184753
+  },
+  {
+   "epoca": 25,
+   "acertos": 100,
+   "perda_treino": 0.3133818507194519
+  },
+  {
+   "epoca": 26,
+   "acertos": 100,
+   "perda_treino": 0.2627915143966675
+  },
+  {
+   "epoca": 27,
+   "acertos": 100,
+   "perda_treino": 0.18360531330108643
+  },
+  {
+   "epoca": 28,
+   "acertos": 100,
+   "perda_treino": 0.15241093933582306
+  },
+  {
+   "epoca": 29,
+   "acertos": 100,
+   "perda_treino": 0.14658688008785248
+  },
+  {
+   "epoca": 30,
+   "acertos": 100,
+   "perda_treino": 0.10278723388910294
+  },
+  {
+   "epoca": 31,
+   "acertos": 100,
+   "perda_treino": 0.07193182408809662
+  },
+  {
+   "epoca": 32,
+   "acertos": 100,
+   "perda_treino": 0.06463116407394409
+  },
+  {
+   "epoca": 33,
+   "acertos": 100,
+   "perda_treino": 0.04856513813138008
+  },
+  {
+   "epoca": 34,
+   "acertos": 100,
+   "perda_treino": 0.04046592861413956
+  },
+  {
+   "epoca": 35,
+   "acertos": 100,
+   "perda_treino": 0.03301985561847687
+  },
+  {
+   "epoca": 36,
+   "acertos": 100,
+   "perda_treino": 0.030480951070785522
+  },
+  {
+   "epoca": 37,
+   "acertos": 100,
+   "perda_treino": 0.028110362589359283
+  },
+  {
+   "epoca": 38,
+   "acertos": 100,
+   "perda_treino": 0.023736149072647095
+  },
+  {
+   "epoca": 39,
+   "acertos": 100,
+   "perda_treino": 0.024231266230344772
+  },
+  {
+   "epoca": 40,
+   "acertos": 100,
+   "perda_treino": 0.018493253737688065
+  },
+  {
+   "epoca": 41,
+   "acertos": 100,
+   "perda_treino": 0.021067269146442413
+  },
+  {
+   "epoca": 42,
+   "acertos": 100,
+   "perda_treino": 0.017887335270643234
+  },
+  {
+   "epoca": 43,
+   "acertos": 100,
+   "perda_treino": 0.016989273950457573
+  },
+  {
+   "epoca": 44,
+   "acertos": 100,
+   "perda_treino": 0.014218192547559738
+  },
+  {
+   "epoca": 45,
+   "acertos": 100,
+   "perda_treino": 0.015587504021823406
+  },
+  {
+   "epoca": 46,
+   "acertos": 100,
+   "perda_treino": 0.014106567949056625
+  },
+  {
+   "epoca": 47,
+   "acertos": 100,
+   "perda_treino": 0.014558671042323112
+  },
+  {
+   "epoca": 48,
+   "acertos": 100,
+   "perda_treino": 0.011292756535112858
+  },
+  {
+   "epoca": 49,
+   "acertos": 100,
+   "perda_treino": 0.012331030331552029
+  },
+  {
+   "epoca": 50,
+   "acertos": 100,
+   "perda_treino": 0.011394297704100609
+  },
+  {
+   "epoca": 51,
+   "acertos": 100,
+   "perda_treino": 0.010559804737567902
+  },
+  {
+   "epoca": 52,
+   "acertos": 100,
+   "perda_treino": 0.010905876755714417
+  },
+  {
+   "epoca": 53,
+   "acertos": 100,
+   "perda_treino": 0.011021768674254417
+  },
+  {
+   "epoca": 54,
+   "acertos": 100,
+   "perda_treino": 0.01022025104612112
+  },
+  {
+   "epoca": 55,
+   "acertos": 100,
+   "perda_treino": 0.009490665048360825
+  },
+  {
+   "epoca": 56,
+   "acertos": 100,
+   "perda_treino": 0.008645272813737392
+  },
+  {
+   "epoca": 57,
+   "acertos": 100,
+   "perda_treino": 0.008894729427993298
+  },
+  {
+   "epoca": 58,
+   "acertos": 100,
+   "perda_treino": 0.008335629478096962
+  },
+  {
+   "epoca": 59,
+   "acertos": 100,
+   "perda_treino": 0.008058281615376472
+  },
+  {
+   "epoca": 60,
+   "acertos": 100,
+   "perda_treino": 0.008958098478615284
+  },
+  {
+   "epoca": 61,
+   "acertos": 100,
+   "perda_treino": 0.06811364740133286
+  },
+  {
+   "epoca": 62,
+   "acertos": 100,
+   "perda_treino": 0.008516011759638786
+  },
+  {
+   "epoca": 63,
+   "acertos": 100,
+   "perda_treino": 0.008570481091737747
+  },
+  {
+   "epoca": 64,
+   "acertos": 100,
+   "perda_treino": 0.007015088573098183
+  },
+  {
+   "epoca": 65,
+   "acertos": 100,
+   "perda_treino": 0.00750452047213912
+  },
+  {
+   "epoca": 66,
+   "acertos": 100,
+   "perda_treino": 0.007803715765476227
+  },
+  {
+   "epoca": 67,
+   "acertos": 100,
+   "perda_treino": 0.006760192569345236
+  },
+  {
+   "epoca": 68,
+   "acertos": 100,
+   "perda_treino": 0.007034271955490112
+  },
+  {
+   "epoca": 69,
+   "acertos": 100,
+   "perda_treino": 0.0066651166416704655
+  },
+  {
+   "epoca": 70,
+   "acertos": 100,
+   "perda_treino": 0.006884513422846794
+  },
+  {
+   "epoca": 71,
+   "acertos": 100,
+   "perda_treino": 0.006906963884830475
+  },
+  {
+   "epoca": 72,
+   "acertos": 100,
+   "perda_treino": 0.006399272475391626
+  },
+  {
+   "epoca": 73,
+   "acertos": 100,
+   "perda_treino": 0.006358972284942865
+  },
+  {
+   "epoca": 74,
+   "acertos": 100,
+   "perda_treino": 0.007161683868616819
+  },
+  {
+   "epoca": 75,
+   "acertos": 100,
+   "perda_treino": 0.00647130748257041
+  },
+  {
+   "epoca": 76,
+   "acertos": 100,
+   "perda_treino": 0.006225499324500561
+  },
+  {
+   "epoca": 77,
+   "acertos": 100,
+   "perda_treino": 0.006200588308274746
+  },
+  {
+   "epoca": 78,
+   "acertos": 100,
+   "perda_treino": 0.005285340361297131
+  },
+  {
+   "epoca": 79,
+   "acertos": 100,
+   "perda_treino": 0.005726936273276806
+  },
+  {
+   "epoca": 80,
+   "acertos": 100,
+   "perda_treino": 0.0057247476652264595
+  },
+  {
+   "epoca": 81,
+   "acertos": 100,
+   "perda_treino": 0.005588742904365063
+  },
+  {
+   "epoca": 82,
+   "acertos": 100,
+   "perda_treino": 0.006422918289899826
+  },
+  {
+   "epoca": 83,
+   "acertos": 100,
+   "perda_treino": 0.005441694520413876
+  },
+  {
+   "epoca": 84,
+   "acertos": 100,
+   "perda_treino": 0.005198963452130556
+  },
+  {
+   "epoca": 85,
+   "acertos": 100,
+   "perda_treino": 0.005484296474605799
+  },
+  {
+   "epoca": 86,
+   "acertos": 100,
+   "perda_treino": 0.006113470532000065
+  },
+  {
+   "epoca": 87,
+   "acertos": 100,
+   "perda_treino": 0.005697804503142834
+  },
+  {
+   "epoca": 88,
+   "acertos": 100,
+   "perda_treino": 0.005900499410927296
+  },
+  {
+   "epoca": 89,
+   "acertos": 100,
+   "perda_treino": 0.005440845154225826
+  },
+  {
+   "epoca": 90,
+   "acertos": 100,
+   "perda_treino": 0.005613064859062433
+  },
+  {
+   "epoca": 91,
+   "acertos": 100,
+   "perda_treino": 0.005552200134843588
+  },
+  {
+   "epoca": 92,
+   "acertos": 100,
+   "perda_treino": 0.006029860116541386
+  },
+  {
+   "epoca": 93,
+   "acertos": 100,
+   "perda_treino": 0.005347395781427622
+  },
+  {
+   "epoca": 94,
+   "acertos": 100,
+   "perda_treino": 0.005248127039521933
+  },
+  {
+   "epoca": 95,
+   "acertos": 100,
+   "perda_treino": 0.00539855333045125
+  },
+  {
+   "epoca": 96,
+   "acertos": 100,
+   "perda_treino": 0.004946461878716946
+  },
+  {
+   "epoca": 97,
+   "acertos": 100,
+   "perda_treino": 0.005762754939496517
+  },
+  {
+   "epoca": 98,
+   "acertos": 100,
+   "perda_treino": 0.005185585469007492
+  },
+  {
+   "epoca": 99,
+   "acertos": 100,
+   "perda_treino": 0.005851893685758114
+  },
+  {
+   "epoca": 100,
+   "acertos": 100,
+   "perda_treino": 0.0054261391051113605
+  }
+ ],
+ "contratos_sorteados": [
+  {
+   "idcontrato": "8618132",
+   "etiqueta": "39130000",
+   "top1": "39130000"
+  },
+  {
+   "idcontrato": "8663799",
+   "etiqueta": "60100000",
+   "top1": "60100000"
+  },
+  {
+   "idcontrato": "8723292",
+   "etiqueta": "15500000",
+   "top1": "15500000"
+  },
+  {
+   "idcontrato": "8821763",
+   "etiqueta": "45454000",
+   "top1": "45454000"
+  },
+  {
+   "idcontrato": "8874348",
+   "etiqueta": "15810000",
+   "top1": "15810000"
+  },
+  {
+   "idcontrato": "8923766",
+   "etiqueta": "90911200",
+   "top1": "90911200"
+  },
+  {
+   "idcontrato": "8976258",
+   "etiqueta": "71600000",
+   "top1": "71600000"
+  },
+  {
+   "idcontrato": "9048209",
+   "etiqueta": "44110000",
+   "top1": "44110000"
+  },
+  {
+   "idcontrato": "9124525",
+   "etiqueta": "22200000",
+   "top1": "22200000"
+  },
+  {
+   "idcontrato": "9198906",
+   "etiqueta": "44100000",
+   "top1": "44100000"
+  },
+  {
+   "idcontrato": "9206687",
+   "etiqueta": "30190000",
+   "top1": "30190000"
+  },
+  {
+   "idcontrato": "9219449",
+   "etiqueta": "79953000",
+   "top1": "79953000"
+  },
+  {
+   "idcontrato": "9250352",
+   "etiqueta": "45233252",
+   "top1": "45233252"
+  },
+  {
+   "idcontrato": "9263740",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9347454",
+   "etiqueta": "33760000",
+   "top1": "33760000"
+  },
+  {
+   "idcontrato": "9390739",
+   "etiqueta": "39800000",
+   "top1": "39800000"
+  },
+  {
+   "idcontrato": "9487196",
+   "etiqueta": "44167000",
+   "top1": "44167000"
+  },
+  {
+   "idcontrato": "9489195",
+   "etiqueta": "51112100",
+   "top1": "51112100"
+  },
+  {
+   "idcontrato": "9652902",
+   "etiqueta": "79992000",
+   "top1": "79992000"
+  },
+  {
+   "idcontrato": "9806920",
+   "etiqueta": "71311200",
+   "top1": "71311200"
+  },
+  {
+   "idcontrato": "9813401",
+   "etiqueta": "60100000",
+   "top1": "60100000"
+  },
+  {
+   "idcontrato": "9834154",
+   "etiqueta": "45300000",
+   "top1": "45300000"
+  },
+  {
+   "idcontrato": "9855549",
+   "etiqueta": "34351100",
+   "top1": "34351100"
+  },
+  {
+   "idcontrato": "9874661",
+   "etiqueta": "72590000",
+   "top1": "72590000"
+  },
+  {
+   "idcontrato": "9944534",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "9963732",
+   "etiqueta": "45262690",
+   "top1": "45262690"
+  },
+  {
+   "idcontrato": "9975265",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10012217",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10042679",
+   "etiqueta": "15810000",
+   "top1": "15810000"
+  },
+  {
+   "idcontrato": "10070257",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "10113600",
+   "etiqueta": "92312110",
+   "top1": "92312110"
+  },
+  {
+   "idcontrato": "10169777",
+   "etiqueta": "79521000",
+   "top1": "79521000"
+  },
+  {
+   "idcontrato": "10174532",
+   "etiqueta": "18222000",
+   "top1": "18222000"
+  },
+  {
+   "idcontrato": "10180221",
+   "etiqueta": "45113000",
+   "top1": "45113000"
+  },
+  {
+   "idcontrato": "10187564",
+   "etiqueta": "90920000",
+   "top1": "90920000"
+  },
+  {
+   "idcontrato": "10204610",
+   "etiqueta": "72212000",
+   "top1": "72212000"
+  },
+  {
+   "idcontrato": "10209359",
+   "etiqueta": "33698000",
+   "top1": "33698000"
+  },
+  {
+   "idcontrato": "10218182",
+   "etiqueta": "55120000",
+   "top1": "55120000"
+  },
+  {
+   "idcontrato": "10238070",
+   "etiqueta": "34920000",
+   "top1": "34920000"
+  },
+  {
+   "idcontrato": "10289849",
+   "etiqueta": "60130000",
+   "top1": "60130000"
+  },
+  {
+   "idcontrato": "10293832",
+   "etiqueta": "80500000",
+   "top1": "80500000"
+  },
+  {
+   "idcontrato": "10381993",
+   "etiqueta": "35125000",
+   "top1": "35125000"
+  },
+  {
+   "idcontrato": "10431178",
+   "etiqueta": "45212100",
+   "top1": "45212100"
+  },
+  {
+   "idcontrato": "10447669",
+   "etiqueta": "45233251",
+   "top1": "45233251"
+  },
+  {
+   "idcontrato": "10540017",
+   "etiqueta": "71356000",
+   "top1": "71356000"
+  },
+  {
+   "idcontrato": "10542400",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "10564811",
+   "etiqueta": "90910000",
+   "top1": "90910000"
+  },
+  {
+   "idcontrato": "10602502",
+   "etiqueta": "79820000",
+   "top1": "79820000"
+  },
+  {
+   "idcontrato": "10602220",
+   "etiqueta": "79952000",
+   "top1": "79952000"
+  },
+  {
+   "idcontrato": "10615749",
+   "etiqueta": "98311000",
+   "top1": "98311000"
+  },
+  {
+   "idcontrato": "10642504",
+   "etiqueta": "30197643",
+   "top1": "30197643"
+  },
+  {
+   "idcontrato": "10647435",
+   "etiqueta": "71300000",
+   "top1": "71300000"
+  },
+  {
+   "idcontrato": "10669107",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10684531",
+   "etiqueta": "44510000",
+   "top1": "44510000"
+  },
+  {
+   "idcontrato": "10709252",
+   "etiqueta": "33690000",
+   "top1": "33690000"
+  },
+  {
+   "idcontrato": "10723849",
+   "etiqueta": "34134200",
+   "top1": "34134200"
+  },
+  {
+   "idcontrato": "10758075",
+   "etiqueta": "77211300",
+   "top1": "77211300"
+  },
+  {
+   "idcontrato": "10787380",
+   "etiqueta": "85200000",
+   "top1": "85200000"
+  },
+  {
+   "idcontrato": "10806724",
+   "etiqueta": "33183100",
+   "top1": "33183100"
+  },
+  {
+   "idcontrato": "10819810",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10837146",
+   "etiqueta": "39100000",
+   "top1": "39100000"
+  },
+  {
+   "idcontrato": "10846809",
+   "etiqueta": "80530000",
+   "top1": "80530000"
+  },
+  {
+   "idcontrato": "10868955",
+   "etiqueta": "71241000",
+   "top1": "71241000"
+  },
+  {
+   "idcontrato": "10874362",
+   "etiqueta": "45113000",
+   "top1": "45113000"
+  },
+  {
+   "idcontrato": "10878439",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10922819",
+   "etiqueta": "33600000",
+   "top1": "33600000"
+  },
+  {
+   "idcontrato": "10922073",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "10928608",
+   "etiqueta": "50114100",
+   "top1": "50114100"
+  },
+  {
+   "idcontrato": "10955289",
+   "etiqueta": "03100000",
+   "top1": "03100000"
+  },
+  {
+   "idcontrato": "10958884",
+   "etiqueta": "33696000",
+   "top1": "33696000"
+  },
+  {
+   "idcontrato": "10999725",
+   "etiqueta": "63515000",
+   "top1": "63515000"
+  },
+  {
+   "idcontrato": "11022073",
+   "etiqueta": "66171000",
+   "top1": "66171000"
+  },
+  {
+   "idcontrato": "11034258",
+   "etiqueta": "92111200",
+   "top1": "92111200"
+  },
+  {
+   "idcontrato": "11035904",
+   "etiqueta": "43325000",
+   "top1": "43325000"
+  },
+  {
+   "idcontrato": "11041460",
+   "etiqueta": "34920000",
+   "top1": "34920000"
+  },
+  {
+   "idcontrato": "11059890",
+   "etiqueta": "77211300",
+   "top1": "77211300"
+  },
+  {
+   "idcontrato": "11059799",
+   "etiqueta": "30213100",
+   "top1": "30213100"
+  },
+  {
+   "idcontrato": "11141015",
+   "etiqueta": "75200000",
+   "top1": "75200000"
+  },
+  {
+   "idcontrato": "11154334",
+   "etiqueta": "79961000",
+   "top1": "79961000"
+  },
+  {
+   "idcontrato": "11156068",
+   "etiqueta": "09310000",
+   "top1": "09310000"
+  },
+  {
+   "idcontrato": "11258772",
+   "etiqueta": "33140000",
+   "top1": "33140000"
+  },
+  {
+   "idcontrato": "11279109",
+   "etiqueta": "72200000",
+   "top1": "72200000"
+  },
+  {
+   "idcontrato": "11283533",
+   "etiqueta": "85147000",
+   "top1": "85147000"
+  },
+  {
+   "idcontrato": "11319989",
+   "etiqueta": "66150000",
+   "top1": "66150000"
+  },
+  {
+   "idcontrato": "11338190",
+   "etiqueta": "77310000",
+   "top1": "77310000"
+  },
+  {
+   "idcontrato": "11345161",
+   "etiqueta": "71530000",
+   "top1": "71530000"
+  },
+  {
+   "idcontrato": "11347119",
+   "etiqueta": "50800000",
+   "top1": "50800000"
+  },
+  {
+   "idcontrato": "11366593",
+   "etiqueta": "44212000",
+   "top1": "44212000"
+  },
+  {
+   "idcontrato": "11388388",
+   "etiqueta": "77211500",
+   "top1": "77211500"
+  },
+  {
+   "idcontrato": "11406355",
+   "etiqueta": "72246000",
+   "top1": "72246000"
+  },
+  {
+   "idcontrato": "11452017",
+   "etiqueta": "64200000",
+   "top1": "64200000"
+  },
+  {
+   "idcontrato": "11477619",
+   "etiqueta": "75252000",
+   "top1": "75252000"
+  },
+  {
+   "idcontrato": "11478591",
+   "etiqueta": "90910000",
+   "top1": "90910000"
+  },
+  {
+   "idcontrato": "11541738",
+   "etiqueta": "98300000",
+   "top1": "98300000"
+  },
+  {
+   "idcontrato": "11592824",
+   "etiqueta": "50700000",
+   "top1": "50700000"
+  },
+  {
+   "idcontrato": "11595140",
+   "etiqueta": "44912000",
+   "top1": "44912000"
+  },
+  {
+   "idcontrato": "11624210",
+   "etiqueta": "80521000",
+   "top1": "80521000"
+  },
+  {
+   "idcontrato": "11668658",
+   "etiqueta": "63515000",
+   "top1": "63515000"
+  },
+  {
+   "idcontrato": "11714641",
+   "etiqueta": "71520000",
+   "top1": "71520000"
+  },
+  {
+   "idcontrato": "11751154",
+   "etiqueta": "31640000",
+   "top1": "31640000"
+  }
+ ],
+ "tempo_s": 66.5,
+ "memoria_gpu_mb": {
+  "pico_alocada": 11480,
+  "pico_reservada": 12210
+ },
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "sha256": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7"
+ },
+ "git": {
+  "commit": "98dcb338f567dc0524248813268151934c54c54a",
+  "alteracoes_por_gravar": false
+ },
+ "experiencia": {
+  "ficheiro": "experiencias/e5_t5.yaml",
+  "sha256": "0f2333a31cfdeaa2305291dff6c1631ed8b07c616840c0d5b8b0e5a7edc16014",
+  "conteudo": "# Tarefa E5-T5 (docs/backlog.md): primeiro treino do Albertina. Escrito ANTES de correr; não muda\n# depois de ver os resultados. Só REGISTA (passa-se com `--experiencia experiencias/e5_t5.yaml` e vai\n# para o treino.json e o MLflow); quem define os hiperparâmetros são as flags do src/train_bert.py,\n# que têm de ser as daqui (ver `comando`). Tem de ficar abaixo de 8000 carateres (MAX_YAML).\n# Números com ponto e expoente com ponto (2.0e-5): o PyYAML lê \"2e-5\" como texto.\n#\n# Fontes (verificadas a 7 de novembro de 2026, na versão HTML do arXiv):\n# - huggingface.co/PORTULAN/albertina-100m-portuguese-ptpt-encoder: sem receita de afinação (só um\n#   exemplo de uso com TrainingArguments por defeito).\n# - Santos et al. (2024), arxiv.org/abs/2403.01897 (o artigo do modelo de 100M), secção 5.1: dá só a\n#   GRELHA de procura, não o valor escolhido por tarefa: taxa {1e-5, 5e-5, 1e-6}, lote 4, 5 épocas,\n#   descida linear, aquecimento 0,1, decaimento 0,01, epsilon do Adam 1e-6, dropout {0, 0,1}, bf16\n#   {0, 1}. Comprimento máximo da afinação: não dito. Tarefas de 2 a 3 etiquetas (GLUE).\n# - Rodrigues et al. (2023), arxiv.org/abs/2305.06721 (v2), secção 4.5: outra grelha (taxa {1e-6,\n#   5e-6, 1e-5}, lote 16, 5 épocas, sementes 41/42/43).\n# - Sem um valor recomendado, usa-se a receita do BERT original, Devlin et al. (2019), a MESMA do\n#   E5-T4 (experiencias/e5_t4.yaml tem as fontes de cada valor), dita como tal. Decisão do\n#   utilizador (7 de novembro de 2026): assim só o modelo muda entre o E5-T4 e o E5-T5. Batem com a\n#   grelha do Albertina: aquecimento 0,1, decaimento 0,01, descida linear; a taxa 2e-5 está dentro\n#   da gama 1e-5 a 5e-5. Diferem: 3 épocas (não 5), lote 32 (não 4 ou 16), epsilon do Adam 1e-8 (o\n#   do Trainer, sem flag; não 1e-6).\n\nitem: E5-T5\ndata: 2026-11-07\n\nmodelo:\n  nome_curto: albertina\n  nome: PORTULAN/albertina-100m-portuguese-ptpt-encoder\n  revisao: d15e086005cdab26d746d9113984cc654439df2b  # src/bert_models.py\n  max_length: 256   # E5-T1 (bert_models.COMPRIMENTO_MAXIMO, secção 20 do qualidade_dados.md)\n  # DeBERTa v1. Pré-treinado com textos cortados em 128 tokens (cartão do modelo); os textos entre\n  # 129 e 256 usam posições pouco vistas. O pooler não vem pré-treinado (começa ao acaso, como a\n  # camada de saída): é normal no DeBERTa, não um erro.\n\ndados:\n  janela: 2022      # E4-S2 e E4-S6: TRAIN_START = 2022-01-01\n  treino: data/processed/treino.parquet\n  validacao: data/processed/validacao.parquet   # o teste não entra em nenhum passo\n\nn_min: 10           # E4-S1\ntaus: [0.0, 0.25]   # 0.25 = τ em vigor do TF-IDF (E4-S4); só reordena as pontuações gravadas\n\n# Treino completo: receita de Devlin et al. (2019), igual ao E5-T4.\ntreino_completo:\n  taxa_aprendizagem: 2.0e-5  # Devlin A.3; dentro da gama do Albertina (1e-5 a 5e-5)\n  lote: 32                   # Devlin A.3; lote efetivo = lote x n_gpus\n  epocas: 3                  # Devlin A.3; é o E máximo da grelha do E5-S1 (o Albertina usa 5)\n  aquecimento: 0.1           # código oficial do BERT; o mesmo no Albertina (2403.01897, 5.1)\n  descida_da_taxa: linear    # Devlin A.2 e Albertina 5.1; fixo em src/bert.py, sem flag\n  decaimento_pesos: 0.01     # Devlin A.2 e Albertina 5.1\n  otimizador: adamw          # o do Trainer, sem flag (epsilon 1e-8)\n  dropout: 0.1               # o da configuração do modelo (hidden e attention 0,1), sem flag\n  precisao: fp32             # src/bert.py carrega em float32 (os pesos estão gravados em bf16)\n  semente: 0\n  comando: >-\n    make treinar-bert MODELO=albertina SAIDA=metrics/bert/e5_t5_albertina\n    ARGS=\"--n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32\n    --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0\n    --experiencia experiencias/e5_t5.yaml\"\n\n# Sinal de erro 1 (épico E5, \"Decorar poucos exemplos\"), antes do treino completo.\nsinal_decorar:\n  n_contratos: 100           # sorteados do treino.parquet\n  semente_amostra: 0\n  etiquetas: treino_completo # collapse_rare_codes com N = 10 contado no treino INTEIRO (cerca de\n                             # 3 000 etiquetas): a camada de saída tem o tamanho real.\n  epocas_max: 100\n  # 100 e não 30: mudança escrita no épico depois de ver o E5-T4 (secção 21 do qualidade_dados.md):\n  # 30 épocas de 4 lotes dão só 120 passos, e o BERTimbau ficou nos 86 de 100; com 100 chegou a 100.\n  taxa_aprendizagem: 1.0e-4  # a mesma do E5-T4 (a razão está no e5_t4.yaml)\n  lote: 32                   # o resto igual ao treino completo: só a taxa e as épocas mudam\n  aquecimento: 0.1\n  decaimento_pesos: 0.01\n  semente: 0\n  avaliacao: os mesmos 100 contratos do treino (não a validação)\n  criterio: top-1 certo em pelo menos 95 dos 100 (etiqueta de treino, depois de collapse_rare_codes)\n  # Regista-se a primeira época que chega aos 95. Se nenhuma das 100 chegar, há um erro no código\n  # ou no modelo: procura-se no máximo 1 dia (épico E5).\n  comando: >-\n    make sinal-decorar MODELO=albertina TAXA=1e-4 SAIDA=metrics/bert/e5_t5_sinal_decorar\n    ARGS=\"--n 100 --epocas 100 --semente 0 --n-min 10 --lote 32 --aquecimento 0.1\n    --decaimento-pesos 0.01 --max-length 256 --experiencia experiencias/e5_t5.yaml\"\n\n# Sinal de erro 2 (épico E5, \"Bater a régua\"), no treino completo.\nsinal_erro_2:\n  metrica: top-5 no código completo, todos os contratos da validação\n  epoca: ultima\n  tau: 0.25\n  limiar: 26.3               # %, tem de ficar ACIMA; régua \"códigos mais comuns\", secção 12 do\n                             # qualidade_dados.md (E4-T2)\n\n# Ensaio de custo (1.º critério), antes do treino completo: mede o tempo por lote e a memória da\n# GPU, para estimar tempo e custo de uma época. Mostra-se e aprova-se antes do treino completo.\n# Estimativa antes de medir (não é um resultado): 1,6 a 2 vezes os 18 min por época do BERTimbau\n# (textos ~1,3 vezes mais longos em tokens e a atenção do DeBERTa, mais cara).\nensaio_custo:\n  passos: 200\n  passos_ignorados_no_inicio: 1    # o 1.º passo inclui o arranque (bert.StepTimer)\n  lote: 32                   # os mesmos do treino completo\n  max_length: 256\n  precisao: fp32\n  mede:\n    - segundos por lote (média)\n    - memória máxima da GPU (torch.cuda.max_memory_allocated e max_memory_reserved)\n  # Época = exemplos de treino / (lote x n_gpus) lotes x segundos por lote. Custo = horas x preço\n  # por hora. A placa e o preço lidos na Runpod no dia ficam no metrics/bert/e5_t5_albertina/\n  # pod_info.json, não aqui: este ficheiro já está gravado no commit que treina.\n  comando: >-\n    make treinar-bert MODELO=albertina SAIDA=metrics/bert/e5_t5_ensaio\n    ARGS=\"--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1\n    --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t5.yaml\"\n"
+ }
+}

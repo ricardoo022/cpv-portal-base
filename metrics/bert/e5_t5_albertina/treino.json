@@ -1,0 +1,109 @@
+{
+ "data": "2026-11-07T13:27:58",
+ "modelo": {
+  "chave": "albertina",
+  "nome": "PORTULAN/albertina-100m-portuguese-ptpt-encoder",
+  "revisao": "d15e086005cdab26d746d9113984cc654439df2b"
+ },
+ "max_length": 256,
+ "n_min": 10,
+ "taus": [
+  0.0,
+  0.25
+ ],
+ "ensaio": false,
+ "ficheiros": {
+  "sugestoes_validacao.parquet": 0.0,
+  "sugestoes_validacao_tau0.25.parquet": 0.25
+ },
+ "ficheiro_do_modelo_por_defeito": "sugestoes_validacao_tau0.25.parquet",
+ "treino": {
+  "ficheiro": "treino.parquet",
+  "datas": [
+   "2022-01-01",
+   "2025-09-30"
+  ]
+ },
+ "validacao": {
+  "ficheiro": "validacao.parquet",
+  "datas": [
+   "2025-10-01",
+   "2025-10-31"
+  ],
+  "contratos": 23945
+ },
+ "exemplos_usados": 478234,
+ "exemplos_saidos": 150,
+ "etiquetas": 3000,
+ "taxa_aprendizagem": 2e-05,
+ "lote": 32,
+ "epocas": 3,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "dispositivo": "cuda",
+ "gpu": "NVIDIA GeForce RTX 4090",
+ "n_gpus": 1,
+ "checkpoints": "/workspace/projeto_CPV/models/bert/e5_t5_albertina/checkpoints",
+ "pontuacoes": "/workspace/projeto_CPV/models/bert/e5_t5_albertina/pontuacoes",
+ "por_epoca": [
+  {
+   "epoca": 1,
+   "checkpoint": "checkpoint-14945",
+   "pontuacoes": "epoca_1.npy",
+   "segundos_desde_o_inicio": 2177.16,
+   "perda_treino": 3.9635086462863836
+  },
+  {
+   "epoca": 2,
+   "checkpoint": "checkpoint-29890",
+   "pontuacoes": "epoca_2.npy",
+   "segundos_desde_o_inicio": 4337.93,
+   "perda_treino": 2.496894864503178
+  },
+  {
+   "epoca": 3,
+   "checkpoint": "checkpoint-44835",
+   "pontuacoes": "epoca_3.npy",
+   "segundos_desde_o_inicio": 6455.81,
+   "perda_treino": 2.1693021547758446
+  }
+ ],
+ "retomado_depois_da_epoca": null,
+ "tempo_treinar_s": 6458.35,
+ "max_passos": null,
+ "passos": 44835,
+ "segundos_por_passo": 0.1422,
+ "lote_efetivo": 32,
+ "passos_por_epoca": 14945,
+ "segundos_por_epoca_estimados": 2125.8,
+ "memoria_gpu_mb": {
+  "pico_alocada": 16762,
+  "pico_reservada": 17276
+ },
+ "pico_rss_mb": 4569,
+ "nucleos": 32,
+ "versoes": {
+  "python": "3.10.12",
+  "torch": "2.14.1+cu130",
+  "transformers": "5.17.0",
+  "accelerate": "1.15.0",
+  "tokenizers": "0.23.2",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "cuda": "13.0"
+ },
+ "sha256": {
+  "treino": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7",
+  "validacao": "f0cce1a06d532124feb25eaa963600b7ef2e8b24b0ae42c4955e6b438782b9c9"
+ },
+ "git": {
+  "commit": "98dcb338f567dc0524248813268151934c54c54a",
+  "alteracoes_por_gravar": false
+ },
+ "experiencia": {
+  "ficheiro": "experiencias/e5_t5.yaml",
+  "sha256": "0f2333a31cfdeaa2305291dff6c1631ed8b07c616840c0d5b8b0e5a7edc16014",
+  "conteudo": "# Tarefa E5-T5 (docs/backlog.md): primeiro treino do Albertina. Escrito ANTES de correr; não muda\n# depois de ver os resultados. Só REGISTA (passa-se com `--experiencia experiencias/e5_t5.yaml` e vai\n# para o treino.json e o MLflow); quem define os hiperparâmetros são as flags do src/train_bert.py,\n# que têm de ser as daqui (ver `comando`). Tem de ficar abaixo de 8000 carateres (MAX_YAML).\n# Números com ponto e expoente com ponto (2.0e-5): o PyYAML lê \"2e-5\" como texto.\n#\n# Fontes (verificadas a 7 de novembro de 2026, na versão HTML do arXiv):\n# - huggingface.co/PORTULAN/albertina-100m-portuguese-ptpt-encoder: sem receita de afinação (só um\n#   exemplo de uso com TrainingArguments por defeito).\n# - Santos et al. (2024), arxiv.org/abs/2403.01897 (o artigo do modelo de 100M), secção 5.1: dá só a\n#   GRELHA de procura, não o valor escolhido por tarefa: taxa {1e-5, 5e-5, 1e-6}, lote 4, 5 épocas,\n#   descida linear, aquecimento 0,1, decaimento 0,01, epsilon do Adam 1e-6, dropout {0, 0,1}, bf16\n#   {0, 1}. Comprimento máximo da afinação: não dito. Tarefas de 2 a 3 etiquetas (GLUE).\n# - Rodrigues et al. (2023), arxiv.org/abs/2305.06721 (v2), secção 4.5: outra grelha (taxa {1e-6,\n#   5e-6, 1e-5}, lote 16, 5 épocas, sementes 41/42/43).\n# - Sem um valor recomendado, usa-se a receita do BERT original, Devlin et al. (2019), a MESMA do\n#   E5-T4 (experiencias/e5_t4.yaml tem as fontes de cada valor), dita como tal. Decisão do\n#   utilizador (7 de novembro de 2026): assim só o modelo muda entre o E5-T4 e o E5-T5. Batem com a\n#   grelha do Albertina: aquecimento 0,1, decaimento 0,01, descida linear; a taxa 2e-5 está dentro\n#   da gama 1e-5 a 5e-5. Diferem: 3 épocas (não 5), lote 32 (não 4 ou 16), epsilon do Adam 1e-8 (o\n#   do Trainer, sem flag; não 1e-6).\n\nitem: E5-T5\ndata: 2026-11-07\n\nmodelo:\n  nome_curto: albertina\n  nome: PORTULAN/albertina-100m-portuguese-ptpt-encoder\n  revisao: d15e086005cdab26d746d9113984cc654439df2b  # src/bert_models.py\n  max_length: 256   # E5-T1 (bert_models.COMPRIMENTO_MAXIMO, secção 20 do qualidade_dados.md)\n  # DeBERTa v1. Pré-treinado com textos cortados em 128 tokens (cartão do modelo); os textos entre\n  # 129 e 256 usam posições pouco vistas. O pooler não vem pré-treinado (começa ao acaso, como a\n  # camada de saída): é normal no DeBERTa, não um erro.\n\ndados:\n  janela: 2022      # E4-S2 e E4-S6: TRAIN_START = 2022-01-01\n  treino: data/processed/treino.parquet\n  validacao: data/processed/validacao.parquet   # o teste não entra em nenhum passo\n\nn_min: 10           # E4-S1\ntaus: [0.0, 0.25]   # 0.25 = τ em vigor do TF-IDF (E4-S4); só reordena as pontuações gravadas\n\n# Treino completo: receita de Devlin et al. (2019), igual ao E5-T4.\ntreino_completo:\n  taxa_aprendizagem: 2.0e-5  # Devlin A.3; dentro da gama do Albertina (1e-5 a 5e-5)\n  lote: 32                   # Devlin A.3; lote efetivo = lote x n_gpus\n  epocas: 3                  # Devlin A.3; é o E máximo da grelha do E5-S1 (o Albertina usa 5)\n  aquecimento: 0.1           # código oficial do BERT; o mesmo no Albertina (2403.01897, 5.1)\n  descida_da_taxa: linear    # Devlin A.2 e Albertina 5.1; fixo em src/bert.py, sem flag\n  decaimento_pesos: 0.01     # Devlin A.2 e Albertina 5.1\n  otimizador: adamw          # o do Trainer, sem flag (epsilon 1e-8)\n  dropout: 0.1               # o da configuração do modelo (hidden e attention 0,1), sem flag\n  precisao: fp32             # src/bert.py carrega em float32 (os pesos estão gravados em bf16)\n  semente: 0\n  comando: >-\n    make treinar-bert MODELO=albertina SAIDA=metrics/bert/e5_t5_albertina\n    ARGS=\"--n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32\n    --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0\n    --experiencia experiencias/e5_t5.yaml\"\n\n# Sinal de erro 1 (épico E5, \"Decorar poucos exemplos\"), antes do treino completo.\nsinal_decorar:\n  n_contratos: 100           # sorteados do treino.parquet\n  semente_amostra: 0\n  etiquetas: treino_completo # collapse_rare_codes com N = 10 contado no treino INTEIRO (cerca de\n                             # 3 000 etiquetas): a camada de saída tem o tamanho real.\n  epocas_max: 100\n  # 100 e não 30: mudança escrita no épico depois de ver o E5-T4 (secção 21 do qualidade_dados.md):\n  # 30 épocas de 4 lotes dão só 120 passos, e o BERTimbau ficou nos 86 de 100; com 100 chegou a 100.\n  taxa_aprendizagem: 1.0e-4  # a mesma do E5-T4 (a razão está no e5_t4.yaml)\n  lote: 32                   # o resto igual ao treino completo: só a taxa e as épocas mudam\n  aquecimento: 0.1\n  decaimento_pesos: 0.01\n  semente: 0\n  avaliacao: os mesmos 100 contratos do treino (não a validação)\n  criterio: top-1 certo em pelo menos 95 dos 100 (etiqueta de treino, depois de collapse_rare_codes)\n  # Regista-se a primeira época que chega aos 95. Se nenhuma das 100 chegar, há um erro no código\n  # ou no modelo: procura-se no máximo 1 dia (épico E5).\n  comando: >-\n    make sinal-decorar MODELO=albertina TAXA=1e-4 SAIDA=metrics/bert/e5_t5_sinal_decorar\n    ARGS=\"--n 100 --epocas 100 --semente 0 --n-min 10 --lote 32 --aquecimento 0.1\n    --decaimento-pesos 0.01 --max-length 256 --experiencia experiencias/e5_t5.yaml\"\n\n# Sinal de erro 2 (épico E5, \"Bater a régua\"), no treino completo.\nsinal_erro_2:\n  metrica: top-5 no código completo, todos os contratos da validação\n  epoca: ultima\n  tau: 0.25\n  limiar: 26.3               # %, tem de ficar ACIMA; régua \"códigos mais comuns\", secção 12 do\n                             # qualidade_dados.md (E4-T2)\n\n# Ensaio de custo (1.º critério), antes do treino completo: mede o tempo por lote e a memória da\n# GPU, para estimar tempo e custo de uma época. Mostra-se e aprova-se antes do treino completo.\n# Estimativa antes de medir (não é um resultado): 1,6 a 2 vezes os 18 min por época do BERTimbau\n# (textos ~1,3 vezes mais longos em tokens e a atenção do DeBERTa, mais cara).\nensaio_custo:\n  passos: 200\n  passos_ignorados_no_inicio: 1    # o 1.º passo inclui o arranque (bert.StepTimer)\n  lote: 32                   # os mesmos do treino completo\n  max_length: 256\n  precisao: fp32\n  mede:\n    - segundos por lote (média)\n    - memória máxima da GPU (torch.cuda.max_memory_allocated e max_memory_reserved)\n  # Época = exemplos de treino / (lote x n_gpus) lotes x segundos por lote. Custo = horas x preço\n  # por hora. A placa e o preço lidos na Runpod no dia ficam no metrics/bert/e5_t5_albertina/\n  # pod_info.json, não aqui: este ficheiro já está gravado no commit que treina.\n  comando: >-\n    make treinar-bert MODELO=albertina SAIDA=metrics/bert/e5_t5_ensaio\n    ARGS=\"--n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1\n    --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t5.yaml\"\n"
+ }
+}

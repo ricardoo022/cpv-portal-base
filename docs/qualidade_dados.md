@@ -594,6 +594,31 @@ Números do run `e5_t4_bertimbau` da experiência `treinos_bert` no MLflow, feit
 - **τ:** na última época, τ = 0 dá 73,52% e τ = 0,25 dá 73,39%. O τ que ajudou o TF-IDF quase não muda nada aqui; o E5-S1 testa-o na grelha.
 - Lição que generaliza: um modelo mais moderno e mais caro não ganha só por isso. Compara-se sempre com o modelo simples, nos mesmos dados e com a mesma regra.
 
+### 23. Primeiro treino do Albertina (E5-T5)
+
+Números do run `e5_t5_albertina` da experiência `treinos_bert` no MLflow, feito de `metrics/bert/e5_t5_albertina/`, e de `metrics/bert/e5_t5_sinal_decorar/` e `metrics/bert/e5_t5_ensaio/` (commit `98dcb33`, sem alterações por gravar, RTX 4090 em EU-RO-1, a mesma placa do E5-T4). Receita igual à do E5-T4 (Devlin et al., 2019): os artigos do Albertina só publicam a grelha de procura, não o valor escolhido (fontes em `experiencias/e5_t5.yaml`). Validação de outubro de 2025, 23 945 contratos, τ = 0,25, N = 10, 3 000 etiquetas. Os números da tabela voltam a dar-se a partir das sugestões gravadas em `tests/integration/test_registo_e5_t5.py`.
+
+- **Sinal de erro 1: passou**, na condição escrita depois do E5-T4 (100 contratos, 3 000 etiquetas, até 100 épocas, taxa 1e-4; secção 21). Acertou 100 de 100 na última época, e chegou aos 95 pela primeira vez na época **18** (o BERTimbau, nas mesmas 100 épocas, na 27). A curva: 44 na época 10, 94 na 16, 92 na 17, 99 na 18. Os 100 contratos são os mesmos do sinal do BERTimbau (a mesma semente).
+- **Ensaio de custo (200 passos):** 0,1418 s por passo contra 0,073 do BERTimbau (1,94 vezes), ou seja, uma época estimada de 2 118,5 s (35,3 min). Pico de memória da GPU: 16 781 MB alocados e **21 700 MB reservados**, dos 24 564 MB da placa (o BERTimbau reservou 9 318). Como no E5-T4 o treino completo reservou cerca de 15% mais do que o ensaio, o treino completo correu com `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`, que muda só a forma como o PyTorch arruma a memória da GPU (decisão do utilizador, antes de lançar; `pod_info.json`). Reservou 17 276 MB.
+- **Treino completo:** 6 458,35 s, cerca de **1,60 $** a 0,89 $/h (o BERTimbau: 0,83 $). O pod inteiro, com instalação e testes, viveu 12 013 s, cerca de 2,97 $ por cálculo; a fatura lida logo a seguir a apagar mostrava 2,13 $, a mesma diferença sem explicação do E5-T4.
+
+| Medida | Época 1 | Época 2 | Época 3 | BERTimbau, época 3 (secção 22) | TF-IDF em vigor |
+|---|---|---|---|---|---|
+| Top-5, código completo, todos | 71,10% | 75,73% | **76,98%** | 73,39% | 78,35% |
+| Top-5, classe, todos | 77,12% | 81,50% | 82,38% | 79,59% | 84,11% |
+| Top-5, código completo, texto novo | 68,44% | 72,84% | 74,12% | 70,36% | 75,14% |
+| Top-5, classe, texto novo | 75,66% | 79,83% | 80,60% | 77,76% | 82,18% |
+| Perda no treino | 3,964 | 2,497 | 2,169 | 2,542 | |
+
+- **Sinal de erro 2: passou.** 76,98% está bem acima da régua de 26,3%.
+- **Contra o BERTimbau:** com a mesma receita, os mesmos dados e a mesma placa, o Albertina fica cerca de 3,6 pontos acima no código completo e cerca de 2,8 na classe. É um treino de cada, sem bootstrap e com uma semente: não decide o desempate (decisão pendente 2 do E5), que é da E5-T6.
+- **Contra o TF-IDF:** cerca de 1,4 pontos abaixo no código completo e cerca de 1,7 na classe. Também não decide nada: a decisão é da E5-T6, depois da grelha do E5-S1.
+- **Não se sabe ainda se mais épocas ajudavam.** O ganho desce de 4,63 para 1,25 pontos da época 2 para a 3, mas a taxa de aprendizagem desce até zero no fim, como no E5-T4.
+- **τ:** na última época, τ = 0 dá 77,20% e τ = 0,25 dá 76,98%. Como no BERTimbau, o τ quase não muda nada; o E5-S1 testa-o.
+- **As 3 descrições de exemplo** (`sugestoes_exemplos.txt`): as 15 sugestões são todas códigos abaixo da divisão, da área certa (limpeza `909...`, refeições `555...`, estradas `45233...`).
+- **Perda na validação:** não medida (o treino não a calcula; tarefa E5-T7). As pontuações das 3 épocas ficaram no portátil, em `models/bert/e5_t5_albertina/pontuacoes/` (825 MB, fora do git), para a calcular depois.
+- Lição que generaliza: dois modelos do mesmo tamanho nominal ("base", 12 camadas) podem custar muito diferente. O Albertina parte as palavras em mais pedaços (secção 20) e usa a atenção do DeBERTa, mais cara, e cada época custou quase o dobro. Mede-se num ensaio curto, na mesma placa, antes de planear.
+
 ## Decisões
 
 1. Separação por `dataPublicacao`, lendo todos os ficheiros (ver [`notebooks/02_anos_treino.ipynb`](../notebooks/02_anos_treino.ipynb)):

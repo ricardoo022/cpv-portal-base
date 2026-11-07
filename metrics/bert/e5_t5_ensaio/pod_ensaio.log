@@ -1,0 +1,28 @@
+Sat Nov  7 11:31:41 UTC 2026
+.venv/bin/python src/train_bert.py --modelo albertina --saida metrics/bert/e5_t5_ensaio --n-min 10 --max-length 256 --lote 32 --taxa-aprendizagem 2e-5 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --max-passos 200 --experiencia experiencias/e5_t5.yaml
+/workspace/projeto_CPV/.venv/lib/python3.10/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s]Loading weights: 100%|██████████| 196/196 [00:00<00:00, 3726.78it/s]
+[transformers] [1mDebertaForSequenceClassification LOAD REPORT[0m from: PORTULAN/albertina-100m-portuguese-ptpt-encoder
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 2, 'bos_token_id': 1}.
+{'loss': '7.268', 'grad_norm': '5.645', 'learning_rate': '1.111e-07', 'epoch': '0.01338'}
+{'train_runtime': '29.57', 'train_samples_per_second': '216.5', 'train_steps_per_second': '6.764', 'train_loss': '7.268', 'epoch': '0.01338'}
+Gravado: metrics/bert/e5_t5_ensaio
+CODIGO=0
+Sat Nov  7 11:34:11 UTC 2026
+FIM
