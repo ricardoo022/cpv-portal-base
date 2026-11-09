@@ -1,0 +1,25 @@
+{
+ "nota": "Escrito à mão a partir das leituras da Runpod (get-capacity, list-gpu-types, create-pod, get-pod, delete-pod, list-pods, list-pod-billing) e dos carimbos de data e hora dos registos do pod, a 7 de novembro de 2026. Tempo do treino e memória: treino.json.",
+ "pod": {"id": "4lk4fbfntnqb4k", "nome": "cpv-e5-t5", "centro_de_dados": "EU-RO-1", "nuvem": "SECURE",
+  "gpu": "NVIDIA GeForce RTX 4090", "imagem": "runpod/base:1.0.2-ubuntu2204", "disco_gb": 20, "volume_gb": 40,
+  "preco_por_hora_usd": 0.89, "cuda_do_anfitriao": "13.2", "driver_nvidia": "595.91.07",
+  "criado_utc": "2026-11-07T10:36:47", "apagado_utc": "cerca de 2026-11-07T13:57:00"},
+ "escolha_da_placa": "A mesma placa e o mesmo centro de dados do E5-T4, para o tempo por época dos dois modelos ser comparável (decisão pendente 2 do E5). Stock lido antes de criar: RTX 4090 High em EU-RO-1 a 0,89 $/h; A40 com stock a 0,59 $/h, mais lenta em fp32 e nunca medida.",
+ "diferenca_face_ao_e5_t4": "O treino completo correu com PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True, aprovado pelo utilizador antes de lançar: o ensaio reservou 21 700 MB dos 24 564 MB da placa, e no E5-T4 o treino completo reservou cerca de 15 por cento mais do que o ensaio. Muda só a forma como o PyTorch arruma a memória da GPU, não as contas nem os hiperparâmetros. O sinal e o ensaio correram sem ela.",
+ "tempos_utc": {
+  "instalacao_e_testes": ["10:40:05", "11:19:33"],
+  "sinal_de_decorar": ["11:28:04", "11:31:05"],
+  "ensaio_de_custo": ["11:31:41", "11:34:11"],
+  "treino_completo": ["11:38:15", "13:28:02"]},
+ "treino_completo": {
+  "tempo_treinar_s": 6458.35,
+  "memoria_gpu_pico_alocada_mb": 16762,
+  "memoria_gpu_pico_reservada_mb": 17276,
+  "custo_usd_calculado": 1.6,
+  "calculo": "6458,35 s / 3600 x 0,89 $/h; só o tempo do tempo_treinar_s, sem instalação nem cópias"},
+ "pod_completo": {
+  "segundos_de_vida": 12013,
+  "custo_usd_calculado": 2.97,
+  "calculo": "12013 s / 3600 x 0,89 $/h; inclui instalação, testes, sinal, ensaio, treino, sugestões e cópias",
+  "nota_faturacao": "list-pod-billing, lido logo a seguir a apagar, mostrava 2,13 $ (GPU 2,11 $ e disco 0,02 $), menos do que o cálculo, como no E5-T4; a causa não foi verificada"}
+}

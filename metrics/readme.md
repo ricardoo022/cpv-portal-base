@@ -1,6 +1,6 @@
 # metrics/ · resultados guardados no git
 
-Ficheiros pequenos que os treinos no pod escreveram e que se copiaram para o portátil. São os números que os `docs/` citam, e os notebooks e os testes leem-nos. As pastas `e4_*/` e `bert/e5_t4_*/` são registos fixos: **nunca se escreve nelas** (as do E5-T4 guarda-as o `tests/integration/test_registo_e5_t4.py`). Um treino novo do TF-IDF escreve em `metrics/tfidf/` (que o treino seguinte reescreve) e um do BERT em `metrics/bert/<modelo>/`.
+Ficheiros pequenos que os treinos no pod escreveram e que se copiaram para o portátil. São os números que os `docs/` citam, e os notebooks e os testes leem-nos. As pastas `e4_*/`, `bert/e5_t4_*/` e `bert/e5_t5_*/` são registos fixos: **nunca se escreve nelas** (as do E5-T4 guarda-as o `tests/integration/test_registo_e5_t4.py`, as do E5-T5 o `tests/integration/test_registo_e5_t5.py`). Um treino novo do TF-IDF escreve em `metrics/tfidf/` (que o treino seguinte reescreve) e um do BERT em `metrics/bert/<modelo>/`.
 
 Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.parquet`, um ficheiro por τ), o `treino.json` (parâmetros, tempo, memória e `ficheiro_do_modelo_por_defeito`) e, quando há, os logs do pod (`pod_*.log`) e o `pod_info.json` (máquina, preço e custo).
 
@@ -18,5 +18,8 @@ Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.par
 | `bert/e5_t4_ensaio/` | E5-T4: ensaio de custo de 200 passos do BERTimbau (tempo por lote e memória da GPU). | resultado do E5-T4 no [`backlog.md`](../docs/backlog.md) |
 | `bert/e5_t4_sinal_decorar/`, `bert/e5_t4_sinal_decorar_diag_100ep/` | E5-T4: sinal de decorar oficial (falhou) e o diagnóstico com 100 épocas. O diagnóstico não foi pré-registado: grava como `experiencia` o `e5_t4.yaml`, cujo comando diz 30 épocas, só porque foi o YAML passado; correu-se depois de ver o falhanço. | secção 21 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 | `bert/e5_t4_bertimbau/` | E5-T4: treino completo do BERTimbau, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. | `make registar-bert`, secção 22 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t5_ensaio/` | E5-T5: ensaio de custo de 200 passos do Albertina (tempo por lote e memória da GPU), com `pod_ensaio.log`. | secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t5_sinal_decorar/` | E5-T5: sinal de decorar do Albertina, até 100 épocas (passou na época 18), com `pod_sinal.log`. | secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t5_albertina/` | E5-T5: treino completo do Albertina, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. As pontuações das 3 épocas (3 × 287 340 128 bytes, cerca de 0,86 GB) estão fora do git, em `models/bert/e5_t5_albertina/pontuacoes/`. | `make registar-bert`, secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 
 Todos os treinos daqui estão também no MLflow, na experiência `historico_e4` (`make historico`, depois `make mlflow`).

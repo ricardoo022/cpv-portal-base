@@ -1,0 +1,25 @@
+{
+ "treino": "/workspace/projeto_CPV/data/processed/treino.parquet",
+ "validacao": "/workspace/projeto_CPV/data/processed/validacao.parquet",
+ "modelo": "albertina",
+ "checkpoints": "/workspace/projeto_CPV/models/bert/e5_t5_ensaio/checkpoints",
+ "pontuacoes": "/workspace/projeto_CPV/models/bert/e5_t5_ensaio/pontuacoes",
+ "n_min": 10,
+ "taus": [
+  0.0,
+  0.25
+ ],
+ "max_length": 256,
+ "taxa_aprendizagem": 2e-05,
+ "lote": 32,
+ "epocas": 3,
+ "aquecimento": 0.1,
+ "decaimento_pesos": 0.01,
+ "semente": 0,
+ "max_passos": 200,
+ "experiencia_sha256": "0f2333a31cfdeaa2305291dff6c1631ed8b07c616840c0d5b8b0e5a7edc16014",
+ "treino_sha256": "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7",
+ "validacao_sha256": "f0cce1a06d532124feb25eaa963600b7ef2e8b24b0ae42c4955e6b438782b9c9",
+ "git_commit": "98dcb338f567dc0524248813268151934c54c54a",
+ "git_alteracoes_por_gravar": false
+}

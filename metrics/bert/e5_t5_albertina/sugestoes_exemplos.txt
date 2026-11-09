@@ -1,0 +1,22 @@
+# make sugerir-bert CHECKPOINT=models/bert/e5_t5_albertina/checkpoints/checkpoint-44835 MODELO=albertina
+# (época 3, τ = 0,25 por defeito, processador do pod, 7 de novembro de 2026; o checkpoint perdeu-se com o pod)
+Descrição: serviços de limpeza de três escolas básicas durante 12 meses
+  1. 90919300  (probabilidade 0.324)
+  2. 90911200  (probabilidade 0.302)
+  3. 90910000  (probabilidade 0.234)
+  4. 90919000  (probabilidade 0.028)
+  5. 90911000  (probabilidade 0.029)
+
+Descrição: fornecimento de refeições escolares para os alunos do 1.º ciclo do concelho
+  1. 55524000  (probabilidade 0.369)
+  2. 15894210  (probabilidade 0.185)
+  3. 55500000  (probabilidade 0.157)
+  4. 55322000  (probabilidade 0.136)
+  5. 55523100  (probabilidade 0.039)
+
+Descrição: empreitada de repavimentação de estradas municipais
+  1. 45233220  (probabilidade 0.317)
+  2. 45233223  (probabilidade 0.192)
+  3. 45233200  (probabilidade 0.154)
+  4. 45233222  (probabilidade 0.046)
+  5. 45233142  (probabilidade 0.056)

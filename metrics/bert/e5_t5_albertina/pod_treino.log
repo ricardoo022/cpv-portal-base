@@ -1,0 +1,34 @@
+Sat Nov  7 11:38:15 UTC 2026
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+.venv/bin/python src/train_bert.py --modelo albertina --saida metrics/bert/e5_t5_albertina --n-min 10 --taus 0.0 0.25 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32 --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_t5.yaml
+/workspace/projeto_CPV/.venv/lib/python3.10/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s]Loading weights: 100%|██████████| 196/196 [00:00<00:00, 3060.81it/s]
+[transformers] [1mDebertaForSequenceClassification LOAD REPORT[0m from: PORTULAN/albertina-100m-portuguese-ptpt-encoder
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+classifier.bias                            | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 2, 'bos_token_id': 1}.
+{'loss': '3.964', 'grad_norm': '15.43', 'learning_rate': '1.482e-05', 'epoch': '1'}
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.00s/it]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.00s/it]
+{'loss': '2.497', 'grad_norm': '16.43', 'learning_rate': '7.408e-06', 'epoch': '2'}
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.16it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.16it/s]
+{'loss': '2.169', 'grad_norm': '14.17', 'learning_rate': '4.957e-10', 'epoch': '3'}
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.21it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.21it/s]
+{'train_runtime': '6445', 'train_samples_per_second': '222.6', 'train_steps_per_second': '6.957', 'train_loss': '2.877', 'epoch': '3'}
+Gravado: metrics/bert/e5_t5_albertina
+CODIGO=0
+Sat Nov  7 13:28:02 UTC 2026
+FIM

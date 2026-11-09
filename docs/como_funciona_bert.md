@@ -48,72 +48,84 @@ Por dentro, o BERT transforma cada palavra num vetor de 768 números. Palavras u
 
 ## 3. O fine-tuning, em esquema
 
-O modelo tem duas partes: um **corpo** (o BERT, 12 camadas) e uma **cabeça** (a última camada, que dá a resposta). O **fine-tuning** (afinação) mantém o corpo e troca a cabeça.
+O modelo tem duas partes:
 
+- um **codificador** (em inglês *encoder*: é o BERT), feito de 12 **camadas**. Uma camada é um grupo de contas do tipo "multiplica cada número por um peso e soma tudo"; a saída de uma camada é a entrada da seguinte;
+- uma **camada de classificação** (em inglês *classification head*; no código do Hugging Face chama-se `classifier`), a última camada, que dá a resposta. No nosso caso é uma tabela de pesos com 768 colunas e 3 000 linhas, uma linha por código CPV.
+
+O **fine-tuning** (afinação) **aproveita** o codificador do pré-treino como ponto de partida, e também o ajusta um pouco. A camada de classificação, essa, **troca-a**: deita fora a de adivinhar palavras e põe uma nova.
+
+```mermaid
+flowchart TB
+    subgraph PT["1 · Pré-treino: feito pelos autores do modelo, não por nós"]
+        direction TB
+        A["Frase com uma palavra escondida<br/>O município comprou [MASK] para as escolas."]
+        B["Codificador: BERT<br/>12 camadas<br/>aprende português"]
+        C["Camada de classificação: que palavra está escondida?<br/>uma saída por palavra do vocabulário<br/>deitada fora no fine-tuning"]
+        D["pão: 41%<br/>ilustrativo"]
+        A --> B --> C --> D
+    end
+
+    subgraph FT["2 · Fine-tuning: o nosso treino, no pod com GPU"]
+        direction TB
+        E["Texto do contrato<br/>Fornecimento de refeições escolares"]
+        F["Codificador: BERT<br/>12 camadas<br/>começa com os pesos do pré-treino"]
+        G["Resumo do texto<br/>768 números"]
+        H["Camada de classificação nova: que código CPV?<br/>3 000 linhas de pesos, uma por código<br/>começa ao acaso"]
+        I["3 000 pontuações<br/>uma por código"]
+        J["Ajuste τ e as 5 maiores"]
+        K["Top-5 de códigos CPV"]
+        E --> F --> G --> H --> I --> J --> K
+
+        L["Código certo: 55524000"]
+        M["Perda: quão baixa ficou<br/>a pontuação do código certo"]
+        I --> M
+        L --> M
+        M -. ajusta os pesos um pouco .-> F
+        M -. ajusta os pesos .-> H
+    end
+
+    B -. pesos copiados .-> F
+
+    classDef descartada fill:#e5e7eb,stroke:#6b7280,stroke-dasharray:5 5,color:#111
+    classDef nova fill:#fde68a,stroke:#b45309,color:#111
+    classDef treino fill:#fecaca,stroke:#b91c1c,color:#111
+    class C descartada
+    class H nova
+    class L,M treino
 ```
-PRÉ-TREINO (feito pela NeuralMind, não por nós)
 
-  "O município comprou [MASK]..."
-              │
-              ▼
-   ┌──────────────────────┐
-   │  CORPO: BERT         │   aprendeu português
-   │  12 camadas          │
-   └──────────────────────┘
-              │
-              ▼
-   ┌──────────────────────┐
-   │ CABEÇA: "que palavra │   uma saída por palavra do vocabulário
-   │ está escondida?"     │
-   └──────────────────────┘
-              │
-              ▼
-          "pão" 41%   (ilustrativo)
+Como ler o esquema:
 
-
-FINE-TUNING (o que fazemos no pod com GPU)
-
-  "Fornecimento de refeições escolares"
-              │
-              ▼
-   ┌──────────────────────┐
-   │  CORPO: BERT         │   começa com os pesos do pré-treino
-   │  12 camadas          │   (o que já sabe de português)
-   └──────────────────────┘
-              │  um resumo do texto: 768 números
-              ▼
-   ┌──────────────────────┐
-   │ CABEÇA NOVA:         │   3 000 saídas, uma por etiqueta CPV
-   │ "que código CPV?"    │   começa ALEATÓRIA
-   └──────────────────────┘
-              │
-              ▼
-   55524000: 0,03%   ← no início, quase ao acaso (ilustrativo)
-   ...
-```
+- **Setas cheias:** o caminho que um texto percorre.
+- **Seta tracejada "pesos copiados":** o codificador do fine-tuning começa com os pesos que o pré-treino aprendeu.
+- **Camada de classificação cinzenta:** a do pré-treino, que não usamos.
+- **Camada de classificação amarela:** a nova, criada por nós com pesos ao acaso.
+- **Caixas vermelhas:** o treino. Compara-se a pontuação com o código certo e ajustam-se os pesos do codificador e da camada de classificação. É o ciclo da secção seguinte.
+- **"Ajuste τ e as 5 maiores":** só serve para dar as sugestões. Não entra no treino.
 
 ### O que acontece num passo de treino
 
-1. O modelo lê o texto e dá uma probabilidade a cada código. No início, o código certo recebe muito pouca, porque a cabeça é aleatória.
+1. O modelo lê o texto e dá uma probabilidade a cada código. No início, o código certo recebe muito pouca, porque a camada de classificação é aleatória.
 2. Mede-se o erro, a **perda**. Quanto mais baixa a probabilidade do código certo, maior a perda.
-3. Ajustam-se **todos** os pesos um bocadinho, os da cabeça e os do corpo, no sentido que teria subido a probabilidade do código certo.
+3. Ajustam-se **todos** os pesos um bocadinho, os da camada de classificação e os do codificador, no sentido que teria subido a probabilidade do código certo.
 4. Passa-se ao lote seguinte. Cada **lote** leva 32 contratos, e uma **época** é uma passagem por todo o treino.
 
-O ajuste ao corpo é pequeno de propósito. A **taxa de aprendizagem** (2e-5 = 0,00002) controla o tamanho de cada passo. Com passos grandes, o modelo esqueceria o português do pré-treino.
+O ajuste ao codificador é pequeno de propósito. A **taxa de aprendizagem** (2e-5 = 0,00002) controla o tamanho de cada passo. Com passos grandes, o modelo esqueceria o português do pré-treino.
 
 ### O que o modelo devolve
 
 O modelo **não** devolve um código, nem um único número. Há três camadas:
 
-1. **O corpo (BERT) não sabe nada de CPV.** Devolve vetores de 768 números, um por token. A cabeça usa o vetor do primeiro token (`[CLS]`) como resumo do texto.
-2. **A cabeça devolve 3 000 números, um por etiqueta.** Chamam-se **pontuações** (ou *logits*). Quanto maior a pontuação, mais o modelo acha que aquele código serve. Não são probabilidades: para isso seria preciso passá-las pelo *softmax*, que as põe entre 0 e 1 e a somar 1. Para ordenar os códigos não é preciso, porque o softmax não muda a ordem.
+1. **O codificador (BERT) não sabe nada de CPV.** Devolve vetores de 768 números, um por token. A camada de classificação usa o vetor do primeiro token (`[CLS]`) como resumo do texto.
+2. **A camada de classificação devolve 3 000 números, um por etiqueta.** Chamam-se **pontuações** (ou *logits*). Quanto maior a pontuação, mais o modelo acha que aquele código serve. Não são probabilidades: para isso seria preciso passá-las pelo *softmax*, que as põe entre 0 e 1 e a somar 1. Para ordenar os códigos não é preciso, porque o softmax não muda a ordem.
 3. **O nosso código escolhe as 5 maiores.** Antes, aplica o ajuste τ do TF-IDF (pontuação − τ · log da frequência da etiqueta no treino, com τ = 0,25). Como o log de uma frequência é negativo, e mais negativo quanto mais rara a etiqueta, as etiquetas raras sobem um pouco.
 
 Exemplo ilustrativo (números inventados):
 
 ```
 texto:   "Fornecimento de refeições escolares"
-cabeça → 3 000 pontuações:  55524000: 8,1   15894210: 6,3   55520000: 5,9   ...   03111000: −4,2
+camada de classificação → 3 000 pontuações:  55524000: 8,1   15894210: 6,3   55520000: 5,9   ...   03111000: −4,2
 ajuste τ + ordenar       →  top-5: [55524000, 55520000, 15894210, ...]
 ```
 
@@ -130,16 +142,16 @@ etiqueta = collapse_rare_codes(codigo, n_min=n_min)
 classes = np.sort(etiqueta.dropna().unique()).astype(object)
 ```
 
-Os códigos com menos de 10 exemplos sobem para a classe ou o grupo, como no TF-IDF ([`src/labels.py`](../src/labels.py)). `classes` é a lista das 3 000 etiquetas, e cada uma vai ser uma saída da cabeça nova.
+Os códigos com menos de 10 exemplos sobem para a classe ou o grupo, como no TF-IDF ([`src/labels.py`](../src/labels.py)). `classes` é a lista das 3 000 etiquetas, e cada uma vai ser uma saída da camada de classificação nova.
 
-### 4.2 Corpo pré-treinado + cabeça nova: `load_model`
+### 4.2 Codificador pré-treinado + camada de classificação nova: `load_model`
 
-É aqui que se faz a troca de cabeça do esquema:
+É aqui que se faz a troca de camada de classificação do esquema:
 
 ```python
 model = AutoModelForSequenceClassification.from_pretrained(
     nome, **extra,                      # neuralmind/bert-base-portuguese-cased, revisão fixa
-    num_labels=len(classes),            # cabeça nova: uma saída por etiqueta CPV
+    num_labels=len(classes),            # camada de classificação nova: uma saída por etiqueta CPV
     id2label={i: str(c) for ...},       # saída 0 → primeiro código, saída 1 → ...
     ...
     ignore_mismatched_sizes=True,
@@ -148,10 +160,10 @@ model = AutoModelForSequenceClassification.from_pretrained(
 
 Esta única chamada faz duas coisas:
 
-- **`from_pretrained`** descarrega o **corpo**, ou seja, os pesos do pré-treino;
-- **`ForSequenceClassification`** junta-lhe por cima uma **cabeça** com `num_labels` saídas e pesos **aleatórios**. A cabeça de adivinhar palavras fica de fora.
+- **`from_pretrained`** descarrega o **codificador**, ou seja, os pesos do pré-treino;
+- **`ForSequenceClassification`** junta-lhe por cima uma **camada de classificação** com `num_labels` saídas e pesos **aleatórios**. A camada de classificação de adivinhar palavras fica de fora.
 
-Antes de `load_model`, `train` chama `set_seed(semente)`. Assim a cabeça aleatória sai igual em todas as execuções.
+Antes de `load_model`, `train` chama `set_seed(semente)`. Assim a camada de classificação aleatória sai igual em todas as execuções.
 
 ### 4.3 Os textos passam a números: `encode`, `EncodedTexts`, `Collator`
 
@@ -161,7 +173,7 @@ treino = EncodedTexts(encode(tokenizer, texto[keep], info["max_length"]),
 ```
 
 - `encode` parte cada texto em tokens e corta-o aos 256. "Fornecimento de refeições" passa a uma lista de números de token.
-- `map(id_de)` troca cada código pelo número da sua saída na cabeça.
+- `map(id_de)` troca cada código pelo número da sua saída na camada de classificação.
 - O `Collator` junta 32 exemplos num lote e preenche os mais curtos até ficarem todos com o mesmo comprimento.
 
 ### 4.4 O tamanho dos passos: `training_arguments`
@@ -177,7 +189,7 @@ lr_scheduler_type="linear",        # ...e depois desce até 0 no fim
 weight_decay=decaimento_pesos,     # 0,01: puxa os pesos ligeiramente para zero
 ```
 
-O **aquecimento** existe porque, no início, a cabeça é aleatória e os erros são enormes. Se a taxa começasse logo cheia, esses primeiros erros podiam estragar o corpo.
+O **aquecimento** existe porque, no início, a camada de classificação é aleatória e os erros são enormes. Se a taxa começasse logo cheia, esses primeiros erros podiam estragar o codificador.
 
 ### 4.5 O ciclo de treino: `Trainer` e `trainer.train()`
 
@@ -188,10 +200,10 @@ trainer.train(resume_from_checkpoint=retomar_de)
 
 O ciclo da secção 3 (ler o texto → probabilidades → perda → ajustar todos os pesos) **não está escrito no nosso código**. Está dentro de `trainer.train()`, no Hugging Face. Em cada passo, por dentro:
 
-1. O lote passa pelo corpo e pela cabeça e sai uma pontuação por etiqueta.
+1. O lote passa pelo codificador e pela camada de classificação e sai uma pontuação por etiqueta.
 2. Como o lote traz `labels`, o próprio modelo calcula a perda (entropia cruzada, isto é, −log da probabilidade do código certo).
 3. Calcula-se em que direção mexer cada peso para baixar a perda (os **gradientes**).
-4. O otimizador (AdamW) mexe todos os pesos, os do corpo e os da cabeça, à taxa daquele momento.
+4. O otimizador (AdamW) mexe todos os pesos, os do codificador e os da camada de classificação, à taxa daquele momento.
 
 No treino do E5-T4 foram 478 234 exemplos ÷ 32 = 14 945 passos por época (`exemplos_usados` e `passos_por_epoca` do `treino.json`).
 
@@ -201,7 +213,7 @@ O `EpochScores` pontua a validação com o modelo nesse momento. O `train_bert.p
 
 ### 4.7 Das pontuações às 5 sugestões: `predict_scores` e `suggest_from_scores`
 
-`predict_scores` corre o modelo sobre os textos e guarda a saída da cabeça:
+`predict_scores` corre o modelo sobre os textos e guarda a saída da camada de classificação:
 
 ```python
 model.eval()                      # sem dropout: a mesma entrada dá sempre a mesma saída
@@ -222,8 +234,8 @@ Usa a mesma função `top_k` do TF-IDF. Assim, as sugestões dos dois modelos fi
 | Esquema | Código (`src/bert.py`) |
 |---|---|
 | etiquetas (códigos CPV) | `training_labels` |
-| corpo pré-treinado | `load_model` → `from_pretrained(nome)` |
-| cabeça nova aleatória | `load_model` → `num_labels=len(classes)` |
+| codificador pré-treinado | `load_model` → `from_pretrained(nome)` |
+| camada de classificação nova aleatória | `load_model` → `num_labels=len(classes)` |
 | texto → números | `encode`, `EncodedTexts`, `Collator` |
 | tamanho dos passos | `training_arguments` |
 | ciclo perda → ajustar pesos | `trainer.train()` (dentro do Hugging Face) |
