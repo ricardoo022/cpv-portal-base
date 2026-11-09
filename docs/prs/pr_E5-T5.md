@@ -111,7 +111,7 @@ Caixas do `docs/backlog.md` marcadas como `[x]` neste PR: as 8 do resultado do E
 
 - Suíte inteira: `.venv/bin/pytest -q` → 716 passed, 1 skipped, depois das correções da revisão (antes do trabalho: 188 passed no `make test-bert`).
 - O YAML do E5-T4 continua a passar no teste parametrizado (os mesmos 4 testes, agora com `[e5_t4]`), e `test_registo_e5_t4.py` continua verde: os registos do E5-T4 não mudaram.
-- CI: `df68409` success, `98dcb33` success, `d163c7e` success (antes das correções da revisão; o commit das correções corre a seguir).
+- CI: `df68409` success, `98dcb33` success, `d163c7e` success; o commit das correções da revisão (`e797418`) estava a correr quando o PR foi aberto.
 
 ### Os testes novos falham com o código estragado
 
