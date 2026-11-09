@@ -55,6 +55,21 @@ O modelo tem duas partes:
 
 O **fine-tuning** (afinação) **aproveita** o codificador do pré-treino como ponto de partida, e também o ajusta um pouco. A camada de classificação, essa, **troca-a**: deita fora a de adivinhar palavras e põe uma nova.
 
+### O que é uma camada, com números
+
+Uma **camada** é uma tabela de números, os **pesos**. Entra uma lista de números e sai outra lista. Cada linha da tabela é um **neurónio** e dá um número à saída: multiplica-se o 1.º número da lista pelo 1.º peso da linha, o 2.º pelo 2.º, e soma-se tudo.
+
+```
+entra [1, 2]
+
+neurónio 1, linha [3, 1]:  1×3 + 2×1 = 5
+neurónio 2, linha [0, 2]:  1×0 + 2×2 = 4
+
+sai [5, 4]
+```
+
+Com várias camadas, a lista que sai de uma é a que entra na seguinte. No BERT as listas têm 768 números e há 12 camadas. Entre elas há também peças extra: uma faz um pequeno ajuste aos números, outra (a *atenção*) mistura os números das várias palavras do texto. A camada de classificação é a última tabela: 3 000 neurónios, um por código CPV, e cada um dá a pontuação do seu código.
+
 ```mermaid
 flowchart TB
     subgraph PT["1 · Pré-treino: feito pelos autores do modelo, não por nós"]
@@ -101,21 +116,76 @@ Como ler o esquema:
 - **Seta tracejada "pesos copiados":** o codificador do fine-tuning começa com os pesos que o pré-treino aprendeu.
 - **Camada de classificação cinzenta:** a do pré-treino, que não usamos.
 - **Camada de classificação amarela:** a nova, criada por nós com pesos ao acaso.
-- **Caixas vermelhas:** o treino. Compara-se a pontuação com o código certo e ajustam-se os pesos do codificador e da camada de classificação. É o ciclo da secção seguinte.
+- **Caixas vermelhas:** o treino. Compara-se a pontuação com o código certo e ajustam-se os pesos do codificador e da camada de classificação. É o ciclo explicado a seguir, em "Como se ajustam os pesos".
 - **"Ajuste τ e as 5 maiores":** só serve para dar as sugestões. Não entra no treino.
 
-### O que acontece num passo de treino
+### Como se põe a camada de classificação nova
 
-1. O modelo lê o texto e dá uma probabilidade a cada código. No início, o código certo recebe muito pouca, porque a camada de classificação é aleatória.
-2. Mede-se o erro, a **perda**. Quanto mais baixa a probabilidade do código certo, maior a perda.
-3. Ajustam-se **todos** os pesos um bocadinho, os da camada de classificação e os do codificador, no sentido que teria subido a probabilidade do código certo.
-4. Passa-se ao lote seguinte. Cada **lote** leva 32 contratos, e uma **época** é uma passagem por todo o treino.
+"Pôr a camada nova" é criar uma tabela de 768 × 3 000 pesos (uma linha de 768 pesos por código CPV), preenchê-la com **números ao acaso** e ligá-la à saída do BERT. Faz-se numa linha, em `load_model` (`src/bert.py`):
 
-O ajuste ao codificador é pequeno de propósito. A **taxa de aprendizagem** (2e-5 = 0,00002) controla o tamanho de cada passo. Com passos grandes, o modelo esqueceria o português do pré-treino.
+```python
+model = AutoModelForSequenceClassification.from_pretrained(nome, num_labels=len(classes), ...)
+```
+
+`from_pretrained(nome)` descarrega o BERT com os pesos do pré-treino. `num_labels=len(classes)` (3 000) cria a tabela nova. Ao acaso, a tabela não sabe nada, por isso, no início, as pontuações não fazem sentido. O treino serve para corrigir os seus números.
+
+### Como se ajustam os pesos: um exemplo à mão
+
+Para se ver a conta, o embedding tem **2** números em vez de 768 e há **2** códigos em vez de 3 000. Os números são inventados.
+
+**O contrato.** O BERT transformou-o no embedding **[1, 2]**. O código certo é o **A**.
+
+**A tabela, ao acaso:**
+
+```
+código A (o certo):  [0,1   −0,2]   →  pontuação: 1×0,1 + 2×(−0,2) = −0,3
+código B (errado):   [0,3    0,1]   →  pontuação: 1×0,3 + 2×0,1    =  0,5
+```
+
+O B tem a pontuação maior, por isso o modelo erra. Convertidas em percentagens que somam 100%, as pontuações dão **31% ao A** e **69% ao B**. A **perda** mede este erro: é tanto maior quanto menor a percentagem do código certo.
+
+**A regra de correção.** Na linha do código **certo** soma-se um bocadinho do embedding. Na linha de cada código **errado** subtrai-se um bocadinho. Quanto mais o modelo errou nesse código, maior o bocadinho:
+
+```
+bocadinho = taxa de aprendizagem × quanto errou × embedding
+```
+
+Com uma taxa de 0,1, para se ver bem:
+
+```
+código A: errou por 1 − 0,31 = 0,69  →  soma     0,1 × 0,69 × [1, 2] = [0,069  0,138]
+          nova linha: [0,169   −0,062]
+
+código B: errou por 0,69 − 0 = 0,69  →  subtrai  0,1 × 0,69 × [1, 2] = [0,069  0,138]
+          nova linha: [0,231   −0,038]
+```
+
+**Novas pontuações, para o mesmo contrato:**
+
+```
+código A:  1×0,169 + 2×(−0,062) = 0,045   (era −0,3: subiu)
+código B:  1×0,231 + 2×(−0,038) = 0,155   (era  0,5: desceu)
+```
+
+O B ainda ganha, mas a diferença passou de 0,8 para 0,11. Com mais uma correção destas, o A passa à frente. Ajustar os pesos é isto, repetido muitas vezes.
+
+**E os pesos do BERT?** Seguem o mesmo princípio. Para cada peso, calcula-se se subi-lo um bocadinho faria a perda subir ou descer, e mexe-se no sentido que a faz descer. Esse cálculo chama-se **gradiente**. Quem o faz, automaticamente para todos os pesos, é a biblioteca PyTorch, não o nosso código. A regra de correção acima é o gradiente da camada de classificação escrito à mão.
+
+**A taxa real.** É **0,00002** e não 0,1, por isso cada correção mexe muito pouco. É de propósito: com correções grandes, o BERT esqueceria o português do pré-treino.
+
+### Passos e épocas
+
+Os pesos **não** se ajustam uma vez por época. Ajustam-se a cada **lote**:
+
+- um **lote** = 32 contratos. Faz-se a conta acima para os 32 de uma vez e faz-se **um** ajuste aos pesos. Isto é um **passo**;
+- uma **época** = uma passagem por **todos** os contratos do treino. No E5-T4 foram 478 234 ÷ 32 = **14 945 passos** por época (`passos_por_epoca` do `treino.json`), ou seja, 14 945 ajustes;
+- **3 épocas** = três passagens pelos mesmos contratos, cerca de 45 mil ajustes.
+
+Volta-se aos mesmos contratos porque cada ajuste é pequeno: uma passagem não chega para os pesos ficarem bons. A época serve sobretudo para contar e para avaliar. No fim de cada uma, o nosso código mede o top-5 na validação e grava o modelo (secção 4.6).
 
 ### O que o modelo devolve
 
-O modelo **não** devolve um código, nem um único número. Há três camadas:
+O modelo **não** devolve um código, nem um único número. Há três etapas:
 
 1. **O codificador (BERT) não sabe nada de CPV.** Devolve vetores de 768 números, um por token. A camada de classificação usa o vetor do primeiro token (`[CLS]`) como resumo do texto.
 2. **A camada de classificação devolve 3 000 números, um por etiqueta.** Chamam-se **pontuações** (ou *logits*). Quanto maior a pontuação, mais o modelo acha que aquele código serve. Não são probabilidades: para isso seria preciso passá-las pelo *softmax*, que as põe entre 0 e 1 e a somar 1. Para ordenar os códigos não é preciso, porque o softmax não muda a ordem.

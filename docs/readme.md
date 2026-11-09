@@ -9,4 +9,6 @@
 | [`maquina_runpod.md`](maquina_runpod.md) | Como alugar, preparar e apagar a máquina da Runpod onde corre o treino do TF-IDF, e quanto custa (E4-S0); a secção 7 é o guia do pod com GPU para o BERT (E5-T2). |
 | [`como_funciona_tfidf.md`](como_funciona_tfidf.md) | O modelo TF-IDF passo a passo, com um exemplo de brincar: como descreve o texto, como treina e de onde vêm as sugestões. |
 | [`como_funciona_bert.md`](como_funciona_bert.md) | O que é o BERTimbau, como aprende português sem etiquetas e onde, no `src/bert.py`, se faz o fine-tuning para os códigos CPV. |
+| [`fine_tuning_simples.md`](fine_tuning_simples.md) | O fine-tuning do BERTimbau explicado do zero, sem jargão, com diagramas e o sítio no código de cada passo. |
+| [`workflow_fine_tuning.md`](workflow_fine_tuning.md) | O fine-tuning do BERT do início ao fim: preparar no laptop, ensaios e treino no pod com GPU, registar e comparar; em cada passo, o comando e o código que corre. |
 | [`prs/`](prs/) | A descrição de cada pull request. |
