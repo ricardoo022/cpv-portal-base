@@ -318,7 +318,7 @@ Usa a mesma função `top_k` do TF-IDF. Assim, as sugestões dos dois modelos fi
 - O **TF-IDF** não sabe português, só conta palavras. "Pão" e "produtos de panificação" são para ele palavras diferentes, sem relação.
 - O **BERT** chega já com vetores parecidos para coisas parecidas. Em princípio, pode acertar num contrato com palavras que nunca viu no treino.
 
-Isto é a hipótese, não um resultado. A primeira afinação do BERTimbau (E5-T4, uma só execução) deu **73,39%** de top-5 por código, contra **78,35%** do TF-IDF (secção 22). A decisão é do E5-T6.
+Isto é a hipótese, não um resultado. A primeira afinação do BERTimbau (E5-T4, uma só execução) deu **73,39%** de top-5 por código, e a do Albertina (E5-T5, a mesma receita) **76,98%**, contra **78,35%** do TF-IDF (secções 22 e 23). A decisão é do E5-T6.
 
 ## Lições que valem além do CPV
 

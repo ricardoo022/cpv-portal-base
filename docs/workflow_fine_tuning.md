@@ -265,8 +265,9 @@ O `src/registo_bert.py` lê a pasta e cria um registo no MLflow (experiência `t
 |---|---|
 | TF-IDF (o modelo em vigor) | 78,35% |
 | BERTimbau, E5-T4 | 73,39% |
+| Albertina, E5-T5 | 76,98% |
 
-Os números são da secção 22 de `qualidade_dados.md`. Foi um único treino, e a decisão entre os modelos fica para o E5-T6.
+Os números são das secções 22 e 23 de `qualidade_dados.md`. Foi um único treino de cada, e a decisão entre os modelos fica para o E5-T6.
 
 ### 5.4 Apagar o pod
 

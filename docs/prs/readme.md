@@ -19,3 +19,5 @@ Cada ficheiro é o texto de um PR: porque foi feito, o que mudou (com o código)
 | [`pr_E5-T1.md`](pr_E5-T1.md) | E5-T1, comprimento dos textos em *tokens* (256 nos dois modelos) |
 | [`pr_E5-T2.md`](pr_E5-T2.md) | E5-T2, código de treino do BERT testado no CI (modelo minúsculo, retoma de treinos interrompidos) |
 | [`pr_E5-T3.md`](pr_E5-T3.md) | #25 · E5-T3, cada treino do BERT registado no MLflow (commit, YAML, SHA-256 dos dados, curva por época) |
+| [`pr_E5-T4.md`](pr_E5-T4.md) | E5-T4, primeiro treino do BERTimbau (sinal de decorar, ensaio de custo e treino de 3 épocas) |
+| [`pr_E5-T5.md`](pr_E5-T5.md) | #27 · E5-T5, primeiro treino do Albertina, com a mesma receita do BERTimbau |

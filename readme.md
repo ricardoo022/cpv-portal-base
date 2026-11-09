@@ -152,9 +152,9 @@ cpv-portal-base/
   tests/            testes unitários e de integração (pytest)
   scripts/          download, ensaio de custo (E4-S0), curva por época, spikes no pod e registo do histórico no MLflow
   experiencias/     as opções de cada spike, escritas antes de correr (um YAML por spike)
-  metrics/          resultados guardados no git (e4_*/: um por spike; validacao.json: o campeão do portão de qualidade)
+  metrics/          resultados guardados no git (e4_*/: um por spike; bert/: os treinos do BERT do E5; validacao.json: o campeão do portão de qualidade)
   models/           modelos treinados (fora do git; no pod)
-  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada, com e sem GPU), como_funciona_tfidf.md (o TF-IDF passo a passo) e prs/ (a descrição de cada PR)
+  docs/             workflow.md (os passos e o estado), backlog.md (épicos e user stories), dados.md (as colunas), qualidade_dados.md (verificações e decisões), maquina_runpod.md (a máquina alugada, com e sem GPU), como_funciona_tfidf.md (o TF-IDF passo a passo), como_funciona_bert.md, fine_tuning_simples.md e workflow_fine_tuning.md (o BERT e o seu fine-tuning) e prs/ (a descrição de cada PR)
   Makefile          atalhos dos comandos (make help)
   mlflow.db         registo local do MLflow: portão, histórico e treinos do BERT (fora do git; make mlflow)
   requirements.txt  versões exatas das bibliotecas (sem torch)
