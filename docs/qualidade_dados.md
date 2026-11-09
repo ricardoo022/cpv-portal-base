@@ -600,7 +600,7 @@ Números do run `e5_t5_albertina` da experiência `treinos_bert` no MLflow, feit
 
 - **Sinal de erro 1: passou**, na condição escrita depois do E5-T4 (100 contratos, 3 000 etiquetas, até 100 épocas, taxa 1e-4; secção 21). Acertou 100 de 100 na última época, e chegou aos 95 pela primeira vez na época **18** (o BERTimbau, nas mesmas 100 épocas, na 27). A curva: 44 na época 10, 94 na 16, 92 na 17, 99 na 18. Os 100 contratos são os mesmos do sinal do BERTimbau (a mesma semente).
 - **Ensaio de custo (200 passos):** 0,1418 s por passo contra 0,073 do BERTimbau (1,94 vezes), ou seja, uma época estimada de 2 118,5 s (35,3 min). Pico de memória da GPU: 16 781 MB alocados e **21 700 MB reservados**, dos 24 564 MB da placa (o BERTimbau reservou 9 318). Como no E5-T4 o treino completo reservou cerca de 15% mais do que o ensaio, o treino completo correu com `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`, que muda só a forma como o PyTorch arruma a memória da GPU (decisão do utilizador, antes de lançar; `pod_info.json`). Reservou 17 276 MB.
-- **Treino completo:** 6 458,35 s, cerca de **1,60 $** a 0,89 $/h (o BERTimbau: 0,83 $). O pod inteiro, com instalação e testes, viveu 12 013 s, cerca de 2,97 $ por cálculo; a fatura lida logo a seguir a apagar mostrava 2,13 $, a mesma diferença sem explicação do E5-T4.
+- **Treino completo:** 6 458,35 s, cerca de **1,60 $** a 0,89 $/h (o BERTimbau: 0,83 $). O pod inteiro, com instalação e testes, viveu cerca de 12 013 s (a hora de apagar é aproximada, ao minuto), cerca de 2,97 $ por cálculo; a fatura lida logo a seguir a apagar mostrava 2,13 $, a mesma diferença sem explicação do E5-T4.
 
 | Medida | Época 1 | Época 2 | Época 3 | BERTimbau, época 3 (secção 22) | TF-IDF em vigor |
 |---|---|---|---|---|---|
@@ -616,7 +616,7 @@ Números do run `e5_t5_albertina` da experiência `treinos_bert` no MLflow, feit
 - **Não se sabe ainda se mais épocas ajudavam.** O ganho desce de 4,63 para 1,25 pontos da época 2 para a 3, mas a taxa de aprendizagem desce até zero no fim, como no E5-T4.
 - **τ:** na última época, τ = 0 dá 77,20% e τ = 0,25 dá 76,98%. Como no BERTimbau, o τ quase não muda nada; o E5-S1 testa-o.
 - **As 3 descrições de exemplo** (`sugestoes_exemplos.txt`): as 15 sugestões são todas códigos abaixo da divisão, da área certa (limpeza `909...`, refeições `555...`, estradas `45233...`).
-- **Perda na validação:** não medida (o treino não a calcula; tarefa E5-T7). As pontuações das 3 épocas ficaram no portátil, em `models/bert/e5_t5_albertina/pontuacoes/` (825 MB, fora do git), para a calcular depois.
+- **Perda na validação:** não medida (o treino não a calcula; tarefa E5-T7). As pontuações das 3 épocas ficaram no portátil, em `models/bert/e5_t5_albertina/pontuacoes/` (3 × 287 340 128 bytes, cerca de 0,86 GB, fora do git), para a calcular depois.
 - Lição que generaliza: dois modelos do mesmo tamanho nominal ("base", 12 camadas) podem custar muito diferente. O Albertina parte as palavras em mais pedaços (secção 20) e usa a atenção do DeBERTa, mais cara, e cada época custou quase o dobro. Mede-se num ensaio curto, na mesma placa, antes de planear.
 
 ## Decisões

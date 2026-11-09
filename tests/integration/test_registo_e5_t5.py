@@ -24,6 +24,7 @@ BERT = RAIZ / "metrics" / "bert"
 YAML = RAIZ / "experiencias" / "e5_t5.yaml"
 COMMIT = "98dcb338f567dc0524248813268151934c54c54a"
 SHA_TREINO = "0769501ae2a306dbc1fe72e1aa64ccdd5cd86b15f269ab707110a6fc0457a8a7"
+SHA_VALIDACAO = "f0cce1a06d532124feb25eaa963600b7ef2e8b24b0ae42c4955e6b438782b9c9"
 
 TREINO = BERT / "e5_t5_albertina" / "treino.json"
 ENSAIO = BERT / "e5_t5_ensaio" / "treino.json"
@@ -48,6 +49,15 @@ def test_correu_com_o_yaml_de_hoje_num_commit_limpo(caminho):
     assert d["modelo"]["nome"] == "PORTULAN/albertina-100m-portuguese-ptpt-encoder"
     sha_treino = d["sha256"]["treino"] if "sha256" in d else d["treino"]["sha256"]
     assert sha_treino == SHA_TREINO
+
+
+@pytest.mark.parametrize("caminho", [ENSAIO, TREINO], ids=lambda p: p.parent.name)
+def test_ensaio_e_treino_leram_a_validacao_do_portatil(caminho):
+    # O sinal de decorar não lê a validação; o ensaio e o treino gravam o SHA-256 das duas
+    d = _ler(caminho)
+    assert d["sha256"] == {"treino": SHA_TREINO, "validacao": SHA_VALIDACAO}
+    argumentos = _ler(caminho.parent / "argumentos.json")
+    assert (argumentos["treino_sha256"], argumentos["validacao_sha256"]) == (SHA_TREINO, SHA_VALIDACAO)
 
 
 def test_treino_completo_tem_a_receita_do_yaml_e_a_do_e5_t4():

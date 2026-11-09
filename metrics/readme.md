@@ -20,6 +20,6 @@ Em cada pasta de treino: as sugestões da validação (`sugestoes_validacao*.par
 | `bert/e5_t4_bertimbau/` | E5-T4: treino completo do BERTimbau, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. | `make registar-bert`, secção 22 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 | `bert/e5_t5_ensaio/` | E5-T5: ensaio de custo de 200 passos do Albertina (tempo por lote e memória da GPU), com `pod_ensaio.log`. | secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 | `bert/e5_t5_sinal_decorar/` | E5-T5: sinal de decorar do Albertina, até 100 épocas (passou na época 18), com `pod_sinal.log`. | secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
-| `bert/e5_t5_albertina/` | E5-T5: treino completo do Albertina, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. As pontuações das 3 épocas (825 MB) estão fora do git, em `models/bert/e5_t5_albertina/pontuacoes/`. | `make registar-bert`, secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
+| `bert/e5_t5_albertina/` | E5-T5: treino completo do Albertina, com uma pasta por época, `pod_info.json`, `pod_treino.log` e `sugestoes_exemplos.txt`. As pontuações das 3 épocas (3 × 287 340 128 bytes, cerca de 0,86 GB) estão fora do git, em `models/bert/e5_t5_albertina/pontuacoes/`. | `make registar-bert`, secção 23 do [`qualidade_dados.md`](../docs/qualidade_dados.md) |
 
 Todos os treinos daqui estão também no MLflow, na experiência `historico_e4` (`make historico`, depois `make mlflow`).
