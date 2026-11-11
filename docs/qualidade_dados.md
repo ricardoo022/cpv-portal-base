@@ -616,7 +616,7 @@ Números do run `e5_t5_albertina` da experiência `treinos_bert` no MLflow, feit
 - **Não se sabe ainda se mais épocas ajudavam.** O ganho desce de 4,63 para 1,25 pontos da época 2 para a 3, mas a taxa de aprendizagem desce até zero no fim, como no E5-T4.
 - **τ:** na última época, τ = 0 dá 77,20% e τ = 0,25 dá 76,98%. Como no BERTimbau, o τ quase não muda nada; o E5-S1 testa-o.
 - **As 3 descrições de exemplo** (`sugestoes_exemplos.txt`): as 15 sugestões são todas códigos abaixo da divisão, da área certa (limpeza `909...`, refeições `555...`, estradas `45233...`).
-- **Perda na validação:** não medida (o treino não a calcula; tarefa E5-T7). As pontuações das 3 épocas ficaram no portátil, em `models/bert/e5_t5_albertina/pontuacoes/` (3 × 287 340 128 bytes, cerca de 0,86 GB, fora do git), para a calcular depois.
+- **Perda na validação:** não medida neste treino (o código do E5-T5 não a calculava; desde o E5-T7 o treino grava-a em cada época). As pontuações das 3 épocas ficaram no portátil, em `models/bert/e5_t5_albertina/pontuacoes/` (3 × 287 340 128 bytes, cerca de 0,86 GB, fora do git), e chegam para a calcular sem GPU, se for preciso; os treinos do E5-S1 repetem esta configuração e já a gravam.
 - Lição que generaliza: dois modelos do mesmo tamanho nominal ("base", 12 camadas) podem custar muito diferente. O Albertina parte as palavras em mais pedaços (secção 20) e usa a atenção do DeBERTa, mais cara, e cada época custou quase o dobro. Mede-se num ensaio curto, na mesma placa, antes de planear.
 
 ## Decisões

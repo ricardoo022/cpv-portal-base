@@ -25,7 +25,12 @@ O run tem:
   a perda na validação é só informação: quem decide é o top-5 no código completo (E5-S1, E5-T6).
   As duas podem discordar: a perda pode subir com o top-5 ainda a melhorar, quando o modelo fica
   confiante demais nos contratos que erra (um erro com probabilidade 0,01 no código certo custa
-  -log(0,01) ≈ 4,6, mesmo que o código certo continue entre as 5 sugestões);
+  -log(0,01) ≈ 4,6, mesmo que o código certo continue entre as 5 sugestões).
+  As duas perdas não se comparam ao valor: a do treino é a média dos passos da época, com o
+  *dropout* ligado e os pesos a mudar; a da validação mede-se no fim da época, sem *dropout*, e só
+  nos contratos cuja etiqueta existe no treino. Por isso a da validação pode ficar abaixo da do
+  treino sem nada estar errado; o que mostra o sobreajuste é a forma das curvas (a da validação
+  pára ou sobe enquanto a do treino desce);
 - métricas sem passo: o custo do treino (tempo, memória, exemplos, etiquetas, segundos por época);
 - etiquetas (tags): o SHA-256 do `treino.json`, o modelo e o texto do YAML da experiência.
 
