@@ -72,6 +72,66 @@ def test_pontuacoes_com_outro_numero_de_colunas_dao_erro():
         bert.suggest_from_scores(np.zeros((2, len(CLASSES) - 1), dtype=np.float32), CLASSES)
 
 
+# --- Perda na validação (E5-T7) ---
+
+# Etiquetas de um treino: um código (90911200), uma classe (33140000) e um grupo (45200000)
+CLASSES_PERDA = np.array(["30192000", "33140000", "45200000", "90911200", "90919300"], dtype=object)
+
+
+@pytest.mark.parametrize("codigo, etiqueta", [
+    ("90911200", "90911200"),  # o código é etiqueta: fica ele
+    ("33141100", "33140000"),  # o código não é, a classe 3314 é: sobe para a classe
+    ("45233200", "45200000"),  # nem o código nem a classe 4523 são, o grupo 452 é: sobe para o grupo
+    ("34110000", None),        # nem código, nem classe, nem grupo: fica de fora
+    ("45000000", None),        # uma divisão nunca é etiqueta
+    (None, None),              # sem código
+])
+def test_etiqueta_da_validacao_sobe_como_no_treino(codigo, etiqueta):
+    out = bert.validation_labels(pd.Series([codigo], index=[7]), CLASSES_PERDA)
+    assert out.index.tolist() == [7]
+    assert (None if pd.isna(out.iloc[0]) else out.iloc[0]) == etiqueta
+
+
+def test_etiqueta_da_validacao_prefere_o_nivel_mais_fino():
+    # O código e a sua classe são as duas etiquetas: fica o código, não a classe
+    classes = np.array(["33140000", "33141100"], dtype=object)
+    assert bert.validation_labels(pd.Series(["33141100", "33141400"]), classes).tolist() == ["33141100", "33140000"]
+
+
+def test_perda_e_a_entropia_cruzada_media_dos_contratos_que_entram():
+    p = np.array([[2.0, 0.0, 0.0, 0.0, 0.0],
+                  [0.0, 1.0, 3.0, 0.0, 0.0],
+                  [9.0, 9.0, 9.0, 9.0, 9.0]], dtype=np.float32)
+    etiquetas = pd.Series(["30192000", "33140000", None])
+    perda, n = bert.cross_entropy(p, etiquetas, CLASSES_PERDA)
+    # −log softmax à mão: linha 1, 2 − log(e² + 4); linha 2, 1 − log(1 + e + e³ + 2); a 3.ª sai
+    esperada = -((2 - np.log(np.e ** 2 + 4)) + (1 - np.log(3 + np.e + np.e ** 3))) / 2
+    assert n == 2
+    assert perda == pytest.approx(esperada, rel=1e-12)
+
+
+def test_perda_com_logits_enormes_nao_da_infinito():
+    # Sem tirar o máximo, exp(1000) dava infinito; o log-softmax estável dá log(2)
+    p = np.array([[1000.0, 1000.0, -1000.0, -1000.0, -1000.0]], dtype=np.float32)
+    perda, n = bert.cross_entropy(p, pd.Series(["30192000"]), CLASSES_PERDA)
+    assert (perda, n) == (pytest.approx(np.log(2)), 1)
+
+
+def test_sem_nenhum_contrato_a_perda_e_none():
+    p = np.zeros((2, len(CLASSES_PERDA)), dtype=np.float32)
+    assert bert.cross_entropy(p, pd.Series([None, np.nan]), CLASSES_PERDA) == (None, 0)
+
+
+@pytest.mark.parametrize("p, etiquetas, msg", [
+    (np.zeros((1, 3)), ["30192000"], "colunas"),
+    (np.zeros((2, 5)), ["30192000"], "linhas"),
+    (np.zeros((1, 5)), ["99999999"], "não estão nas"),
+])
+def test_perda_com_formas_ou_etiquetas_erradas_da_erro(p, etiquetas, msg):
+    with pytest.raises(ValueError, match=msg):
+        bert.cross_entropy(p, pd.Series(etiquetas), CLASSES_PERDA)
+
+
 # --- Tokenização e lotes ---
 
 @pytest.fixture(scope="module")

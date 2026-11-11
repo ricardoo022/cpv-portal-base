@@ -17,8 +17,20 @@ O run tem:
   `treino.json` que diz como repetir o treino; o que não existir regista-se como "nenhum");
 - métricas por época, com o passo (`step`) = a época, o que dá no MLflow o gráfico da curva:
   top-1 e top-5 no código completo e na classe, em todos os contratos e só no texto novo
-  (`evaluation.report`), e a perda no treino. As do τ do modelo por defeito têm os nomes do portão
-  (`top5_codigo_todos`, ...); as dos outros τ levam o sufixo `_tau<τ>` (`top5_codigo_todos_tau0`);
+  (`evaluation.report`), a perda no treino (`perda_treino`) e, desde o E5-T7, a perda na validação
+  (`perda_validacao`) com o número de contratos que entraram na sua média (`n_contratos_perda`).
+  As do τ do modelo por defeito têm os nomes do portão (`top5_codigo_todos`, ...); as dos outros τ
+  levam o sufixo `_tau<τ>` (`top5_codigo_todos_tau0`). Um treino sem a perda na validação (os do
+  E5-T4 e E5-T5) regista-se na mesma, sem essas duas métricas;
+  a perda na validação é só informação: quem decide é o top-5 no código completo (E5-S1, E5-T6).
+  As duas podem discordar: a perda pode subir com o top-5 ainda a melhorar, quando o modelo fica
+  confiante demais nos contratos que erra (um erro com probabilidade 0,01 no código certo custa
+  -log(0,01) ≈ 4,6, mesmo que o código certo continue entre as 5 sugestões).
+  As duas perdas não se comparam ao valor: a do treino é a média dos passos da época, com o
+  *dropout* ligado e os pesos a mudar; a da validação mede-se no fim da época, sem *dropout*, e só
+  nos contratos cuja etiqueta existe no treino. Por isso a da validação pode ficar abaixo da do
+  treino sem nada estar errado; o que mostra o sobreajuste é a forma das curvas (a da validação
+  pára ou sobe enquanto a do treino desce);
 - métricas sem passo: o custo do treino (tempo, memória, exemplos, etiquetas, segundos por época);
 - etiquetas (tags): o SHA-256 do `treino.json`, o modelo e o texto do YAML da experiência.
 
@@ -103,6 +115,11 @@ def epoch_metrics(pasta, resumo, val):
             metricas.update(metric_names(report, _suffix(nome, resumo)))
         if e.get("perda_treino") is not None:
             metricas["perda_treino"] = float(e["perda_treino"])
+        # Perda na validação (E5-T7): os treinos anteriores (E5-T4, E5-T5) não a têm e ficam sem ela
+        if e.get("perda_validacao") is not None:
+            metricas["perda_validacao"] = float(e["perda_validacao"])
+        if e.get("n_contratos_perda") is not None:
+            metricas["n_contratos_perda"] = float(e["n_contratos_perda"])
         out[k] = metricas
     return out
 

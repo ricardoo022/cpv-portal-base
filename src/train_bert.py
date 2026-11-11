@@ -15,6 +15,10 @@ Com `--dispositivo cuda` (o que se usa no pod), antes disso confirma que o `torc
      aplicar qualquer τ depois sem treinar outra vez. Com ~24 mil contratos e ~3 000 etiquetas
      são ~0,3 GB por época: ficam no pod, fora do git (por defeito em `models/bert/`);
    - grava as sugestões dessa época com cada τ (`<saida>/epoca_<k>/sugestoes_validacao*.parquet`);
+   - calcula a perda na validação (E5-T7) com essas pontuações: a entropia cruzada média
+     (`bert.cross_entropy`) com a etiqueta de cada contrato pela regra dos códigos raros do treino
+     (`bert.validation_labels`; os contratos sem etiqueta no treino ficam de fora), e grava-a no
+     `epoca.json` da época (`perda_validacao` e `n_contratos_perda`), que entra no `por_epoca`;
 3. copia as sugestões da última época para a `<saida>`, no mesmo formato e com os mesmos nomes
    do TF-IDF (`sugestoes_validacao.parquet` com τ = 0 e `sugestoes_validacao_tau0.25.parquet`),
    que a avaliação (E4-T1) e o portão (E4-T5) leem sem mudanças;
@@ -284,7 +288,7 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
 
     treino = pd.read_parquet(train_path, columns=["data", "texto", "codigo"])
     datas_treino = _date_range(treino["data"])
-    val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto"])
+    val = pd.read_parquet(val_path, columns=["idcontrato", "data", "texto", "codigo"])
     datas_val = _date_range(val["data"])
     ids = val["idcontrato"].astype(str).to_numpy()
 
@@ -292,6 +296,9 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
     # sugestões de cada época; no fim confirma-se que são as do modelo treinado.
     _, classes = bert.training_labels(treino["codigo"], n_min)
     prior = tfidf.log_prior(treino["codigo"], classes, n_min=n_min)
+    # A etiqueta de cada contrato da validação para a perda (E5-T7): a regra dos códigos raros do
+    # treino aplicada ao seu primeiro código; os que não têm etiqueta no treino ficam de fora
+    etiquetas_val = bert.validation_labels(val["codigo"], classes)
     # As épocas já feitas antes da interrupção (com `retomar`) vêm dos seus epoca.json
     epocas_info = [json.loads((out_dir / epoch_dir(k) / EPOCA_INFO).read_text(encoding="utf-8"))
                    for k in range(1, (retomado or 0) + 1)]
@@ -303,8 +310,11 @@ def run(train_path, val_path, out_dir, modelo="bertimbau", n_min=DEFAULT_N_MIN, 
         for tau in taus:
             sug = bert.suggest_from_scores(pontuacoes, classes, prior, tau)
             bert.suggestions_frame(ids, sug).to_parquet(pasta / suggestions_file(tau), index=False)
+        # A perda na validação, das mesmas pontuações (sem outra passagem pela validação)
+        perda, n_perda = bert.cross_entropy(pontuacoes, etiquetas_val, classes)
         info = {"epoca": k, "checkpoint": checkpoint, "pontuacoes": scores_file(k),
-                "segundos_desde_o_inicio": round(time.perf_counter() - t0, 2)}
+                "segundos_desde_o_inicio": round(time.perf_counter() - t0, 2),
+                "perda_validacao": perda, "n_contratos_perda": n_perda}
         (pasta / EPOCA_INFO).write_text(json.dumps(info), encoding="utf-8")
         epocas_info.append(info)
 

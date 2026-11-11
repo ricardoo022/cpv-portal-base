@@ -36,7 +36,7 @@ from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 import bert_models
 import tfidf
 from evaluation import TOP_K
-from labels import DEFAULT_N_MIN, collapse_rare_codes
+from labels import DEFAULT_N_MIN, collapse_rare_codes, to_level
 
 # Hiperparâmetros por defeito: a receita de afinação do artigo do BERT (Devlin et al., 2019,
 # secção A.3: taxa de aprendizagem entre 2e-5 e 5e-5, lote de 16 ou 32, 2 a 4 épocas, aquecimento
@@ -388,6 +388,65 @@ def train(texto, codigo, modelo, checkpoints_dir, textos_val=None, on_epoch=None
             "exemplos_usados": int(keep.sum()), "exemplos_saidos": int((~keep).sum()),
             "passos": relogio.passos, "segundos_por_passo": relogio.segundos_por_passo(),
             "lote_efetivo": lote_efetivo, "passos_por_epoca": math.ceil(int(keep.sum()) / lote_efetivo)}
+
+
+def validation_labels(codigo, classes):
+    """A etiqueta de cada contrato da validação entre as `classes` do treino (NaN se fica de fora).
+
+    `codigo`: o primeiro código de cada contrato (a coluna `codigo` do validacao.parquet). Fica o
+    código se for uma etiqueta do treino; senão a sua classe (4 dígitos), se for; senão o seu
+    grupo (3 dígitos), se for; senão NaN (o contrato não entra na perda).
+
+    Isto é aplicar a regra dos códigos raros do treino (`collapse_rare_codes`, com as contagens
+    só do treino) ao código do contrato. No treino, um código fica etiqueta se tiver pelo menos N
+    exemplos; senão sobe para a classe, e a classe para o grupo. Um código da validação que não
+    está nas `classes` ou foi raro no treino ou nem apareceu lá (0 exemplos, também menos de N):
+    nos dois casos o treino subia-o para a classe, e a classe só é etiqueta se tiver chegado a N;
+    o mesmo para o grupo. Exemplo: 33141100 não é etiqueta, mas 33140000 é (dois códigos raros da
+    classe 3314 juntaram-se lá) -> 33140000. Um código de divisão (XX000000) fica sempre de fora:
+    a classe e o grupo são ele próprio, e o treino não tem divisões. Não se conta nada na
+    validação (seria fuga de dados): só se procura nas `classes`.
+    """
+    codigo = pd.Series(codigo, dtype=object)
+    no_treino = set(str(c) for c in classes)
+    etiqueta = pd.Series(np.nan, index=codigo.index, dtype=object)
+    validos = codigo.notna()
+    texto = codigo[validos].astype(str)
+    for nivel in (texto, to_level(texto, 4), to_level(texto, 3)):  # código -> classe -> grupo
+        falta = etiqueta.loc[texto.index].isna() & nivel.isin(no_treino)
+        etiqueta.loc[falta[falta].index] = nivel[falta]
+    return etiqueta
+
+
+def cross_entropy(pontuacoes, etiquetas, classes):
+    """A entropia cruzada média das `pontuacoes` (logits) com as `etiquetas`: (perda, n).
+
+    Para cada contrato com etiqueta, −log(softmax(logits)[etiqueta certa]); a média sobre os n
+    contratos que entram (os de etiqueta NaN, ver `validation_labels`, ficam de fora). É a mesma
+    conta da perda do treino (a `CrossEntropyLoss` do modelo). Faz-se em float64 com o
+    log-softmax estável: log softmax(x)_c = x_c − max(x) − log(Σ exp(x − max(x))); sem tirar o
+    máximo, exp de um logit grande dava infinito. Sem nenhum contrato, devolve (None, 0).
+    """
+    classes = np.asarray(classes, dtype=object)
+    pontuacoes = np.asarray(pontuacoes)
+    if pontuacoes.ndim != 2 or pontuacoes.shape[1] != len(classes):
+        raise ValueError(f"as pontuações têm forma {pontuacoes.shape}; são precisas {len(classes)} colunas")
+    etiquetas = pd.Series(etiquetas, dtype=object).reset_index(drop=True)
+    if len(etiquetas) != len(pontuacoes):
+        raise ValueError(f"{len(etiquetas)} etiquetas para {len(pontuacoes)} linhas de pontuações")
+    id_de = {str(c): i for i, c in enumerate(classes)}
+    entram = etiquetas.notna().to_numpy()
+    if not entram.any():
+        return None, 0
+    fora = sorted(set(etiquetas[entram].astype(str)) - set(id_de))
+    if fora:
+        raise ValueError(f"etiquetas que não estão nas `classes`: {fora[:3]}")
+    colunas = etiquetas[entram].astype(str).map(id_de).to_numpy()
+    x = pontuacoes[entram].astype(np.float64)
+    maximo = x.max(axis=1, keepdims=True)
+    log_soma = np.log(np.exp(x - maximo).sum(axis=1)) + maximo[:, 0]
+    perdas = log_soma - x[np.arange(len(x)), colunas]  # −log softmax na etiqueta certa
+    return float(perdas.mean()), int(entram.sum())
 
 
 def suggest_from_scores(pontuacoes, classes, log_prior=None, tau=0.0, k=TOP_K):
