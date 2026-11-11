@@ -43,6 +43,8 @@ TOP5_CODIGO_TODOS_TAU0 = {1: 0.0, 2: 1.0}
 TOP1_CODIGO_TODOS_TAU0 = {1: 0.0, 2: 0.75}
 
 PERDA = {1: 2.5, 2: 1.25}
+PERDA_VALIDACAO = {1: 3.0, 2: 3.5}  # sobe com o top-5 a melhorar: a perda é só informação (E5-T7)
+N_CONTRATOS_PERDA = {1: 3, 2: 3}  # um dos 4 contratos com código fora das etiquetas não entra na média
 TREINO_INICIO = "2022-01-03"
 YAML = "spike: e5_s1\nopcoes: [bertimbau]\n"
 
@@ -69,7 +71,8 @@ def fazer_validacao(pasta, visto=VISTO):
 
 def resumo_de(val_path, **muda):
     por_epoca = [{"epoca": k, "checkpoint": f"/w/ck/checkpoint-{10 * k}", "pontuacoes": f"epoca_{k}.npy",
-                  "segundos_desde_o_inicio": 100.0 * k, "perda_treino": PERDA[k]} for k in (1, 2)]
+                  "segundos_desde_o_inicio": 100.0 * k, "perda_treino": PERDA[k],
+                  "perda_validacao": PERDA_VALIDACAO[k], "n_contratos_perda": N_CONTRATOS_PERDA[k]} for k in (1, 2)]
     r = {
         "data": "2026-10-15T10:00:00",
         "modelo": {"chave": "bertimbau", "nome": "neuralmind/bert-base-portuguese-cased", "revisao": "abc123"},
@@ -155,7 +158,8 @@ def test_regista_parametros_tags_e_metricas_do_treino_json(base):
             "treino_segundos_por_epoca": 100.0}.items() <= m.items()
     nomes = {f"{top}_{med}_{g}{suf}" for top in ("top1", "top5") for med in ("codigo", "classe")
              for g in ("todos", "texto_novo") for suf in ("", "_tau0")}
-    assert set(m) == nomes | {"perda_treino", "treino_tempo_treinar_s", "treino_pico_rss_mb",
+    assert set(m) == nomes | {"perda_treino", "perda_validacao", "n_contratos_perda",
+                              "treino_tempo_treinar_s", "treino_pico_rss_mb",
                               "treino_exemplos_usados", "treino_exemplos_saidos", "treino_etiquetas",
                               "treino_segundos_por_epoca"}
     assert set(mg.METRICAS) <= set(m)  # o modelo por defeito tem os nomes do portão
@@ -213,6 +217,33 @@ def test_curva_tem_uma_entrada_por_epoca_com_o_passo_da_epoca(base):
     assert _historia(uri, run_id, "top5_codigo_todos_tau0") == TOP5_CODIGO_TODOS_TAU0
     assert _historia(uri, run_id, "top1_codigo_todos_tau0") == TOP1_CODIGO_TODOS_TAU0
     assert _historia(uri, run_id, "perda_treino") == PERDA
+    assert _historia(uri, run_id, "perda_validacao") == PERDA_VALIDACAO
+    assert _historia(uri, run_id, "n_contratos_perda") == N_CONTRATOS_PERDA
+
+
+def test_treino_sem_perda_na_validacao_regista_sem_ela(base, tmp_path):
+    # Os treinos do E5-T4 e do E5-T5 são anteriores ao E5-T7: o `por_epoca` não tem estes campos
+    val = base["val"]
+    resumo = resumo_de(val)
+    for e in resumo["por_epoca"]:
+        del e["perda_validacao"], e["n_contratos_perda"]
+    pasta = fazer_treino(tmp_path / "antigo", val, por_epoca=resumo["por_epoca"])
+    run_id = registar(base, pasta)
+    m = MlflowClient(base["uri"]).get_run(run_id).data.metrics
+    assert "perda_validacao" not in m and "n_contratos_perda" not in m
+    assert _historia(base["uri"], run_id, "perda_treino") == PERDA  # o resto da curva fica igual
+    assert _historia(base["uri"], run_id, "top5_codigo_todos") == TOP5_CODIGO_TODOS
+
+
+def test_perda_validacao_none_nao_da_metrica(tmp_path):
+    # Nenhum contrato entrou na média (todos com códigos fora das etiquetas): o treino grava null
+    val = fazer_validacao(tmp_path / "dados")
+    pasta = fazer_treino(tmp_path / "t", val)
+    resumo = json.loads((pasta / "treino.json").read_text(encoding="utf-8"))
+    for e in resumo["por_epoca"]:
+        e["perda_validacao"], e["n_contratos_perda"] = None, 0
+    por_epoca = rb.epoch_metrics(pasta, resumo, pd.read_parquet(val, columns=rb.COLUNAS_VAL))
+    assert all("perda_validacao" not in m and m["n_contratos_perda"] == 0.0 for m in por_epoca.values())
 
 
 # --- Vários treinos na mesma experiência, sem duplicar ---

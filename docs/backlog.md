@@ -8,7 +8,7 @@ Todos os épicos do projeto num só sítio: os que já estão feitos e o próxim
 | E2 · Conhecer os dados antes de treinar | 2 | feito |
 | E3 · Treino, validação e teste em que se pode confiar | 3 | feito |
 | E4 · Primeiras sugestões de CPV com um modelo simples | 4 | feito |
-| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 a E5-T5 feitos; a seguir o E5-T7) |
+| E5 · Sugestões de CPV com o BERTimbau e o Albertina | 4 | em curso (E5-T1 a E5-T5 e E5-T7 feitos; a seguir o E5-S1) |
 | Avaliar no teste e analisar os erros | 5 | por escrever |
 
 ## Glossário
@@ -802,7 +802,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Custo que falta:** gastos cerca de 4,83 $ dos 20 $ do teto (1,86 $ do E5-T4 e 2,97 $ do E5-T5, por cálculo). Um treino de 3 épocas custa cerca de 0,83 $ no BERTimbau e 1,60 $ no Albertina, e no pod do E5-T5 o resto (instalação, testes, sinal, ensaio e cópias) custou cerca de 1,37 $. A grelha do E5-S1 decide-se com estes números (decisão pendente 3 do E5).
 
-### E5-T7 · Tarefa: perda na validação em cada época (P)
+### E5-T7 · Tarefa: perda na validação em cada época (P) · feito
 
 **Porque é precisa:** hoje o treino do BERT mede, em cada época, a perda no treino e o top-1 e o top-5 na validação, mas não a perda na validação (o Trainer corre com `eval_strategy="no"`). A perda na validação é a mesma conta da perda no treino (entropia cruzada: −log da probabilidade que o modelo dá à etiqueta certa, em média), feita nos contratos de outubro de 2025. Mostra o sobreajuste: a perda no treino continua a descer e a da validação pára ou sobe. Com ela, cada treino da grelha do E5-S1 mostra as duas curvas lado a lado. Pedido do utilizador (7 de novembro de 2026), com o treino do E5-T5 já a arrancar: entra nos treinos seguintes, não no E5-T5, para o código do E5-T5 ficar o do commit que treina.
 
@@ -812,11 +812,13 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Critérios de aceitação:**
 
-- [ ] No fim de cada época, o treino calcula a perda na validação a partir dos *logits* que já calcula para as pontuações (sem uma segunda passagem pela validação), e grava `perda_validacao` e `n_contratos_perda` no `epoca.json` dessa época.
-- [ ] Só entram os contratos da validação cuja etiqueta existe no treino, depois da mesma regra dos códigos raros do treino (`collapse_rare_codes` com o N do treino, contado no treino); os outros ficam de fora sem dar erro, e o `n_contratos_perda` diz quantos entraram.
-- [ ] O registo no MLflow (`registo_bert.py`) grava a `perda_validacao` de cada época com o passo = a época, ao lado da `perda_treino`.
-- [ ] Um teste com o modelo minúsculo confirma o valor contra uma conta feita à mão, e outro confirma que um contrato com uma etiqueta fora do treino fica de fora. Cada teste falha quando se estraga de propósito o que ele guarda.
-- [ ] Fica escrito que é só informação: quem decide continua a ser o top-5 no código completo (E5-S1 e E5-T6). A perda e o top-5 podem discordar (a perda pode subir com o top-5 ainda a melhorar, quando o modelo fica confiante demais nos erros).
+- [x] No fim de cada época, o treino calcula a perda na validação a partir dos *logits* que já calcula para as pontuações (sem uma segunda passagem pela validação), e grava `perda_validacao` e `n_contratos_perda` no `epoca.json` dessa época.
+- [x] Só entram os contratos da validação cuja etiqueta existe no treino, depois da mesma regra dos códigos raros do treino (`collapse_rare_codes` com o N do treino, contado no treino); os outros ficam de fora sem dar erro, e o `n_contratos_perda` diz quantos entraram.
+- [x] O registo no MLflow (`registo_bert.py`) grava a `perda_validacao` de cada época com o passo = a época, ao lado da `perda_treino`.
+- [x] Um teste com o modelo minúsculo confirma o valor contra uma conta feita à mão, e outro confirma que um contrato com uma etiqueta fora do treino fica de fora. Cada teste falha quando se estraga de propósito o que ele guarda.
+- [x] Fica escrito que é só informação: quem decide continua a ser o top-5 no código completo (E5-S1 e E5-T6). A perda e o top-5 podem discordar (a perda pode subir com o top-5 ainda a melhorar, quando o modelo fica confiante demais nos erros).
+
+**Resultado:** `bert.validation_labels` dá a etiqueta de cada contrato da validação (o código, senão a classe, senão o grupo, se for uma etiqueta do treino; senão fica de fora) e `bert.cross_entropy` a perda média, a partir das pontuações de cada época; o `epoca.json` e o `por_epoca` do `treino.json` gravam `perda_validacao` e `n_contratos_perda`, e o `registo_bert.py` regista as duas por época (passo = época). Os treinos antigos registam-se sem elas. A nota de que é só informação está na descrição do `registo_bert.py`. Testes verificados por mutação.
 
 **Nota:** o E5-T4 e o E5-T5 ficam sem esta curva (as pontuações do E5-T4 perderam-se com o pod). Os treinos do E5-S1 repetem a configuração de cada um, por isso a curva dos dois aparece aí.
 
@@ -915,7 +917,7 @@ E5-T1 ───────────────────────┴�
                                                                                                           └──> [um ganha] E5-H1
 ```
 
-- O E5-T1 a E5-T5 estão feitos (no E5-T4 o sinal 1 falhou, aceite pelo utilizador; no E5-T5 passou). O próximo é o E5-T7; a decisão pendente 1 (teto de gastos) ficou fechada em 20 $.
+- O E5-T1 a E5-T5 e o E5-T7 estão feitos (no E5-T4 o sinal 1 falhou, aceite pelo utilizador; no E5-T5 passou). O próximo é o E5-S1; a decisão pendente 1 (teto de gastos) ficou fechada em 20 $.
 - O E5-T1 não dependia de nada nem de GPU. O E5-T2 esperou pelo E4-T5, porque usa as mesmas verificações que recusam o teste, e o E5-T3 pelo E5-T2, porque regista os treinos desse código.
 - O E5-T4 vem antes do E5-T5 porque o código é o mesmo: um erro apanhado no primeiro modelo não se paga duas vezes.
 - O E5-S1 só arranca com o custo de uma época medido no E5-T4 e no E5-T5, para confirmar que a grelha cabe no teto de gastos.

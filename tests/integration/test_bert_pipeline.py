@@ -255,6 +255,71 @@ def test_sugestoes_da_raiz_sao_as_da_ultima_epoca(treinado):
             pd.read_parquet(ultima / tt.suggestions_file(tau)))
 
 
+# --- E5-T7: a perda na validação de cada época, das pontuações gravadas ---
+
+def _perda_a_mao(pontuacoes, etiquetas, classes):
+    """Entropia cruzada média pela `CrossEntropyLoss` do torch (outra implementação, para conferir)."""
+    linhas = [i for i, e in enumerate(etiquetas) if e is not None]
+    alvo = torch.tensor([list(classes).index(etiquetas[i]) for i in linhas])
+    x = torch.from_numpy(pontuacoes[linhas].astype(np.float64))
+    return torch.nn.functional.cross_entropy(x, alvo).item(), len(linhas)
+
+
+# A etiqueta de cada contrato da validação do `treinado`, escrita à mão a partir da regra do treino
+# (N = 2): o 33141100 sobe para a classe 33140000; o 34110000 saiu do treino (nem código, nem
+# classe 3411, nem grupo 341 são etiquetas); o 45000000 é uma divisão
+ETIQUETAS_VAL = {"v-papel": "30192000", "v-novo": None, "v-limpeza": "90911200", "v-seringas": "33140000",
+                 "v-obras": None}
+
+
+def test_perda_na_validacao_de_cada_epoca_confere_com_a_conta_a_mao(treinado):
+    classes = _classes(treinado)
+    etiquetas = [ETIQUETAS_VAL[i] for i in treinado["val_df"]["idcontrato"]]
+    por_epoca = {e["epoca"]: e for e in treinado["resumo"]["por_epoca"]}
+    for k in range(1, EPOCAS + 1):
+        pont = np.load(treinado["pontuacoes"] / tb.scores_file(k))
+        esperada, n = _perda_a_mao(pont, etiquetas, classes)
+        gravado = json.loads((treinado["saida"] / tb.epoch_dir(k) / tb.EPOCA_INFO).read_text(encoding="utf-8"))
+        assert gravado["perda_validacao"] == pytest.approx(esperada, rel=1e-9)
+        assert gravado["n_contratos_perda"] == n == 3
+        # O treino.json leva os mesmos dois campos no por_epoca
+        assert (por_epoca[k]["perda_validacao"], por_epoca[k]["n_contratos_perda"]) == \
+            (gravado["perda_validacao"], gravado["n_contratos_perda"])
+    # As épocas são diferentes: a perda é mesmo a de cada época, não sempre a mesma
+    assert por_epoca[1]["perda_validacao"] != por_epoca[EPOCAS]["perda_validacao"]
+
+
+def test_contrato_com_etiqueta_fora_do_treino_fica_de_fora_da_perda(treinado):
+    # O v-novo (34110000) e o v-obras (divisão) não têm etiqueta no treino: a perda é a média só dos
+    # outros 3, e não dá erro. Com eles a contar (por exemplo, com a etiqueta de outro contrato) a
+    # média seria outra.
+    classes = _classes(treinado)
+    val = treinado["val_df"]
+    assert len(val) == 5
+    k = EPOCAS
+    pont = np.load(treinado["pontuacoes"] / tb.scores_file(k))
+    gravado = json.loads((treinado["saida"] / tb.epoch_dir(k) / tb.EPOCA_INFO).read_text(encoding="utf-8"))
+    dentro = [i for i, c in enumerate(val["idcontrato"]) if ETIQUETAS_VAL[c] is not None]
+    so_os_outros = [ETIQUETAS_VAL[val["idcontrato"].iloc[i]] for i in dentro]
+    esperada, n = _perda_a_mao(pont[dentro], so_os_outros, classes)
+    assert gravado["n_contratos_perda"] == n == 3 < len(val)
+    assert gravado["perda_validacao"] == pytest.approx(esperada, rel=1e-9)
+    com_todos = [ETIQUETAS_VAL[c] or "30192000" for c in val["idcontrato"]]
+    assert gravado["perda_validacao"] != pytest.approx(_perda_a_mao(pont, com_todos, classes)[0], rel=1e-6)
+
+
+def test_validacao_sem_nenhum_contrato_com_etiqueta_grava_perda_none(tmp_path, run_pipeline, treinado):
+    # Todos os contratos da validação com códigos que o treino não tem: o treino corre na mesma,
+    # com perda_validacao None e n_contratos_perda 0
+    val = [(2025, "v-1", datetime(2025, 10, 2), "Automóveis novos", None, None, "34110000-0 - Viaturas"),
+           (2025, "v-2", datetime(2025, 10, 3), "Obras", None, None, "45000000-0 - Obras")]
+    run_pipeline(tmp_path, TREINO + val + TESTE)
+    _treinar(tmp_path, tmp_path / "out" / "treino.parquet", tmp_path / "out" / "validacao.parquet",
+             treinado["modelo"], epocas=1)
+    r = json.loads((tmp_path / "saida" / tt.RESUMO).read_text(encoding="utf-8"))
+    assert [(e["perda_validacao"], e["n_contratos_perda"]) for e in r["por_epoca"]] == [(None, 0)]
+
+
 # --- Critério 6: um checkpoint por época, que se pode carregar e dá as mesmas pontuações ---
 
 def test_um_checkpoint_por_epoca_com_a_traducao_numero_codigo(treinado):
@@ -328,6 +393,10 @@ def test_treino_retomado_da_o_mesmo_que_sem_interrupcao(treinado, tmp_path, monk
     assert [(e["epoca"], e["checkpoint"]) for e in r["por_epoca"]] == \
         [(e["epoca"], e["checkpoint"]) for e in treinado["resumo"]["por_epoca"]]
     assert all(e["perda_treino"] is not None for e in r["por_epoca"])
+    # A perda na validação também, a da 1.ª época lida do seu epoca.json (E5-T7)
+    assert [e["n_contratos_perda"] for e in r["por_epoca"]] == [3] * EPOCAS
+    np.testing.assert_allclose([e["perda_validacao"] for e in r["por_epoca"]],
+                               [e["perda_validacao"] for e in treinado["resumo"]["por_epoca"]], rtol=1e-5)
 
 
 @pytest.mark.parametrize("outro", [{"lote": 1}, {"epocas": EPOCAS + 1}, {"semente": 5}, {"taus": (0.0,)},
