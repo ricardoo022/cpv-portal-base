@@ -839,6 +839,18 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 
 **Custo:** 3 taxas × 3 N dão 9 treinos por modelo, 18 ao todo. O custo calcula-se com o custo por época medido no E5-T4 e no E5-T5, vezes E. Se passar o teto de gastos, encolhe-se a grelha (primeiro menos valores de N), e isso fica escrito como limitação. **Medido no E5-T4:** cerca de 0,83 $ por treino de 3 épocas do BERTimbau; os 18 treinos dariam cerca de 15 $, e com o primeiro treino do Albertina e as 4 sementes o total passa o que sobra do teto. A grelha final escreve-se depois do ensaio de custo do E5-T5 (decisão pendente 3 do E5).
 
+**Grelha final (decisão do utilizador, 14 de novembro de 2026), escrita antes de criar o YAML:**
+
+- **Modelos:** BERTimbau e Albertina.
+- **Taxas de aprendizagem:** 2e-5, 3e-5 e 5e-5. Fonte: Devlin et al. (2019), apêndice A.3, que dá exatamente esta lista. O 2e-5 é a taxa do primeiro treino de cada modelo, por isso é o controlo.
+- **N:** só 10 (o do TF-IDF, E4-S1). **Limitação:** o N não é testado; foi o primeiro corte, como este item manda, porque a grelha completa (3 taxas × 3 N × 2 modelos) custava cerca de 21,9 $ e sobravam cerca de 15,2 $ do teto.
+- **E (épocas máximas):** 3, o do primeiro treino de cada modelo; avaliam-se as épocas 1, 2 e 3 de cada treino.
+- **τ:** 0, 0,25 e 0,5 (a lista do E4-S1; 0,25 é o do TF-IDF, E4-S4; 0 é sem correção).
+- **Combinações:** 3 taxas × 3 épocas × 3 τ = **27 por modelo**, 54 ao todo, de **6 treinos** na GPU.
+- **Sementes:** a semente 0 em toda a grelha; o vencedor de cada modelo repete com as sementes 1 e 2 (4 treinos extra).
+- **Tolerância do controlo:** 0,5 pontos percentuais no top-5 no código completo (τ = 0,25, última época) contra o E5-T4 (73,39%) e o E5-T5 (76,98%). Escolhida sem medir a variação real da GPU.
+- **Custo calculado:** 3 × 0,83 $ + 3 × 1,60 $ = 7,29 $ da grelha, mais 4,86 $ das sementes, mais cerca de 1,37 $ de um pod, dá cerca de 13,5 $, dentro dos cerca de 15,17 $ que sobram.
+
 **Depende de:** E5-T4 e E5-T5 (o primeiro treino de cada modelo passou os dois sinais de erro e deu o custo de uma época), E5-T3 (cada treino fica registado) e E5-T7 (cada treino grava a perda na validação). A janela de treino é a de 2022 (E4-S2 e E4-S6).
 
 **Antes de correr** (as verificações do E4-S2):
@@ -937,8 +949,8 @@ E5-T1 ───────────────────────┴�
 ### Decisões pendentes do E5
 
 1. **Teto de gastos em GPU** para o épico todo. **Fechada, decisão do utilizador (6 de novembro de 2026): 20 $.** É um valor escolhido antes de medir o custo de uma época; o ensaio do E5-T4 diz se chega para o épico todo, e a regra do E5-S1 mantém-se (se a grelha não couber, encolhe-se). **Medido no E5-T4: não chega para os 24 treinos planeados** (ver a medida de sucesso 5), por isso a grelha do E5-S1 vai encolher.
-2. **Desempate entre o BERTimbau e o Albertina**, se os dois baterem o TF-IDF e empatarem entre si. Tem de estar fechado antes do E5-S1. Proposta: fica o que demora menos a treinar por época (medido no E5-T4 e no E5-T5).
-3. **Os valores da grelha** (taxas, N e τ; o E é o do primeiro treino): escrevem-se no E5-S1, com a fonte de cada um e o número de combinações, antes de criar o YAML.
+2. **Desempate entre o BERTimbau e o Albertina**, se os dois baterem o TF-IDF e empatarem entre si. Tem de estar fechado antes do E5-S1. Proposta: fica o que demora menos a treinar por época (medido no E5-T4 e no E5-T5). **Decisão do utilizador (14 de novembro de 2026): não se fixa uma regra antes; se acontecer, analisam-se os resultados e decide-se nessa altura.** Fica escrito como limitação: é uma escolha feita depois de ver os resultados, ao contrário do que este item pedia.
+3. **Os valores da grelha** (taxas, N e τ; o E é o do primeiro treino): escrevem-se no E5-S1, com a fonte de cada um e o número de combinações, antes de criar o YAML. **Fechada (14 de novembro de 2026):** N = 10, taxas 2e-5, 3e-5 e 5e-5, E = 3, τ 0, 0,25 e 0,5; a lista está no E5-S1. A proposta de E = 6 não foi adotada (não cabia no teto com as sementes).
    - **Decisão do utilizador (7 de novembro de 2026):** a grelha decide-se só depois do ensaio de custo do E5-T5, com o custo real dos dois modelos e o dinheiro que sobrar. O corte começa pelos valores de N, como o E5-S1 já diz; o τ e as épocas até E não pedem treinos extra e testam-se sempre todos.
    - **Proposta, ainda não decidida, surgida depois de ver o E5-T4:** fixar N = 10 (o do TF-IDF, E4-S1) e usar o dinheiro poupado para um E maior, por exemplo 6 em vez de 3. Porquê: o E5-S1 justifica testar as épocas com as etiquetas raras do TF-IDF, que precisaram de muitas épocas, mas a regra do E máximo deixa-o nas 3 do primeiro treino. No E5-T4, o ganho da época 2 para a 3 foi de só 1,02 pontos, mas a taxa desce até zero no fim, por isso isso não mostra que mais épocas não ajudavam (secção 22 do [`qualidade_dados.md`](qualidade_dados.md)). Com N = 10 e E = 6, 3 taxas × 2 modelos dão 6 treinos, cerca de 10 $ ao custo do BERTimbau. Se se adotar, a mudança à regra do E máximo diz-se como feita depois de ver o resultado.
 4. **Portão para os modelos tunados.** O portão do E4-T5 recusa qualquer descida, porque o TF-IDF dá sempre os mesmos números. O treino em GPU pode variar entre sementes, e a E5-T6 decide com 3 sementes e o bootstrap. Tem de ficar escrito, antes da E5-T6, como o portão compara um modelo tunado com o campeão (qualquer descida, ou a regra da E5-T6).

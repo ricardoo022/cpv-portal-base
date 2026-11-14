@@ -4,6 +4,9 @@ Os primeiros testes escrevem à mão as opções dos `experiencias/e4_s5.yaml` (
 `experiencias/e4_s1.yaml` (modo `grelha`), `experiencias/e4_s3.yaml` (modo `entidade`) e
 `experiencias/e4_s2.yaml` (modo `janela`), as do backlog: se alguém mudar uma lista depois de ver resultados, o teste falha e a mudança tem de ficar
 explícita.
+
+No fim, o mesmo para o `experiencias/e5_s1.yaml` (grelha do BERT, E5-S1), que o script não lê: os
+treinos correm à mão no pod com os `comando` do YAML, e o teste confere as flags de cada um.
 """
 
 import sys
@@ -380,3 +383,92 @@ def test_o_yaml_do_e4_s6_tem_as_opcoes_do_backlog():
     ]
     assert exp["grupo"] == "texto_novo_na_janela_mais_longa"
     assert exp["saida"] == "metrics/e4_s6"
+
+
+E5_S1 = RAIZ / "experiencias" / "e5_s1.yaml"
+PREFIXO_ALBERTINA = "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True"
+
+
+def _flags_do_comando(comando):
+    """Separa um `make treinar-bert ...` do YAML em (variáveis de ambiente, variáveis do make, flags do ARGS)."""
+    import shlex
+
+    partes = shlex.split(comando)
+    ambiente = {}
+    while partes[0] != "make":
+        nome, valor = partes.pop(0).split("=", 1)
+        ambiente[nome] = valor
+    assert partes[1] == "treinar-bert", comando
+    variaveis = dict(p.split("=", 1) for p in partes[2:])
+    args = shlex.split(variaveis.pop("ARGS"))
+    flags = {}
+    for a in args:
+        if a.startswith("--"):
+            atual = a
+            flags[atual] = []
+        else:
+            flags[atual].append(a)
+    return ambiente, variaveis, flags
+
+
+def test_o_yaml_do_e5_s1_tem_as_opcoes_do_backlog():
+    # A grelha final do E5-S1 (decisão do utilizador de 14 de novembro de 2026), escrita à mão a
+    # partir do backlog: se alguém a mudar depois de ver resultados, este teste falha.
+    import yaml
+
+    from cpv_data import MAX_YAML
+
+    texto = E5_S1.read_text(encoding="utf-8")
+    assert len(texto) < MAX_YAML  # vai inteiro para uma tag do MLflow
+    exp = yaml.safe_load(texto)
+    assert exp["item"] == "E5-S1"
+    assert exp["saida"] == "metrics/e5_s1"
+    g = exp["grelha"]
+    assert g["taxas_aprendizagem"] == [2e-5, 3e-5, 5e-5]
+    assert all(isinstance(t, float) for t in g["taxas_aprendizagem"])  # "2e-5" sem ponto seria texto
+    assert g["n_min"] == [10]
+    assert g["epocas_max"] == 3
+    assert g["epocas_avaliadas"] == [1, 2, 3]
+    assert g["taus"] == [0.0, 0.25, 0.5]
+    assert all(isinstance(t, float) for t in g["taus"])
+    assert (g["treinos_por_modelo"], g["treinos"]) == (3, 6)
+    assert (g["combinacoes_por_modelo"], g["combinacoes"]) == (27, 54)
+    assert g["combinacoes_por_modelo"] == len(g["taxas_aprendizagem"]) * len(g["n_min"]) * g["epocas_max"] * len(g["taus"])
+    assert exp["em_vigor"] == {"taxa_aprendizagem": 2e-5, "n_min": 10, "epoca": 3, "tau": 0.25}
+    assert exp["controlo"]["tolerancia_pontos_percentuais"] == 0.5
+    assert exp["sementes"] == {"grelha": 0, "vencedor": [1, 2]}
+    assert {m: v["top5_codigo_primeiro_treino"] for m, v in exp["modelos"].items()} == {
+        "bertimbau": 73.39, "albertina": 76.98}
+    f = exp["fixos"]
+    assert (f["lote"], f["aquecimento"], f["decaimento_pesos"], f["max_length"]) == (32, 0.1, 0.01, 256)
+
+    nomes = [f"{m}_taxa_{t}_semente_0" for m in ("bertimbau", "albertina") for t in ("2e-5", "3e-5", "5e-5")]
+    assert [t["nome"] for t in exp["treinos"]] == nomes
+    assert exp["controlo"]["treinos"] == ["bertimbau_taxa_2e-5_semente_0", "albertina_taxa_2e-5_semente_0"]
+    # models/bert/<último nome da saída>/ guarda os checkpoints: cada treino na sua pasta
+    assert len({Path(t["saida"]).name for t in exp["treinos"]}) == 6
+    for t in exp["treinos"]:
+        assert t["saida"] == f"metrics/e5_s1/{t['nome']}"
+        assert isinstance(t["taxa"], float) and t["taxa"] in g["taxas_aprendizagem"]
+        assert t["semente"] == 0
+        assert "teste" not in t["comando"]
+        ambiente, variaveis, flags = _flags_do_comando(t["comando"])
+        assert ambiente == ({"PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"}
+                            if t["modelo"] == "albertina" else {})
+        assert variaveis == {"MODELO": t["modelo"], "SAIDA": t["saida"]}
+        assert flags == {
+            "--n-min": ["10"], "--taus": ["0.0", "0.25", "0.5"], "--max-length": ["256"],
+            "--taxa-aprendizagem": [flags["--taxa-aprendizagem"][0]], "--lote": ["32"], "--epocas": ["3"],
+            "--aquecimento": ["0.1"], "--decaimento-pesos": ["0.01"], "--semente": ["0"],
+            "--experiencia": ["experiencias/e5_s1.yaml"]}
+        assert float(flags["--taxa-aprendizagem"][0]) == t["taxa"]
+        assert [float(x) for x in flags["--taus"]] == g["taus"]
+        assert (int(flags["--n-min"][0]), int(flags["--epocas"][0])) == (g["n_min"][0], g["epocas_max"])
+        assert (int(flags["--lote"][0]), int(flags["--max-length"][0])) == (f["lote"], f["max_length"])
+        assert (float(flags["--aquecimento"][0]), float(flags["--decaimento-pesos"][0])) == (
+            f["aquecimento"], f["decaimento_pesos"])
+    assert sorted((t["modelo"], t["taxa"]) for t in exp["treinos"]) == sorted(
+        (m, x) for m in ("bertimbau", "albertina") for x in g["taxas_aprendizagem"])
+    s = exp["comando_sementes"]
+    assert "teste" not in s and "--experiencia experiencias/e5_s1.yaml" in s
+    assert "--semente <semente>" in s and "--taus 0.0 0.25 0.5" in s

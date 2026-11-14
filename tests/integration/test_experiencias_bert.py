@@ -133,3 +133,36 @@ def test_comando_do_sinal_decorar_passa_os_valores_do_yaml(exp, YAML, monkeypatc
     assert kw["max_length"] == exp["modelo"]["max_length"]
     assert kw["modelo"] == exp["modelo"]["nome_curto"]
     assert Path(kw["experiencia"]).resolve() == YAML
+
+
+# E5-S1: os 6 treinos da grelha passam pelo Makefile e pelo argparse verdadeiro, como os do E5-T4/T5
+E5_S1 = RAIZ / "experiencias" / "e5_s1.yaml"
+_EXP_S1 = yaml.safe_load(E5_S1.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("treino", _EXP_S1["treinos"], ids=lambda t: t["nome"])
+def test_comandos_da_grelha_do_e5_s1_passam_os_valores_do_yaml(treino, monkeypatch):
+    comando = treino["comando"]
+    # O Albertina corre com a variável do E5-T5 à frente do make; o resto é igual
+    prefixo = "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True "
+    if treino["modelo"] == "albertina":
+        assert comando.startswith(prefixo)
+        comando = comando[len(prefixo):]
+    args, kw = _argumentos_do_run(comando, train_bert, monkeypatch, devolve=None)
+    treino_p, validacao_p, saida = (Path(a) for a in args)  # run(train_path, val_path, out_dir, ...)
+    f, g = _EXP_S1["fixos"], _EXP_S1["grelha"]
+    assert kw["modelo"] == treino["modelo"]
+    assert kw["taxa_aprendizagem"] == treino["taxa"]
+    assert kw["semente"] == treino["semente"] == _EXP_S1["sementes"]["grelha"]
+    assert kw["epocas"] == g["epocas_max"]
+    assert [kw["n_min"]] == g["n_min"]
+    assert list(kw["taus"]) == g["taus"]
+    assert (kw["lote"], kw["aquecimento"], kw["decaimento_pesos"]) == (
+        f["lote"], f["aquecimento"], f["decaimento_pesos"])
+    assert kw["max_length"] == f["max_length"] == bert_models.COMPRIMENTO_MAXIMO[treino["modelo"]]
+    assert saida.resolve() == (RAIZ / treino["saida"]).resolve()
+    assert (treino_p.resolve(), validacao_p.resolve()) == (
+        (RAIZ / _EXP_S1["dados"]["treino"]).resolve(), (RAIZ / _EXP_S1["dados"]["validacao"]).resolve())
+    assert Path(kw["experiencia"]).resolve() == E5_S1
+    assert kw["max_passos"] is None
+    assert "teste" not in str(treino_p) + str(validacao_p)

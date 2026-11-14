@@ -6,7 +6,7 @@ PYTEST := .venv/bin/pytest
 JUPYTER := .venv/bin/jupyter
 
 .DEFAULT_GOAL := help
-.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens setup-gpu verificar-gpu treinar-bert registar-bert sugerir-bert test-bert sinal-decorar
+.PHONY: help setup dados preparar preparar-janela test test-unit test-integracao test-preparacao test-avaliacao test-tfidf notebook regua treinar-tfidf sugerir portao mlflow historico tfidf afinacao epocas grelha entidade janela janela-24 tokens grelha-bert setup-gpu verificar-gpu treinar-bert registar-bert sugerir-bert test-bert sinal-decorar
 
 help: ## Mostra esta lista
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-18s %s\n", $$1, $$2}'
@@ -47,8 +47,8 @@ test-integracao: ## Só o teste do pipeline inteiro: .xlsx inventados -> treino,
 test-preparacao: ## Testes das regras dos dados: códigos CPV, códigos raros, prepare.py
 	$(PYTEST) -q tests/unit/test_cpv_data.py tests/unit/test_labels.py tests/unit/test_prepare.py
 
-test-avaliacao: ## Testes das notas aos modelos, do bootstrap e da régua (evaluation.py, comparison.py, baselines.py)
-	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py
+test-avaliacao: ## Testes das notas aos modelos, do bootstrap, da régua e da grelha do BERT (evaluation.py, comparison.py, baselines.py, grelha_bert.py)
+	$(PYTEST) -q tests/unit/test_evaluation.py tests/unit/test_comparison.py tests/unit/test_baselines.py tests/unit/test_grelha_bert.py
 
 test-bert: ## Testes do BERT (E5-T2 a E5-T5) com modelos minúsculos de pesos aleatórios, só no processador
 	$(PYTEST) -q tests/unit/test_bert.py tests/unit/test_train_bert_git.py tests/unit/test_registo_bert.py tests/unit/test_requisitos.py tests/integration/test_bert_pipeline.py tests/integration/test_makefile_bert.py tests/integration/test_suggest_bert.py tests/integration/test_sinal_decorar.py tests/integration/test_experiencias_bert.py
@@ -113,3 +113,6 @@ janela-24: ## Volta a correr o notebook da janela desde 2019 com 24 épocas (pre
 
 tokens: ## Volta a correr o notebook do comprimento dos textos em tokens (E5-T1; descarrega os tokenizadores do Hugging Face, ~3 min; precisa de "make preparar")
 	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 11_comprimento_tokens.ipynb
+
+grelha-bert: ## Volta a correr o notebook da grelha taxa × épocas × τ do BERT (E5-S1; precisa de metrics/e5_s1/ copiado do pod e de "make preparar")
+	cd notebooks && ../$(JUPYTER) nbconvert --to notebook --execute --inplace 12_bert_grelha.ipynb

@@ -1,0 +1,159 @@
+# Spike E5-S1 (docs/backlog.md): grelha taxa x épocas x τ do BERTimbau e do Albertina. Pré-registo:
+# escrito ANTES de correr, não muda depois de ver resultados. Só REGISTA (`--experiencia
+# experiencias/e5_s1.yaml` vai para o treino.json e o MLflow); quem treina são as flags de cada
+# `comando`. Abaixo de 8000 carateres (MAX_YAML). Números com ponto (2.0e-5): o PyYAML lê 2e-5 como texto.
+# Fontes (grelha final: decisão do utilizador de 14 de novembro de 2026, escrita no E5-S1):
+# - taxas: Devlin et al. (2019), arxiv.org/abs/1810.04805, apêndice A.3 (exatamente 5e-5, 3e-5, 2e-5);
+#   2e-5 é a do primeiro treino de cada modelo (E5-T4, E5-T5): é o controlo;
+# - τ: a lista do E4-S1 (0.25 do TF-IDF, E4-S4; 0 sem correção), correção de Menon et al. (2021);
+#   só reordena as pontuações gravadas, sem treinos extra;
+# - N = 10: o do E4-S1; E = 3: o do primeiro treino de cada modelo.
+
+item: E5-S1
+data: 2026-11-14
+saida: metrics/e5_s1
+
+# top5_codigo_primeiro_treino: %, código completo, τ = 0.25, última época, todos os 23 945 contratos
+# da validação (secções 22 e 23 do qualidade_dados.md; refeito em tests/integration/test_registo_e5_t*.py)
+modelos:
+  bertimbau:
+    nome: neuralmind/bert-base-portuguese-cased
+    revisao: 94d69c95f98f7d5b2a8700c420230ae10def0baa  # src/bert_models.py
+    primeiro_treino: metrics/bert/e5_t4_bertimbau
+    top5_codigo_primeiro_treino: 73.39
+  albertina:
+    nome: PORTULAN/albertina-100m-portuguese-ptpt-encoder
+    revisao: d15e086005cdab26d746d9113984cc654439df2b  # src/bert_models.py
+    primeiro_treino: metrics/bert/e5_t5_albertina
+    top5_codigo_primeiro_treino: 76.98
+
+dados:
+  janela: 2022      # E4-S2 e E4-S6
+  treino: data/processed/treino.parquet
+  validacao: data/processed/validacao.parquet
+
+grelha:
+  taxas_aprendizagem: [2.0e-5, 3.0e-5, 5.0e-5]
+  n_min: [10]
+  epocas_max: 3
+  epocas_avaliadas: [1, 2, 3]   # o modelo gravado no fim da época k de um treino de 3
+  taus: [0.0, 0.25, 0.5]
+  # Por época (<saida>/epoca_<k>/) e na última (<saida>/): sugestoes_validacao.parquet (τ = 0),
+  # sugestoes_validacao_tau0.25.parquet e sugestoes_validacao_tau0.5.parquet
+  treinos_por_modelo: 3
+  treinos: 6
+  combinacoes_por_modelo: 27    # 3 taxas x 3 épocas x 3 τ
+  combinacoes: 54
+
+fixos:   # os do primeiro treino de cada modelo (e5_t4.yaml, e5_t5.yaml), iguais em toda a grelha
+  lote: 32
+  aquecimento: 0.1
+  decaimento_pesos: 0.01
+  descida_da_taxa: linear  # src/bert.py, sem flag
+  max_length: 256          # bert_models.COMPRIMENTO_MAXIMO
+  precisao: fp32
+  otimizador: adamw        # o do Trainer, sem flag
+  dropout: 0.1             # o da configuração do modelo, sem flag
+
+em_vigor:   # a opção a bater: última época do primeiro treino do modelo
+  taxa_aprendizagem: 2.0e-5
+  n_min: 10
+  epoca: 3
+  tau: 0.25
+
+controlo:   # o treino de taxa 2e-5 de cada modelo repete o E5-T4 / E5-T5
+  treinos: [bertimbau_taxa_2e-5_semente_0, albertina_taxa_2e-5_semente_0]
+  metrica: top-5 código completo, τ 0.25, última época, todos os contratos da validação
+  tolerancia_pontos_percentuais: 0.5
+  # Escolhida sem medir a variação real da GPU. Fora dela, nada se conclui antes de a explicar.
+
+regra: >-
+  A do E4-S1: cada (taxa, N, época, τ) é uma opção; vence a de melhor top-5 no código completo,
+  se não perder o top-5 na classe (guarda, bootstrap emparelhado) e bater a em_vigor pela regra do
+  E4-T1. Empate: fica a em_vigor. Vencedor num extremo da lista é limitação. Com 27 opções por
+  modelo, o número do vencedor é otimista (viés de seleção): confirma-se no teste, na fase 5.
+
+sementes:
+  grelha: 0
+  vencedor: [1, 2]   # o vencedor de cada modelo repete (mesma configuração, E = 3); 4 treinos extra
+
+limitacoes:
+  - N não é testado (só 10), o primeiro corte do E5-S1; a grelha completa custava cerca de 21.9 $
+    e sobravam cerca de 15.2 $.
+  - Desempate entre modelos (decisão pendente 2) decide-se depois de ver os resultados, por
+    decisão do utilizador de 14 de novembro de 2026.
+
+custo:   # $, RTX 4090 a 0.89 $/h; por treino de 3 épocas: 0.83 BERTimbau, 1.60 Albertina
+  grelha: 7.29       # 3 x 0.83 + 3 x 1.60
+  sementes: 4.86
+  pod: 1.37          # cerca de
+  total: 13.5        # cerca de
+  sobra_do_teto: 15.17   # teto 20 $, gastos 4.83 $
+
+# Albertina com PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (E5-T5 reservou 21.7 de 24.5 GB).
+# Checkpoints e pontuações em models/bert/<último nome da saida>/: um por treino.
+treinos:
+  - nome: bertimbau_taxa_2e-5_semente_0
+    modelo: bertimbau
+    taxa: 2.0e-5
+    semente: 0
+    saida: metrics/e5_s1/bertimbau_taxa_2e-5_semente_0
+    comando: >-
+      make treinar-bert MODELO=bertimbau SAIDA=metrics/e5_s1/bertimbau_taxa_2e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+  - nome: bertimbau_taxa_3e-5_semente_0
+    modelo: bertimbau
+    taxa: 3.0e-5
+    semente: 0
+    saida: metrics/e5_s1/bertimbau_taxa_3e-5_semente_0
+    comando: >-
+      make treinar-bert MODELO=bertimbau SAIDA=metrics/e5_s1/bertimbau_taxa_3e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 3e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+  - nome: bertimbau_taxa_5e-5_semente_0
+    modelo: bertimbau
+    taxa: 5.0e-5
+    semente: 0
+    saida: metrics/e5_s1/bertimbau_taxa_5e-5_semente_0
+    comando: >-
+      make treinar-bert MODELO=bertimbau SAIDA=metrics/e5_s1/bertimbau_taxa_5e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 5e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+  - nome: albertina_taxa_2e-5_semente_0
+    modelo: albertina
+    taxa: 2.0e-5
+    semente: 0
+    saida: metrics/e5_s1/albertina_taxa_2e-5_semente_0
+    comando: >-
+      PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      make treinar-bert MODELO=albertina SAIDA=metrics/e5_s1/albertina_taxa_2e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 2e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+  - nome: albertina_taxa_3e-5_semente_0
+    modelo: albertina
+    taxa: 3.0e-5
+    semente: 0
+    saida: metrics/e5_s1/albertina_taxa_3e-5_semente_0
+    comando: >-
+      PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      make treinar-bert MODELO=albertina SAIDA=metrics/e5_s1/albertina_taxa_3e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 3e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+  - nome: albertina_taxa_5e-5_semente_0
+    modelo: albertina
+    taxa: 5.0e-5
+    semente: 0
+    saida: metrics/e5_s1/albertina_taxa_5e-5_semente_0
+    comando: >-
+      PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      make treinar-bert MODELO=albertina SAIDA=metrics/e5_s1/albertina_taxa_5e-5_semente_0
+      ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem 5e-5 --lote 32
+      --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente 0 --experiencia experiencias/e5_s1.yaml"
+
+# Sementes 1 e 2 do vencedor de cada modelo (só se conhece depois de correr): <modelo> e <taxa> do
+# vencedor (taxa como na grelha: 2e-5, 3e-5 ou 5e-5), <semente> 1 ou 2; Albertina com o prefixo acima.
+comando_sementes: >-
+  make treinar-bert MODELO=<modelo> SAIDA=metrics/e5_s1/<modelo>_taxa_<taxa>_semente_<semente>
+  ARGS="--n-min 10 --taus 0.0 0.25 0.5 --max-length 256 --taxa-aprendizagem <taxa> --lote 32
+  --epocas 3 --aquecimento 0.1 --decaimento-pesos 0.01 --semente <semente> --experiencia experiencias/e5_s1.yaml"
