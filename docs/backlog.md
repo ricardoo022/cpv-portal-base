@@ -850,6 +850,7 @@ Se falhar um destes sinais, o modelo está mal: para-se e procura-se o erro dura
 - **Sementes:** a semente 0 em toda a grelha; o vencedor de cada modelo repete com as sementes 1 e 2 (4 treinos extra).
 - **Tolerância do controlo:** 0,5 pontos percentuais no top-5 no código completo (τ = 0,25, última época) contra o E5-T4 (73,39%) e o E5-T5 (76,98%). Escolhida sem medir a variação real da GPU.
 - **Custo calculado:** 3 × 0,83 $ + 3 × 1,60 $ = 7,29 $ da grelha, mais 4,86 $ das sementes, mais cerca de 1,37 $ de um pod, dá cerca de 13,5 $, dentro dos cerca de 15,17 $ que sobram.
+- **Placa:** a mesma do E5-T4 e do E5-T5, uma RTX 4090 na Secure Cloud a 0,89 $/h (pod `cpv-e5-s1`, 14 de novembro de 2026, anfitrião com CUDA 13.2). A 4090 esteve esgotada alguns minutos e o utilizador aprovou passar para uma RTX 5090; essa criação falhou por falta de stock, e a 4090 voltou a ter stock antes de outra tentativa, por isso a grelha não mudou de placa.
 
 **Depende de:** E5-T4 e E5-T5 (o primeiro treino de cada modelo passou os dois sinais de erro e deu o custo de uma época), E5-T3 (cada treino fica registado) e E5-T7 (cada treino grava a perda na validação). A janela de treino é a de 2022 (E4-S2 e E4-S6).
 
