@@ -2,7 +2,7 @@ huggingface_hub==1.33.0
 ipykernel==7.3.0
 jupyter==1.1.1
 matplotlib==3.10.9
-mlflow==3.17.1
+mlflow==3.17.2
 openpyxl==3.1.5
 pandas==2.3.3
 pyarrow==25.0.1
